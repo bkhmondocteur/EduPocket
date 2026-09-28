@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const date = dateInput.value;
         const sujet = document.getElementById('sujet-seance').value.trim();
+        const statut = document.getElementById('statut-seance').value;
 
         // Validation basique de la date (longueur 10 : JJ/MM/AAAA)
         if (date.length !== 10) {
@@ -99,22 +100,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (date && sujet && currentStudentId) {
             const student = getStudent(currentStudentId);
-            student.sessions.push({ date, sujet, timestamp: Date.now() });
+            const sessionId = 'ses_' + Date.now();
+            student.sessions.push({ id: sessionId, date, sujet, statut, timestamp: Date.now() });
             
-            // Tri par ordre chronologique (du plus récent au plus ancien ou inverse, ici ordre chronologique)
-            student.sessions.sort((a, b) => {
+            saveStudent(student);
+            renderFilteredSessions();
+            formAddSession.reset();
+        }
+    });
+
+    // Filtres et Tri
+    const filterStatus = document.getElementById('filter-status');
+    const sortBy = document.getElementById('sort-by');
+
+    filterStatus.addEventListener('change', renderFilteredSessions);
+    sortBy.addEventListener('change', renderFilteredSessions);
+
+    function renderFilteredSessions() {
+        if (!currentStudentId) return;
+        const student = getStudent(currentStudentId);
+        let sessions = student.sessions || [];
+
+        // Filtrage
+        const statusFilter = filterStatus.value;
+        if (statusFilter !== 'Tous') {
+            sessions = sessions.filter(s => (s.statut || 'Planifiée') === statusFilter);
+        }
+
+        // Tri
+        const sortOption = sortBy.value;
+        sessions.sort((a, b) => {
+            if (sortOption.startsWith('date')) {
                 const partsA = a.date.split('/');
                 const partsB = b.date.split('/');
                 const dateA = new Date(partsA[2], partsA[1] - 1, partsA[0]).getTime();
                 const dateB = new Date(partsB[2], partsB[1] - 1, partsB[0]).getTime();
-                return dateA - dateB;
-            });
+                return sortOption === 'date-desc' ? dateB - dateA : dateA - dateB;
+            } else if (sortOption.startsWith('matiere')) {
+                const cmp = a.sujet.localeCompare(b.sujet);
+                return sortOption === 'matiere-asc' ? cmp : -cmp;
+            }
+            return 0;
+        });
 
-            saveStudent(student);
-            renderSessions(student.sessions);
-            formAddSession.reset();
-        }
-    });
+        renderSessionsList(sessions, student);
+    }
 
     // Persistance (localStorage)
     function saveStudent(student) {
@@ -165,20 +195,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadDashboard(student) {
         document.getElementById('student-fullname').textContent = `${student.prenom} ${student.nom}`;
         document.getElementById('student-class').textContent = student.classe;
-        renderSessions(student.sessions);
+        filterStatus.value = 'Tous';
+        sortBy.value = 'date-desc';
+        renderFilteredSessions();
     }
 
-    function renderSessions(sessions) {
+    function renderSessionsList(sessions, student) {
         const list = document.getElementById('sessions-list');
         list.innerHTML = '';
         
         if (sessions.length === 0) {
-            list.innerHTML = '<li><span style="color: #999;">Aucune séance planifiée ou faite.</span></li>';
+            list.innerHTML = '<li><span style="color: #999;">Aucune séance trouvée.</span></li>';
             return;
         }
 
         sessions.forEach(session => {
             const li = document.createElement('li');
+            
+            const header = document.createElement('div');
+            header.className = 'session-header';
             
             const spanDate = document.createElement('span');
             spanDate.className = 'session-date';
@@ -188,8 +223,39 @@ document.addEventListener('DOMContentLoaded', () => {
             spanSubject.className = 'session-subject';
             spanSubject.textContent = session.sujet;
             
-            li.appendChild(spanDate);
-            li.appendChild(spanSubject);
+            header.appendChild(spanDate);
+            header.appendChild(spanSubject);
+            
+            const actions = document.createElement('div');
+            actions.className = 'session-actions';
+            
+            const statusSelect = document.createElement('select');
+            const options = ['Planifiée', 'Effectuée', 'Annulée'];
+            options.forEach(opt => {
+                const optionEl = document.createElement('option');
+                optionEl.value = opt;
+                optionEl.textContent = opt;
+                if ((session.statut || 'Planifiée') === opt) {
+                    optionEl.selected = true;
+                }
+                statusSelect.appendChild(optionEl);
+            });
+            
+            statusSelect.addEventListener('change', (e) => {
+                // Update in DB
+                const freshStudent = getStudent(student.id);
+                const targetSession = freshStudent.sessions.find(s => s.id === session.id || s.timestamp === session.timestamp);
+                if (targetSession) {
+                    targetSession.statut = e.target.value;
+                    saveStudent(freshStudent);
+                    renderFilteredSessions();
+                }
+            });
+            
+            actions.appendChild(statusSelect);
+            
+            li.appendChild(header);
+            li.appendChild(actions);
             list.appendChild(li);
         });
     }

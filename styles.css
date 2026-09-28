@@ -231,3 +231,45 @@ h2, h3 {
     font-size: 0.8rem;
     transition: all 0.2s;
 }
+
+/* Select et filtres */
+.form-group select, .filters-container select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: var(--sidi-white);
+    color: var(--text-color);
+}
+
+.filters-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.filters-container select {
+    flex: 1;
+}
+
+/* Modifier session item pour inclure le statut */
+#sessions-list li {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.session-actions select {
+    padding: 5px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background-color: #f0f0f0;
+}

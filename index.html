@@ -61,12 +61,37 @@
                         <label for="sujet-seance">Sujet / Matière :</label>
                         <input type="text" id="sujet-seance" required>
                     </div>
-                    <button type="submit" class="btn-primary">Planifier</button>
+                    <div class="form-group">
+                        <label for="statut-seance">Statut initial :</label>
+                        <select id="statut-seance">
+                            <option value="Planifiée">Planifiée</option>
+                            <option value="Effectuée">Effectuée</option>
+                            <option value="Annulée">Annulée</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary">Ajouter</button>
                 </form>
             </div>
 
             <div class="sessions-list-container">
                 <h3>Historique des séances</h3>
+                
+                <div class="filters-container">
+                    <select id="filter-status">
+                        <option value="Tous">Tous les statuts</option>
+                        <option value="Planifiée">Planifiée</option>
+                        <option value="Effectuée">Effectuée</option>
+                        <option value="Annulée">Annulée</option>
+                    </select>
+                    
+                    <select id="sort-by">
+                        <option value="date-desc">Date (Récente d'abord)</option>
+                        <option value="date-asc">Date (Ancienne d'abord)</option>
+                        <option value="matiere-asc">Matière (A-Z)</option>
+                        <option value="matiere-desc">Matière (Z-A)</option>
+                    </select>
+                </div>
+
                 <ul id="sessions-list">
                     <!-- Les séances seront injectées ici -->
                 </ul>
