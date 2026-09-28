@@ -16,7 +16,14 @@
     <main id="app-container">
         <!-- Vue Accueil -->
         <section id="view-home" class="view active">
-            <h2>Ajouter un élève</h2>
+            <h2>Mes Élèves</h2>
+            <div id="students-list-container">
+                <ul id="saved-students-list" class="student-list">
+                    <!-- Existing students will be injected here -->
+                </ul>
+            </div>
+
+            <h2 style="margin-top: 30px;">Ajouter un nouvel élève</h2>
             <form id="form-add-student">
                 <div class="form-group">
                     <label for="nom">Nom :</label>

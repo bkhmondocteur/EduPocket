@@ -186,3 +186,48 @@ h2, h3 {
 .session-subject {
     color: var(--sidi-blue-dark);
 }
+
+/* Liste des élèves */
+.student-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.student-list li {
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid var(--border-color);
+    margin-bottom: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+    border-left: 4px solid var(--sidi-blue);
+}
+
+.student-list li:hover {
+    background: var(--sidi-blue);
+    color: var(--sidi-white);
+    border-color: var(--sidi-blue);
+}
+
+.student-list li:hover .student-class-badge {
+    background-color: var(--sidi-white);
+    color: var(--sidi-blue);
+}
+
+.student-name {
+    font-weight: bold;
+}
+
+.student-class-badge {
+    background-color: var(--sidi-blue);
+    color: var(--sidi-white);
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}

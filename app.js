@@ -47,6 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function showView(viewId) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.getElementById(viewId).classList.add('active');
+        if (viewId === 'view-home') {
+            loadStudents();
+        }
     }
 
     btnBack.addEventListener('click', () => {
@@ -126,6 +129,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Affichage UI
+    function loadStudents() {
+        const list = document.getElementById('saved-students-list');
+        list.innerHTML = '';
+        const studentsObj = JSON.parse(localStorage.getItem('edupocket_students') || '{}');
+        const students = Object.values(studentsObj);
+        
+        if (students.length === 0) {
+            list.innerHTML = '<li><span style="color: #999;">Aucun élève dans la base de données.</span></li>';
+            return;
+        }
+
+        students.forEach(student => {
+            const li = document.createElement('li');
+            li.addEventListener('click', () => {
+                currentStudentId = student.id;
+                loadDashboard(student);
+                showView('view-dashboard');
+            });
+
+            const spanName = document.createElement('span');
+            spanName.className = 'student-name';
+            spanName.textContent = `${student.prenom} ${student.nom}`;
+            
+            const spanClass = document.createElement('span');
+            spanClass.className = 'student-class-badge';
+            spanClass.textContent = student.classe;
+            
+            li.appendChild(spanName);
+            li.appendChild(spanClass);
+            list.appendChild(li);
+        });
+    }
+
     function loadDashboard(student) {
         document.getElementById('student-fullname').textContent = `${student.prenom} ${student.nom}`;
         document.getElementById('student-class').textContent = student.classe;
@@ -137,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         list.innerHTML = '';
         
         if (sessions.length === 0) {
-            list.innerHTML = '<li><span style="color: #999;">Aucune séance planifiée.</span></li>';
+            list.innerHTML = '<li><span style="color: #999;">Aucune séance planifiée ou faite.</span></li>';
             return;
         }
 
@@ -157,4 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
             list.appendChild(li);
         });
     }
+
+    // Initialisation
+    loadStudents();
 });
