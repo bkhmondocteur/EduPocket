@@ -2,7 +2,7 @@
   "name": "EduPocket",
   "short_name": "EduPocket",
   "description": "Gestion des séances de cours de rattrapage pour les élèves.",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#005A9C",

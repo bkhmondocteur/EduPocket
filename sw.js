@@ -1,11 +1,11 @@
 const CACHE_NAME = 'edupocket-v1';
 const ASSETS = [
-    '/',
-    '/index.html',
-    '/styles.css',
-    '/app.js',
-    '/manifest.json',
-    '/logo.jpg'
+    './',
+    './index.html',
+    './styles.css',
+    './app.js',
+    './manifest.json',
+    './logo.jpg'
 ];
 
 self.addEventListener('install', event => {
