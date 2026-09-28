@@ -273,3 +273,50 @@ h2, h3 {
     font-size: 0.85rem;
     background-color: #f0f0f0;
 }
+
+/* Adaptation de l'en-tête et bouton d'installation */
+.app-header {
+    justify-content: space-between;
+}
+.header-content {
+    display: flex;
+    align-items: center;
+}
+.btn-install {
+    background-color: var(--sidi-white);
+    color: var(--sidi-blue);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Design Responsif pour écrans étroits (mobiles) */
+@media screen and (max-width: 480px) {
+    #app-container {
+        padding: 15px 10px;
+    }
+    
+    .filters-container {
+        flex-direction: column;
+    }
+    
+    .session-header {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .session-actions select {
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .student-list li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

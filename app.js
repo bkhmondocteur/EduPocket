@@ -263,3 +263,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialisation
     loadStudents();
 });
+
+// Installation de la PWA
+let deferredPrompt;
+const btnInstall = document.getElementById('btn-install');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Empêcher l'affichage automatique de l'invite sur certains navigateurs
+    e.preventDefault();
+    // Sauvegarder l'événement pour le déclencher plus tard
+    deferredPrompt = e;
+    // Afficher le bouton d'installation
+    if (btnInstall) {
+        btnInstall.style.display = 'block';
+    }
+});
+
+if (btnInstall) {
+    btnInstall.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            // Afficher l'invite d'installation
+            deferredPrompt.prompt();
+            // Attendre la réponse de l'utilisateur
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                console.log('Installation acceptée');
+            }
+            // Réinitialiser la variable
+            deferredPrompt = null;
+            btnInstall.style.display = 'none';
+        }
+    });
+}
+window.addEventListener('appinstalled', () => {
+    // L'application a été installée
+    if (btnInstall) {
+        btnInstall.style.display = 'none';
+    }
+});
