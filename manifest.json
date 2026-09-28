@@ -1,0 +1,21 @@
+{
+  "name": "EduPocket",
+  "short_name": "EduPocket",
+  "description": "Gestion des séances de cours de rattrapage pour les élèves.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#005A9C",
+  "icons": [
+    {
+      "src": "logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

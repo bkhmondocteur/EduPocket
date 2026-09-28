@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduPocket</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <header class="app-header">
+        <img src="logo.jpg" alt="EduPocket Logo" class="logo">
+        <h1>EduPocket</h1>
+    </header>
+
+    <main id="app-container">
+        <!-- Vue Accueil -->
+        <section id="view-home" class="view active">
+            <h2>Ajouter un élève</h2>
+            <form id="form-add-student">
+                <div class="form-group">
+                    <label for="nom">Nom :</label>
+                    <input type="text" id="nom" required>
+                </div>
+                <div class="form-group">
+                    <label for="prenom">Prénom :</label>
+                    <input type="text" id="prenom" required>
+                </div>
+                <div class="form-group">
+                    <label for="classe">Classe :</label>
+                    <input type="text" id="classe" required>
+                </div>
+                <button type="submit" class="btn-primary">Valider et Accéder</button>
+            </form>
+        </section>
+
+        <!-- Vue Tableau de bord -->
+        <section id="view-dashboard" class="view">
+            <button id="btn-back" class="btn-secondary">← Retour à l'accueil</button>
+            
+            <div class="student-info">
+                <h2 id="student-fullname"></h2>
+                <p id="student-class" class="class-badge"></p>
+            </div>
+
+            <div class="add-session-card">
+                <h3>Ajouter une séance</h3>
+                <form id="form-add-session">
+                    <div class="form-group">
+                        <label for="date-seance">Date (JJ/MM/AAAA) :</label>
+                        <input type="text" id="date-seance" placeholder="JJ/MM/AAAA" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sujet-seance">Sujet / Matière :</label>
+                        <input type="text" id="sujet-seance" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Planifier</button>
+                </form>
+            </div>
+
+            <div class="sessions-list-container">
+                <h3>Historique des séances</h3>
+                <ul id="sessions-list">
+                    <!-- Les séances seront injectées ici -->
+                </ul>
+            </div>
+        </section>
+    </main>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('Service Worker enregistré', reg);
+                }).catch(err => {
+                    console.log('Échec de l\'enregistrement du Service Worker', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
