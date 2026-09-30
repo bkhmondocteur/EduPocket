@@ -104,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             student.sessions.push({ id: sessionId, date, sujet, statut, timestamp: Date.now() });
             
             saveStudent(student);
+            populateSubjectsFilter(student);
             renderFilteredSessions();
             formAddSession.reset();
         }
@@ -111,20 +112,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Filtres et Tri
     const filterStatus = document.getElementById('filter-status');
+    const filterMatiere = document.getElementById('filter-matiere');
     const sortBy = document.getElementById('sort-by');
 
     filterStatus.addEventListener('change', renderFilteredSessions);
+    filterMatiere.addEventListener('change', renderFilteredSessions);
     sortBy.addEventListener('change', renderFilteredSessions);
+
+    function populateSubjectsFilter(student) {
+        const currentSelection = filterMatiere.value;
+        const subjects = new Set();
+        if (student.sessions) {
+            student.sessions.forEach(s => {
+                if (s.sujet) subjects.add(s.sujet);
+            });
+        }
+        
+        filterMatiere.innerHTML = '<option value="Toutes">Toutes les matières</option>';
+        Array.from(subjects).sort().forEach(subj => {
+            const option = document.createElement('option');
+            option.value = subj;
+            option.textContent = subj;
+            filterMatiere.appendChild(option);
+        });
+        
+        // Restore selection if it still exists, else default to 'Toutes'
+        if (subjects.has(currentSelection)) {
+            filterMatiere.value = currentSelection;
+        } else {
+            filterMatiere.value = 'Toutes';
+        }
+    }
 
     function renderFilteredSessions() {
         if (!currentStudentId) return;
         const student = getStudent(currentStudentId);
         let sessions = student.sessions || [];
 
-        // Filtrage
+        // Filtrage Statut
         const statusFilter = filterStatus.value;
         if (statusFilter !== 'Tous') {
             sessions = sessions.filter(s => (s.statut || 'Planifiée') === statusFilter);
+        }
+
+        // Filtrage Matière
+        const matiereFilter = filterMatiere.value;
+        if (matiereFilter !== 'Toutes') {
+            sessions = sessions.filter(s => s.sujet === matiereFilter);
         }
 
         // Tri
@@ -196,7 +230,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('student-fullname').textContent = `${student.prenom} ${student.nom}`;
         document.getElementById('student-class').textContent = student.classe;
         filterStatus.value = 'Tous';
+        filterMatiere.value = 'Toutes';
         sortBy.value = 'date-desc';
+        populateSubjectsFilter(student);
         renderFilteredSessions();
     }
 
