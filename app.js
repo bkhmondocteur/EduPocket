@@ -280,7 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
             statusSelect.addEventListener('change', (e) => {
                 // Update in DB
                 const freshStudent = getStudent(student.id);
-                const targetSession = freshStudent.sessions.find(s => s.id === session.id || s.timestamp === session.timestamp);
+                const targetSession = freshStudent.sessions.find(s => 
+                    (s.id && session.id && s.id === session.id) || 
+                    (s.timestamp === session.timestamp)
+                );
                 if (targetSession) {
                     targetSession.statut = e.target.value;
                     saveStudent(freshStudent);
