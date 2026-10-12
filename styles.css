@@ -765,3 +765,10 @@ h2, h3 {
     color: #92400E;
     font-weight: 600;
 }
+
+/* Espace Élève Spécifique : pas de bouton retour ni réglages, tableau de bord direct */
+body.role-eleve #btn-back,
+body.role-eleve #btn-open-settings-sub,
+body.role-eleve .dashboard-header-bar {
+    display: none !important;
+}

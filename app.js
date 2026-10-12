@@ -95,6 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (displayFamilyCode) displayFamilyCode.textContent = appState.familyId;
         if (settingsFamilyCode) settingsFamilyCode.textContent = appState.familyId;
 
+        document.body.classList.toggle('role-eleve', appState.role === 'eleve');
+
         if (appState.role === 'parent') {
             bannerFamilyCode.style.display = 'flex';
             homeRoleDesc.innerHTML = '<strong>Espace Parents :</strong> Gérez vos enfants, transmettez-leur leur <strong>Code Élève unique</strong>, configurez les tarifs et suivez les séances.';
@@ -107,7 +109,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (appState.role === 'eleve') {
             if (btnTabTarifs) btnTabTarifs.style.display = 'none';
 
-            // Si l'élève est déjà connecté avec son profil
+            // Auto-sélection si l'élève a déjà un profil ou s'il y a un seul élève enregistré
+            if (!appState.currentStudentId && appState.data && appState.data.students && appState.data.students.length > 0) {
+                appState.currentStudentId = appState.data.students[0].id;
+                localStorage.setItem('edupocket_student_id', appState.currentStudentId);
+            }
+
+            // Si l'élève est identifié : ouverture IMMÉDIATE de son tableau de bord personnel (pas d'écran intermédiaire)
             if (appState.currentStudentId) {
                 const student = getStudent(appState.currentStudentId);
                 if (student) {
@@ -118,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             bannerFamilyCode.style.display = 'none';
-            homeRoleDesc.innerHTML = '<strong>Espace Élève :</strong> Entrez votre <strong>Code Élève unique</strong> transmis par vos parents pour ouvrir immédiatement votre dossier.';
+            homeRoleDesc.innerHTML = '<strong>Espace Élève :</strong> Entrez le <strong>Code d\'accès propre à votre profil</strong> (ex: ELV-XXXX) transmis par vos parents pour ouvrir immédiatement votre dossier.';
             sectionParent.style.display = 'none';
             sectionStudent.style.display = 'block';
             sectionProf.style.display = 'none';
@@ -215,6 +223,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnSyncStatus.textContent = '🟡';
                 btnSyncStatus.title = 'Mode local (Hors-ligne)';
             });
+
+            // Si parent, s'assurer que les documents des codes élèves sont bien synchronisés dans Firestore
+            if (appState.role === 'parent' && appState.data && appState.data.students && appState.data.students.length > 0) {
+                saveDataToCloud();
+            }
         } else {
             btnSyncStatus.textContent = '🟡';
             btnSyncStatus.title = 'Mode local (Hors-ligne)';
@@ -232,6 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (modified) {
             localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
+            saveDataToCloud();
         }
     }
 
@@ -278,6 +292,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function refreshCurrentView() {
+        if (appState.role === 'eleve' && appState.currentStudentId) {
+            const student = getStudent(appState.currentStudentId);
+            if (student) {
+                loadDashboard(student);
+                showView(viewDashboard);
+                return;
+            }
+        }
         if (viewHome.classList.contains('active')) {
             if (appState.role === 'parent') loadParentStudentsList();
         } else if (viewDashboard.classList.contains('active') && appState.currentStudentId) {
@@ -309,11 +331,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="font-size: 0.85rem; color: #64748B; margin-top: 2px;">
                         ${(student.sessions || []).length} séance(s) • ${(student.matieres || []).length} matière(s)
                     </div>
-                    <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 0.82rem; background: #EBF4FA; color: #005A9C; padding: 3px 8px; border-radius: 6px; font-weight: 700; border: 1px solid #BAE6FD;">
-                            Code Élève : <strong>${student.codeEleve}</strong>
+                    <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 0.85rem; background: #EBF4FA; color: #005A9C; padding: 4px 10px; border-radius: 6px; font-weight: 700; border: 1px solid #BAE6FD;">
+                            🔑 Code unique de l'élève : <strong>${student.codeEleve}</strong>
                         </span>
-                        <button class="btn-sm btn-copy-child-code" data-code="${student.codeEleve}" style="padding: 3px 8px; font-size: 0.75rem;">Copier Code</button>
+                        <button class="btn-sm btn-copy-child-code" data-code="${student.codeEleve}" style="padding: 4px 10px; font-size: 0.8rem; background: #005A9C; color: white;">📋 Copier Code</button>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #007799; margin-top: 4px;">
+                        👉 Transmettez ce code unique à ${student.prenom} pour qu'il accède directement à son espace personnel.
                     </div>
                 </div>
                 <span class="student-class-badge">${student.classe}</span>
@@ -333,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnCopy.addEventListener('click', (e) => {
                     e.stopPropagation();
                     navigator.clipboard.writeText(student.codeEleve).then(() => {
-                        alert(`Code de ${student.prenom} copié : ${student.codeEleve}\nTransmettez ce code à votre enfant pour qu'il accède à son espace personnel !`);
+                        alert(`Code unique de ${student.prenom} copié : ${student.codeEleve}\n\nTransmettez ce code à votre enfant pour qu'il accède directement et uniquement à ses cours et séances !`);
                     });
                 });
             }
@@ -381,38 +406,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnEleveLogin = document.getElementById('btn-eleve-login');
     if (btnEleveLogin) {
         btnEleveLogin.addEventListener('click', () => {
-            const inputCode = document.getElementById('input-eleve-code').value.trim().toUpperCase();
+            const rawInput = document.getElementById('input-eleve-code').value.trim().toUpperCase();
             const errorEl = document.getElementById('eleve-login-error');
+            const pickerEl = document.getElementById('eleve-multiple-students-picker');
             errorEl.style.display = 'none';
+            if (pickerEl) pickerEl.style.display = 'none';
 
-            if (!inputCode) {
-                errorEl.textContent = 'Veuillez entrer votre Code Élève (ex: ELV-XXXX).';
+            if (!rawInput) {
+                errorEl.textContent = 'Veuillez entrer votre Code Élève personnel (ex: ELV-XXXX).';
                 errorEl.style.display = 'block';
                 return;
             }
 
+            const candidates = [rawInput];
+            if (!rawInput.includes('-')) {
+                candidates.push('ELV-' + rawInput);
+                candidates.push('FAM-' + rawInput);
+            }
+
             // 1. Vérification dans le cache local actuel
             if (appState.data && appState.data.students) {
-                const found = appState.data.students.find(s => s.codeEleve === inputCode || (s.codeEleve && s.codeEleve.toUpperCase() === inputCode));
-                if (found) {
-                    appState.currentStudentId = found.id;
-                    localStorage.setItem('edupocket_student_id', found.id);
-                    loadDashboard(found);
-                    showView(viewDashboard);
-                    return;
+                for (const c of candidates) {
+                    const found = appState.data.students.find(s => s.codeEleve === c || (s.codeEleve && s.codeEleve.toUpperCase() === c) || s.id === c);
+                    if (found) {
+                        appState.currentStudentId = found.id;
+                        localStorage.setItem('edupocket_student_id', found.id);
+                        loadDashboard(found);
+                        showView(viewDashboard);
+                        return;
+                    }
                 }
             }
 
-            // 2. Recherche Cloud Firestore dans la collection edupocket_students (par Code Élève)
+            // 2. Recherche Cloud Firestore
             if (typeof db !== 'undefined' && db) {
                 btnEleveLogin.disabled = true;
                 btnEleveLogin.textContent = 'Connexion...';
 
-                db.collection('edupocket_students').doc(inputCode).get().then(doc => {
-                    btnEleveLogin.disabled = false;
-                    btnEleveLogin.textContent = 'Accéder';
+                const targetElvCode = candidates.find(c => c.startsWith('ELV-')) || rawInput;
 
+                db.collection('edupocket_students').doc(targetElvCode).get().then(doc => {
                     if (doc.exists) {
+                        btnEleveLogin.disabled = false;
+                        btnEleveLogin.textContent = 'Accéder';
                         const studentDoc = doc.data();
                         appState.familyId = studentDoc.familyId || appState.familyId;
                         appState.currentStudentId = studentDoc.id;
@@ -433,32 +469,50 @@ document.addEventListener('DOMContentLoaded', () => {
                             initDataPersistence();
                             loadDashboard(studentDoc);
                             showView(viewDashboard);
+                        }).catch(() => {
+                            appState.data = {
+                                familyId: appState.familyId,
+                                students: [studentDoc]
+                            };
+                            localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
+                            initDataPersistence();
+                            loadDashboard(studentDoc);
+                            showView(viewDashboard);
                         });
                         return;
                     }
 
-                    // Tentative de secours avec Code Famille (si le parent a donné son code FAM-XXXX)
-                    db.collection('edupocket_families').doc(inputCode).get().then(famDoc => {
+                    // Secours avec Code Famille (au cas où le parent a donné son code FAM-XXXX)
+                    const targetFamCode = candidates.find(c => c.startsWith('FAM-')) || rawInput;
+                    db.collection('edupocket_families').doc(targetFamCode).get().then(famDoc => {
+                        btnEleveLogin.disabled = false;
+                        btnEleveLogin.textContent = 'Accéder';
+
                         if (famDoc.exists) {
                             const famData = famDoc.data();
                             const students = famData.students || [];
-                            if (students.length > 0) {
+                            if (students.length === 1) {
                                 const targetStudent = students[0];
-                                appState.familyId = inputCode;
+                                appState.familyId = famDoc.id;
                                 appState.currentStudentId = targetStudent.id;
                                 appState.data = famData;
-                                localStorage.setItem('edupocket_family_id', inputCode);
+                                localStorage.setItem('edupocket_family_id', famDoc.id);
                                 localStorage.setItem('edupocket_student_id', targetStudent.id);
                                 initDataPersistence();
                                 loadDashboard(targetStudent);
                                 showView(viewDashboard);
                                 return;
+                            } else if (students.length > 1) {
+                                showStudentSelectionForFamily(famData, pickerEl);
+                                return;
                             }
                         }
 
-                        errorEl.textContent = 'Code Élève introuvable. Demandez à vos parents de vous transmettre votre Code Élève (ex: ELV-XXXX).';
+                        errorEl.textContent = 'Code Élève introuvable. Demandez à vos parents de vous transmettre le Code Élève unique visible dans leur espace.';
                         errorEl.style.display = 'block';
                     }).catch(err => {
+                        btnEleveLogin.disabled = false;
+                        btnEleveLogin.textContent = 'Accéder';
                         errorEl.textContent = 'Erreur lors de la vérification : ' + (err.message || 'problème de réseau');
                         errorEl.style.display = 'block';
                     });
@@ -474,6 +528,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 errorEl.style.display = 'block';
             }
         });
+    }
+
+    function showStudentSelectionForFamily(famData, container) {
+        if (!container) return;
+        container.innerHTML = `
+            <div style="background: #EBF4FA; padding: 12px; border-radius: 8px; border: 1px solid #BAE6FD;">
+                <p style="margin: 0 0 10px 0; font-size: 0.9rem; color: #005A9C; font-weight: 600;">
+                    Plusieurs élèves trouvés dans cette famille. Cliquez sur votre profil :
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 8px;" id="eleve-pick-buttons"></div>
+            </div>
+        `;
+        const btnsBox = container.querySelector('#eleve-pick-buttons');
+        (famData.students || []).forEach(st => {
+            const b = document.createElement('button');
+            b.className = 'btn-primary';
+            b.style.textAlign = 'left';
+            b.style.padding = '8px 12px';
+            b.innerHTML = `🎓 <strong>${st.prenom} ${st.nom}</strong> (${st.classe}) <span style="font-size: 0.8rem; opacity: 0.9; float: right;">Code: ${st.codeEleve}</span>`;
+            b.addEventListener('click', () => {
+                appState.familyId = famData.familyId;
+                appState.currentStudentId = st.id;
+                appState.data = famData;
+                localStorage.setItem('edupocket_family_id', appState.familyId);
+                localStorage.setItem('edupocket_student_id', st.id);
+                initDataPersistence();
+                loadDashboard(st);
+                showView(viewDashboard);
+                alert(`Bienvenue ${st.prenom} ! Pour vos prochaines connexions directes, votre code personnel est : ${st.codeEleve}`);
+            });
+            btnsBox.appendChild(b);
+        });
+        container.style.display = 'block';
     }
 
     // Inscription élève autonome
@@ -573,6 +660,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadDashboard(student) {
         document.getElementById('student-fullname').textContent = `${student.prenom} ${student.nom}`;
         document.getElementById('student-class').textContent = student.classe;
+
+        const btnBack = document.getElementById('btn-back');
+        const btnSub = document.getElementById('btn-open-settings-sub');
+        if (appState.role === 'eleve') {
+            if (btnBack) btnBack.style.display = 'none';
+            if (btnSub) btnSub.style.display = 'none';
+        } else {
+            if (btnBack) btnBack.style.display = 'inline-block';
+            if (btnSub) btnSub.style.display = 'inline-block';
+        }
 
         populateMatieresSelect(student);
         checkAndDisplayPaymentAlerts(student);

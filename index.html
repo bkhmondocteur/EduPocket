@@ -99,13 +99,14 @@
             <!-- Section 1B : Élève - Connexion par Code Élève ou Mode Autonome -->
             <div id="section-student-welcome" style="display: none;">
                 <div class="student-login-box">
-                    <h3>Option 1 : Me connecter avec mon Code Élève</h3>
-                    <p class="tab-help">Entrez votre Code Élève unique transmis par vos parents pour accéder immédiatement à votre dossier :</p>
+                    <h3>🔑 Connexion avec mon Code Élève personnel</h3>
+                    <p class="tab-help">Chaque élève possède son propre code d'accès unique (transmis par les parents) pour ouvrir directement son tableau de bord :</p>
                     <div class="input-inline">
-                        <input type="text" id="input-eleve-code" placeholder="Ex: ELV-3K89 ou FAM-...">
+                        <input type="text" id="input-eleve-code" placeholder="Entrez votre code (ex: ELV-XXXX)">
                         <button id="btn-eleve-login" class="btn-primary" style="width: auto;">Accéder</button>
                     </div>
                     <div id="eleve-login-error" style="display: none; color: #EF4444; font-size: 0.85rem; margin-top: 8px;"></div>
+                    <div id="eleve-multiple-students-picker" style="display: none; margin-top: 15px;"></div>
                 </div>
 
                 <div class="student-login-box" style="margin-top: 20px;">
