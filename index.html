@@ -7,7 +7,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="EduPocket">
-    <link rel="apple-touch-icon" href="logo.jpg">
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="icon" type="image/png" href="logo.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK (Compat) -->
@@ -17,7 +18,7 @@
 <body>
     <header class="app-header">
         <div class="header-content">
-            <img src="logo.jpg" alt="EduPocket Logo" class="logo">
+            <img src="logo.png" alt="EduPocket Logo" class="logo">
             <div class="header-titles">
                 <h1>EduPocket</h1>
                 <span id="header-role-badge" class="role-badge">Non défini</span>
@@ -34,6 +35,7 @@
         <!-- VUE 0: SÉLECTION DU RÔLE (Affiché au 1er lancement) -->
         <section id="view-role-selection" class="view">
             <div class="role-selection-card">
+                <img src="logo.png" alt="EduPocket Logo" class="welcome-logo" style="width: 110px; height: 110px; margin: 0 auto 16px auto; display: block; border-radius: 50%; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
                 <h2>Bienvenue sur EduPocket</h2>
                 <p class="role-subtitle">Veuillez sélectionner votre profil d'utilisation :</p>
                 <div class="role-options">
@@ -61,10 +63,6 @@
         <section id="view-home" class="view">
             <div class="home-intro-card">
                 <div id="home-role-description"></div>
-                <div class="family-sync-banner" id="banner-family-code-container">
-                    <span>Code Famille : <strong id="display-family-code">...</strong></span>
-                    <button id="btn-copy-code" class="btn-sm">Copier</button>
-                </div>
             </div>
 
             <!-- Section 1A : Parents - Gestion de tous les enfants -->
@@ -300,7 +298,7 @@
             
             <div class="modal-tabs">
                 <button class="tab-btn active" data-tab="tab-tarifs" id="btn-tab-tarifs">Tarifs & Matières</button>
-                <button class="tab-btn" data-tab="tab-sync">Cloud & Liaison</button>
+                <button class="tab-btn" data-tab="tab-codes" id="btn-tab-codes">🔑 Codes Élèves</button>
                 <button class="tab-btn" data-tab="tab-profil">Profil & Rôle</button>
             </div>
 
@@ -333,22 +331,10 @@
                 </form>
             </div>
 
-            <!-- Onglet 2: Synchronisation Cloud -->
-            <div id="tab-sync" class="tab-content">
-                <p class="tab-help">Synchronisez les séances en direct entre téléphones (Parent, Élève, Professeur).</p>
-                <div class="sync-info-box">
-                    <p>Votre Code Famille actuel :</p>
-                    <div class="sync-code-display" id="settings-family-code">...</div>
-                    <p class="text-muted">Partagez ce code avec l'élève ou le professeur pour lier les appareils.</p>
-                </div>
-                <hr style="margin: 15px 0; border: none; border-top: 1px dashed var(--sidi-blue);">
-                <div class="form-group">
-                    <label for="input-join-family">Rejoindre une autre famille :</label>
-                    <div class="input-inline">
-                        <input type="text" id="input-join-family" placeholder="Code ex: FAM-4821">
-                        <button id="btn-join-family" class="btn-primary" style="width: auto;">Lier</button>
-                    </div>
-                </div>
+            <!-- Onglet 2: Codes Élèves (Cachés dans les réglages) -->
+            <div id="tab-codes" class="tab-content">
+                <p class="tab-help">Retrouvez ici les codes d'accès uniques de vos enfants à leur transmettre pour qu'ils ouvrent leur espace :</p>
+                <div id="settings-students-codes-list" class="matieres-config-list"></div>
             </div>
 
             <!-- Onglet 3: Profil & Rôle -->

@@ -98,8 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.toggle('role-eleve', appState.role === 'eleve');
 
         if (appState.role === 'parent') {
-            bannerFamilyCode.style.display = 'flex';
-            homeRoleDesc.innerHTML = '<strong>Espace Parents :</strong> Gérez vos enfants, transmettez-leur leur <strong>Code Élève unique</strong>, configurez les tarifs et suivez les séances.';
+            if (bannerFamilyCode) bannerFamilyCode.style.display = 'none';
+            homeRoleDesc.innerHTML = '<strong>Espace Parents :</strong> Gérez vos enfants et leurs séances. Leurs codes d\'accès personnels sont disponibles dans Réglages ⚙️.';
             sectionParent.style.display = 'block';
             sectionStudent.style.display = 'none';
             sectionProf.style.display = 'none';
@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loadParentStudentsList();
             showView(viewHome);
         } else if (appState.role === 'eleve') {
+            if (bannerFamilyCode) bannerFamilyCode.style.display = 'none';
             if (btnTabTarifs) btnTabTarifs.style.display = 'none';
 
             // Auto-sélection si l'élève a déjà un profil ou s'il y a un seul élève enregistré
@@ -327,41 +328,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const li = document.createElement('li');
             li.innerHTML = `
                 <div style="flex: 1;">
-                    <strong style="font-size: 1.05rem;">${student.prenom} ${student.nom}</strong>
-                    <div style="font-size: 0.85rem; color: #64748B; margin-top: 2px;">
+                    <strong style="font-size: 1.05rem; color: #005A9C;">${student.prenom} ${student.nom}</strong>
+                    <div style="font-size: 0.85rem; color: #64748B; margin-top: 3px;">
                         ${(student.sessions || []).length} séance(s) • ${(student.matieres || []).length} matière(s)
-                    </div>
-                    <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <span style="font-size: 0.85rem; background: #EBF4FA; color: #005A9C; padding: 4px 10px; border-radius: 6px; font-weight: 700; border: 1px solid #BAE6FD;">
-                            🔑 Code unique de l'élève : <strong>${student.codeEleve}</strong>
-                        </span>
-                        <button class="btn-sm btn-copy-child-code" data-code="${student.codeEleve}" style="padding: 4px 10px; font-size: 0.8rem; background: #005A9C; color: white;">📋 Copier Code</button>
-                    </div>
-                    <div style="font-size: 0.78rem; color: #007799; margin-top: 4px;">
-                        👉 Transmettez ce code unique à ${student.prenom} pour qu'il accède directement à son espace personnel.
                     </div>
                 </div>
                 <span class="student-class-badge">${student.classe}</span>
             `;
 
             // Clic sur l'élève pour ouvrir son dossier
-            li.addEventListener('click', (e) => {
-                if (e.target.classList.contains('btn-copy-child-code')) return;
+            li.addEventListener('click', () => {
                 appState.currentStudentId = student.id;
                 loadDashboard(student);
                 showView(viewDashboard);
             });
-
-            // Bouton copier le code de cet enfant
-            const btnCopy = li.querySelector('.btn-copy-child-code');
-            if (btnCopy) {
-                btnCopy.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(student.codeEleve).then(() => {
-                        alert(`Code unique de ${student.prenom} copié : ${student.codeEleve}\n\nTransmettez ce code à votre enfant pour qu'il accède directement et uniquement à ses cours et séances !`);
-                    });
-                });
-            }
 
             list.appendChild(li);
         });
@@ -1200,6 +1180,40 @@ document.addEventListener('DOMContentLoaded', () => {
     function openSettingsModal() {
         modalSettings.style.display = 'flex';
         renderMatieresConfigList();
+        renderSettingsStudentCodes();
+    }
+
+    function renderSettingsStudentCodes() {
+        const container = document.getElementById('settings-students-codes-list');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (!appState.data || !appState.data.students || appState.data.students.length === 0) {
+            container.innerHTML = '<span style="color: #64748B;">Aucun élève enregistré pour le moment.</span>';
+            return;
+        }
+
+        appState.data.students.forEach(student => {
+            const item = document.createElement('div');
+            item.className = 'matiere-config-item';
+            item.innerHTML = `
+                <div>
+                    <strong style="font-size: 1.05rem;">🎓 ${student.prenom} ${student.nom}</strong> <span style="font-size: 0.82rem; color: #64748B;">(${student.classe})</span>
+                    <div style="margin-top: 5px; font-size: 0.95rem; color: #005A9C;">
+                        Code d'accès : <strong style="letter-spacing: 1px; background: #EBF4FA; padding: 2px 8px; border-radius: 6px; border: 1px solid #BAE6FD;">${student.codeEleve}</strong>
+                    </div>
+                </div>
+                <button class="btn-sm btn-copy-settings-code" data-code="${student.codeEleve}" style="background: #005A9C; color: white;">📋 Copier</button>
+            `;
+
+            item.querySelector('.btn-copy-settings-code').addEventListener('click', () => {
+                navigator.clipboard.writeText(student.codeEleve).then(() => {
+                    alert(`Code d'accès de ${student.prenom} copié : ${student.codeEleve}\n\nTransmettez ce code à votre enfant pour qu'il accède directement à son espace personnel.`);
+                });
+            });
+
+            container.appendChild(item);
+        });
     }
 
     document.getElementById('btn-open-settings').addEventListener('click', openSettingsModal);
@@ -1216,7 +1230,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             btn.classList.add('active');
             const targetId = btn.getAttribute('data-tab');
-            document.getElementById(targetId).classList.add('active');
+            const targetContent = document.getElementById(targetId);
+            if (targetContent) targetContent.classList.add('active');
         });
     });
 
@@ -1294,19 +1309,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('btn-join-family').addEventListener('click', () => {
-        const inputCode = document.getElementById('input-join-family').value.trim().toUpperCase();
-        if (inputCode && inputCode !== appState.familyId) {
-            if (confirm(`Voulez-vous synchroniser votre application avec la famille ${inputCode} ?`)) {
-                appState.familyId = inputCode;
-                localStorage.setItem('edupocket_family_id', inputCode);
-                initDataPersistence();
-                modalSettings.style.display = 'none';
-                updateRoleUI();
-                alert(`Synchronisé avec la famille ${inputCode} !`);
+    const btnJoinFamily = document.getElementById('btn-join-family');
+    if (btnJoinFamily) {
+        btnJoinFamily.addEventListener('click', () => {
+            const inputCode = document.getElementById('input-join-family').value.trim().toUpperCase();
+            if (inputCode && inputCode !== appState.familyId) {
+                if (confirm(`Voulez-vous synchroniser votre application avec la famille ${inputCode} ?`)) {
+                    appState.familyId = inputCode;
+                    localStorage.setItem('edupocket_family_id', inputCode);
+                    initDataPersistence();
+                    modalSettings.style.display = 'none';
+                    updateRoleUI();
+                    alert(`Synchronisé avec la famille ${inputCode} !`);
+                }
             }
-        }
-    });
+        });
+    }
 
     // --- INITIALISATION AU CHARGEMENT ---
     initDataPersistence();
