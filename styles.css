@@ -1,53 +1,127 @@
 :root {
     --sidi-blue: #005A9C;
     --sidi-blue-dark: #003F6E;
+    --sidi-blue-light: #EBF4FA;
     --sidi-white: #FFFFFF;
-    --text-color: #333333;
-    --border-color: #E0E0E0;
-    --iron-gray: #4A4A4A;
+    --text-color: #2D3748;
+    --border-color: #CBD5E0;
+    --iron-gray: #4A5568;
+    --alert-gold: #D97706;
+    --alert-bg: #FEF3C7;
+    --success-green: #10B981;
+    --success-bg: #D1FAE5;
+    --danger-red: #EF4444;
+    --danger-bg: #FEE2E2;
+}
+
+* {
+    box-sizing: border-box;
 }
 
 body {
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--sidi-white);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #F8FAFC;
     color: var(--text-color);
 }
 
+/* En-tête */
 .app-header {
     background-color: var(--sidi-blue);
     color: var(--sidi-white);
-    padding: 1rem;
+    padding: 0.8rem 1.2rem;
     display: flex;
     align-items: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    background-image: radial-gradient(circle at 10px 10px, rgba(255,255,255,0.1) 2px, transparent 0);
+    justify-content: space-between;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    background-image: radial-gradient(circle at 10px 10px, rgba(255,255,255,0.12) 2px, transparent 0);
     background-size: 20px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+}
+
+.header-titles {
+    display: flex;
+    flex-direction: column;
 }
 
 .logo {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    margin-right: 15px;
+    margin-right: 12px;
     border: 2px solid var(--sidi-white);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .app-header h1 {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.2;
 }
 
+.role-badge {
+    font-size: 0.75rem;
+    background: rgba(255,255,255,0.25);
+    padding: 2px 8px;
+    border-radius: 10px;
+    align-self: flex-start;
+    margin-top: 2px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-icon {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.btn-icon:hover {
+    background: rgba(255,255,255,0.35);
+}
+
+.btn-install {
+    background-color: var(--sidi-white);
+    color: var(--sidi-blue);
+    border: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+/* Conteneur principal */
 #app-container {
-    max-width: 600px;
+    max-width: 650px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 16px;
 }
 
 .view {
     display: none;
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.25s ease-in-out;
 }
 
 .view.active {
@@ -55,69 +129,189 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
+/* Carte de sélection des rôles */
+.role-selection-card {
+    background: var(--sidi-white);
+    border: 2px solid var(--sidi-blue);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,90,156,0.08);
+}
+
+.role-selection-card h2 {
+    color: var(--sidi-blue);
+    margin-top: 0;
+    border: none;
+    padding: 0;
+}
+
+.role-subtitle {
+    color: var(--iron-gray);
+    margin-bottom: 24px;
+}
+
+.role-options {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.role-card {
+    background: var(--sidi-white);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    border-left: 6px solid var(--border-color);
+}
+
+.role-card:hover {
+    border-color: var(--sidi-blue);
+    transform: translateY(-2px);
+}
+
+.role-card.selected {
+    border-color: var(--sidi-blue);
+    background-color: var(--sidi-blue-light);
+    border-left-color: var(--sidi-blue);
+}
+
+.role-icon {
+    font-size: 2rem;
+    margin-bottom: 6px;
+}
+
+.role-card h3 {
+    margin: 0 0 4px 0;
+    color: var(--sidi-blue-dark);
+    border: none;
+    padding: 0;
+}
+
+.role-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--iron-gray);
+}
+
+/* Accueil & Bannières */
+.home-intro-card {
+    background: var(--sidi-white);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.family-sync-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--sidi-blue-light);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--sidi-blue-dark);
+}
+
+.btn-sm {
+    background: var(--sidi-blue);
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+/* Formulaires */
 h2, h3 {
     color: var(--sidi-blue);
     border-bottom: 2px solid var(--sidi-blue);
     padding-bottom: 5px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 14px;
+}
+
+.form-row {
+    display: flex;
+    gap: 12px;
+}
+
+.form-col {
+    flex: 1;
 }
 
 .form-group label {
     display: block;
     margin-bottom: 5px;
-    font-weight: bold;
+    font-weight: 600;
+    font-size: 0.9rem;
     color: var(--sidi-blue-dark);
 }
 
-.form-group input {
+.form-group input, .form-group select {
     width: 100%;
-    padding: 10px;
+    padding: 10px 12px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-sizing: border-box;
-    font-size: 1rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: var(--sidi-white);
+    color: var(--text-color);
+    transition: border 0.2s, box-shadow 0.2s;
 }
 
-.form-group input:focus {
+.form-group input:focus, .form-group select:focus {
     outline: none;
     border-color: var(--sidi-blue);
-    box-shadow: 0 0 5px rgba(0, 90, 156, 0.3);
+    box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.15);
 }
 
 .btn-primary {
     background-color: var(--sidi-blue);
     color: var(--sidi-white);
     border: none;
-    padding: 12px 20px;
-    border-radius: 4px;
+    padding: 12px 18px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 1rem;
+    font-weight: 600;
     width: 100%;
     transition: background-color 0.2s;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
     background-color: var(--sidi-blue-dark);
+}
+
+.btn-primary:disabled {
+    background-color: var(--border-color);
+    cursor: not-allowed;
 }
 
 .btn-secondary {
     background-color: transparent;
     color: var(--sidi-blue);
     border: 1px solid var(--sidi-blue);
-    padding: 8px 15px;
-    border-radius: 4px;
+    padding: 8px 14px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 0.9rem;
-    margin-bottom: 20px;
-    transition: background-color 0.2s, color 0.2s;
+    font-weight: 600;
+    transition: all 0.2s;
 }
 
 .btn-secondary:hover {
@@ -125,66 +319,335 @@ h2, h3 {
     color: var(--sidi-white);
 }
 
+/* Tableau de bord & Alerte paiement */
+.dashboard-header-bar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
 .student-info {
     text-align: center;
-    margin-bottom: 25px;
-    padding: 15px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--sidi-white);
     border: 2px solid var(--sidi-blue);
-    border-radius: 8px;
-    border-top-left-radius: 20px;
-    border-bottom-right-radius: 20px;
+    border-radius: 12px;
+    border-top-left-radius: 24px;
+    border-bottom-right-radius: 24px;
 }
 
 .student-info h2 {
     border: none;
-    margin: 0 0 10px 0;
+    margin: 0 0 6px 0;
+    padding: 0;
 }
 
 .class-badge {
     display: inline-block;
     background-color: var(--sidi-blue);
     color: white;
-    padding: 4px 10px;
+    padding: 3px 12px;
     border-radius: 12px;
     font-size: 0.85rem;
-    margin: 0;
 }
 
-.add-session-card {
-    background: #f9f9f9;
-    padding: 15px;
+/* Bannière d'alerte de paiement */
+.payment-alert-card {
+    background: var(--alert-bg);
+    border: 1px solid var(--alert-gold);
+    border-left: 6px solid var(--alert-gold);
     border-radius: 8px;
-    margin-bottom: 20px;
-    border-left: 4px solid var(--sidi-blue);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    animation: pulse 2s infinite;
 }
 
-.sessions-list-container {
-    margin-top: 20px;
+.payment-alert-content {
+    flex: 1;
+}
+
+.payment-alert-title {
+    font-weight: 700;
+    color: #92400E;
+    font-size: 0.95rem;
+}
+
+.payment-alert-sub {
+    font-size: 0.85rem;
+    color: #B45309;
+}
+
+.btn-pay-now {
+    background: var(--alert-gold);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* Cartes des séances */
+.add-session-card {
+    background: var(--sidi-white);
+    padding: 16px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-left: 5px solid var(--sidi-blue);
+}
+
+.filters-container {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.filters-container select {
+    flex: 1;
+    min-width: 140px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    background: var(--sidi-white);
 }
 
 #sessions-list {
     list-style: none;
     padding: 0;
+    margin: 0;
 }
 
 #sessions-list li {
-    padding: 12px;
-    border-bottom: 1px dashed var(--sidi-blue);
+    background: var(--sidi-white);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.session-main-row {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
 }
 
-#sessions-list li:last-child {
-    border-bottom: none;
+.session-subject-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--sidi-blue-dark);
 }
 
-.session-date {
-    font-weight: bold;
+.session-time-badge {
+    font-weight: 600;
+    color: var(--iron-gray);
+    font-size: 0.9rem;
+}
+
+.session-meta-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+}
+
+.tag-badge {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.tag-val-confirmee {
+    background: var(--success-bg);
+    color: var(--success-green);
+}
+
+.tag-val-attente {
+    background: var(--alert-bg);
+    color: var(--alert-gold);
+}
+
+.tag-val-refusee {
+    background: var(--danger-bg);
+    color: var(--danger-red);
+}
+
+.tag-paye {
+    background: var(--success-bg);
+    color: var(--success-green);
+}
+
+.tag-non-paye {
+    background: #F3F4F6;
     color: var(--iron-gray);
 }
 
-.session-subject {
-    color: var(--sidi-blue-dark);
+.session-actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 10px;
+    gap: 8px;
+}
+
+.validation-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-action-sm {
+    border: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-confirm {
+    background: var(--success-green);
+    color: white;
+}
+
+.btn-reject {
+    background: var(--danger-red);
+    color: white;
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-card {
+    background: var(--sidi-white);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    cursor: pointer;
+    color: var(--iron-gray);
+}
+
+.modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 16px;
+}
+
+.tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 10px;
+    font-weight: 600;
+    color: var(--iron-gray);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-btn.active {
+    color: var(--sidi-blue);
+    border-bottom-color: var(--sidi-blue);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-help {
+    font-size: 0.85rem;
+    color: var(--iron-gray);
+    margin-top: 0;
+}
+
+.matieres-config-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.matiere-config-item {
+    background: #F8FAFC;
+    border: 1px solid var(--border-color);
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sync-info-box {
+    background: var(--sidi-blue-light);
+    padding: 16px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.sync-code-display {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--sidi-blue);
+    letter-spacing: 2px;
+    margin: 8px 0;
+}
+
+.input-inline {
+    display: flex;
+    gap: 8px;
 }
 
 /* Liste des élèves */
@@ -195,128 +658,40 @@ h2, h3 {
 }
 
 .student-list li {
-    padding: 15px;
-    background: #f9f9f9;
+    padding: 14px;
+    background: var(--sidi-white);
     border: 1px solid var(--border-color);
     margin-bottom: 10px;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-left: 5px solid var(--sidi-blue);
     transition: all 0.2s;
-    border-left: 4px solid var(--sidi-blue);
 }
 
 .student-list li:hover {
     background: var(--sidi-blue);
     color: var(--sidi-white);
-    border-color: var(--sidi-blue);
 }
 
 .student-list li:hover .student-class-badge {
-    background-color: var(--sidi-white);
+    background: var(--sidi-white);
     color: var(--sidi-blue);
 }
 
-.student-name {
-    font-weight: bold;
-}
-
-.student-class-badge {
-    background-color: var(--sidi-blue);
-    color: var(--sidi-white);
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    transition: all 0.2s;
-}
-
-/* Select et filtres */
-.form-group select, .filters-container select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 1rem;
-    background-color: var(--sidi-white);
-    color: var(--text-color);
-}
-
-.filters-container {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.filters-container select {
-    flex: 1;
-}
-
-/* Modifier session item pour inclure le statut */
-#sessions-list li {
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-.session-header {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    margin-bottom: 8px;
-}
-
-.session-actions select {
-    padding: 5px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 0.85rem;
-    background-color: #f0f0f0;
-}
-
-/* Adaptation de l'en-tête et bouton d'installation */
-.app-header {
-    justify-content: space-between;
-}
-.header-content {
-    display: flex;
-    align-items: center;
-}
-.btn-install {
-    background-color: var(--sidi-white);
-    color: var(--sidi-blue);
-    border: none;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-/* Design Responsif pour écrans étroits (mobiles) */
+/* Responsivité Mobile */
 @media screen and (max-width: 480px) {
-    #app-container {
-        padding: 15px 10px;
+    .form-row {
+        flex-direction: column;
+        gap: 0;
     }
-    
     .filters-container {
         flex-direction: column;
     }
-    
-    .session-header {
+    .session-actions-row {
         flex-direction: column;
-        gap: 5px;
-    }
-    
-    .session-actions select {
-        width: 100%;
-        margin-top: 10px;
-    }
-    
-    .student-list li {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
+        align-items: stretch;
     }
 }
