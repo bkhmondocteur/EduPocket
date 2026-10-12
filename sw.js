@@ -1,4 +1,4 @@
-const CACHE_NAME = 'edupocket-v5';
+const CACHE_NAME = 'edupocket-v6';
 const ASSETS = [
     './',
     './index.html',

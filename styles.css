@@ -695,3 +695,73 @@ h2, h3 {
         align-items: stretch;
     }
 }
+
+/* Boîte de connexion élève */
+.student-login-box {
+    background: var(--sidi-white);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+
+.student-login-box h3 {
+    margin-top: 0;
+    color: var(--sidi-blue-dark);
+}
+
+/* Boutons d'édition et suppression des séances */
+.session-control-buttons {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.btn-icon-action {
+    background: #F1F5F9;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon-action:hover {
+    background: #E2E8F0;
+}
+
+.btn-icon-action.delete:hover {
+    background: #FEE2E2;
+    border-color: #EF4444;
+}
+
+/* Nouveaux badges de validation */
+.tag-val-modifiee {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+.tag-val-suppression {
+    background: #FEE2E2;
+    color: #EF4444;
+}
+
+/* Boîte d'arbitrage parental */
+.parent-review-box {
+    background: #FEF3C7;
+    border: 1px solid #F59E0B;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.parent-review-text {
+    color: #92400E;
+    font-weight: 600;
+}

@@ -3,9 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let appState = {
         role: localStorage.getItem('edupocket_role') || null, // 'parent' | 'eleve' | 'professeur' | null
         familyId: localStorage.getItem('edupocket_family_id') || null,
-        currentStudentId: null,
+        currentStudentId: localStorage.getItem('edupocket_student_id') || null,
         profName: localStorage.getItem('edupocket_prof_name') || '',
-        data: null // Données de la famille (étudiants, séances, matières)
+        data: null // Données de la famille
     };
 
     // Initialisation du Code Famille si inexistant
@@ -22,37 +22,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSyncStatus = document.getElementById('btn-sync-status');
     const displayFamilyCode = document.getElementById('display-family-code');
     const settingsFamilyCode = document.getElementById('settings-family-code');
+    const bannerFamilyCode = document.getElementById('banner-family-code-container');
     const dateInput = document.getElementById('date-seance');
     const heureInput = document.getElementById('heure-seance');
+    const editDateInput = document.getElementById('edit-date-seance');
+    const editHeureInput = document.getElementById('edit-heure-seance');
     const modalSettings = document.getElementById('modal-settings');
     const modalPayment = document.getElementById('modal-payment');
+    const modalEditSession = document.getElementById('modal-edit-session');
 
     // --- MASQUES DE SAISIE RIGOUREUX ---
-    // 1. Masque Date (JJ/MM/AAAA)
-    dateInput.addEventListener('input', (e) => {
-        let val = e.target.value.replace(/\D/g, '');
-        if (val.length > 8) val = val.substring(0, 8);
-        let formatted = '';
-        if (val.length > 0) formatted += val.substring(0, 2);
-        if (val.length > 2) formatted += '/' + val.substring(2, 4);
-        if (val.length > 4) formatted += '/' + val.substring(4, 8);
-        e.target.value = formatted;
-    });
-
-    // 2. Masque Heure (HH:MM)
-    heureInput.addEventListener('input', (e) => {
-        let val = e.target.value.replace(/\D/g, '');
-        if (val.length > 4) val = val.substring(0, 4);
-        let formatted = '';
-        if (val.length > 0) formatted += val.substring(0, 2);
-        if (val.length > 2) formatted += ':' + val.substring(2, 4);
-        e.target.value = formatted;
-    });
-
-    // Masque date dans le modal de paiement
-    const payDateInput = document.getElementById('pay-date');
-    if (payDateInput) {
-        payDateInput.addEventListener('input', (e) => {
+    function applyDateMask(input) {
+        input.addEventListener('input', (e) => {
             let val = e.target.value.replace(/\D/g, '');
             if (val.length > 8) val = val.substring(0, 8);
             let formatted = '';
@@ -62,6 +43,25 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.value = formatted;
         });
     }
+
+    function applyTimeMask(input) {
+        input.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, '');
+            if (val.length > 4) val = val.substring(0, 4);
+            let formatted = '';
+            if (val.length > 0) formatted += val.substring(0, 2);
+            if (val.length > 2) formatted += ':' + val.substring(2, 4);
+            e.target.value = formatted;
+        });
+    }
+
+    applyDateMask(dateInput);
+    applyTimeMask(heureInput);
+    applyDateMask(editDateInput);
+    applyTimeMask(editHeureInput);
+
+    const payDateInput = document.getElementById('pay-date');
+    if (payDateInput) applyDateMask(payDateInput);
 
     // --- NAVIGATION ET ROUTAGE ---
     function showView(viewElement) {
@@ -85,33 +85,54 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('settings-current-role').textContent = roleLabels[appState.role] || appState.role;
 
         const homeRoleDesc = document.getElementById('home-role-description');
-        const cardAddStudent = document.getElementById('card-add-student-container');
-        const sectionStudents = document.getElementById('section-students-management');
+        const sectionParent = document.getElementById('section-parent-management');
+        const sectionStudent = document.getElementById('section-student-welcome');
         const sectionProf = document.getElementById('section-prof-setup');
-
-        if (appState.role === 'parent') {
-            homeRoleDesc.innerHTML = '<strong>Espace Parents :</strong> Vous pouvez gérer vos enfants, configurer les matières, les tarifs de rattrapage et suivre les paiements.';
-            cardAddStudent.style.display = 'block';
-            sectionStudents.style.display = 'block';
-            sectionProf.style.display = 'none';
-        } else if (appState.role === 'eleve') {
-            homeRoleDesc.innerHTML = '<strong>Espace Élève :</strong> Planifiez vos séances de cours et suivez votre calendrier de rattrapage.';
-            cardAddStudent.style.display = 'block'; // Un élève autonome peut s'ajouter lui-même
-            sectionStudents.style.display = 'block';
-            sectionProf.style.display = 'none';
-        } else if (appState.role === 'professeur') {
-            homeRoleDesc.innerHTML = '<strong>Espace Professeur :</strong> Confirmez et validez les séances planifiées par vos élèves.';
-            cardAddStudent.style.display = 'none';
-            sectionStudents.style.display = 'block';
-            sectionProf.style.display = 'block';
-            document.getElementById('prof-self-name').value = appState.profName || '';
-        }
+        const btnTabTarifs = document.getElementById('btn-tab-tarifs');
 
         if (displayFamilyCode) displayFamilyCode.textContent = appState.familyId;
         if (settingsFamilyCode) settingsFamilyCode.textContent = appState.familyId;
 
-        loadStudentsList();
-        showView(viewHome);
+        if (appState.role === 'parent') {
+            bannerFamilyCode.style.display = 'flex';
+            homeRoleDesc.innerHTML = '<strong>Espace Parents :</strong> Gérez vos enfants, les tarifs par matière et suivez les séances et paiements.';
+            sectionParent.style.display = 'block';
+            sectionStudent.style.display = 'none';
+            sectionProf.style.display = 'none';
+            if (btnTabTarifs) btnTabTarifs.style.display = 'block';
+            loadParentStudentsList();
+            showView(viewHome);
+        } else if (appState.role === 'eleve') {
+            // Pour l'élève : masquer le bouton de configuration des tarifs dans les réglages
+            if (btnTabTarifs) btnTabTarifs.style.display = 'none';
+
+            // Si l'élève est déjà identifié (studentId existant)
+            if (appState.currentStudentId) {
+                const student = getStudent(appState.currentStudentId);
+                if (student) {
+                    loadDashboard(student);
+                    showView(viewDashboard);
+                    return;
+                }
+            }
+
+            // Sinon : afficher l'écran d'accueil pour entrer le code famille ou s'inscrire seul
+            bannerFamilyCode.style.display = 'none';
+            homeRoleDesc.innerHTML = '<strong>Espace Élève :</strong> Connectez-vous avec le code de votre famille ou démarrez en mode autonome.';
+            sectionParent.style.display = 'none';
+            sectionStudent.style.display = 'block';
+            sectionProf.style.display = 'none';
+            showView(viewHome);
+        } else if (appState.role === 'professeur') {
+            bannerFamilyCode.style.display = 'flex';
+            homeRoleDesc.innerHTML = '<strong>Espace Professeur :</strong> Confirmez et suivez les séances de vos élèves.';
+            sectionParent.style.display = 'none';
+            sectionStudent.style.display = 'none';
+            sectionProf.style.display = 'block';
+            document.getElementById('prof-self-name').value = appState.profName || '';
+            document.getElementById('prof-family-code').value = appState.familyId || '';
+            showView(viewHome);
+        }
     }
 
     // --- GESTION DU CHOIX DU RÔLE (VUE 0) ---
@@ -137,7 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-reset-role').addEventListener('click', () => {
         if (confirm("Voulez-vous réinitialiser votre profil pour choisir un autre rôle ?")) {
             localStorage.removeItem('edupocket_role');
+            localStorage.removeItem('edupocket_student_id');
             appState.role = null;
+            appState.currentStudentId = null;
             modalSettings.style.display = 'none';
             tempSelectedRole = null;
             document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
@@ -155,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initDataPersistence() {
-        // 1. Chargement initial depuis localStorage
         const local = localStorage.getItem('edupocket_family_data_' + appState.familyId);
         if (local) {
             try {
@@ -164,27 +186,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 appState.data = getDefaultData();
             }
         } else {
-            // Migration des anciennes données edupocket_students si présentes
-            const legacy = localStorage.getItem('edupocket_students');
-            if (legacy) {
-                try {
-                    const legacyStudents = Object.values(JSON.parse(legacy));
-                    appState.data = {
-                        familyId: appState.familyId,
-                        students: legacyStudents
-                    };
-                } catch(e) {
-                    appState.data = getDefaultData();
-                }
-            } else {
-                appState.data = getDefaultData();
-            }
+            appState.data = getDefaultData();
         }
 
-        // 2. Écoute temps réel Firebase Firestore
+        // Écoute temps réel Firebase Firestore
         if (typeof db !== 'undefined' && db) {
             btnSyncStatus.textContent = '🟢';
-            btnSyncStatus.title = 'Connecté à Firestore en temps réel';
+            btnSyncStatus.title = 'Connecté à Firestore en direct';
 
             db.collection('edupocket_families').doc(appState.familyId).onSnapshot(doc => {
                 if (doc.exists) {
@@ -195,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         refreshCurrentView();
                     }
                 } else {
-                    // Sauvegarde initiale dans le cloud
                     saveDataToCloud();
                 }
             }, err => {
@@ -211,9 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveData() {
         if (!appState.data) appState.data = getDefaultData();
-        // Sauvegarde locale
         localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
-        // Sauvegarde cloud Firestore
         saveDataToCloud();
         refreshCurrentView();
     }
@@ -221,13 +226,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveDataToCloud() {
         if (typeof db !== 'undefined' && db && appState.data) {
             db.collection('edupocket_families').doc(appState.familyId).set(appState.data)
-                .catch(err => console.warn("Erreur enregistrement Cloud :", err));
+                .catch(err => console.warn("Erreur sauvegarde Cloud :", err));
         }
     }
 
     function refreshCurrentView() {
         if (viewHome.classList.contains('active')) {
-            loadStudentsList();
+            if (appState.role === 'parent') loadParentStudentsList();
         } else if (viewDashboard.classList.contains('active') && appState.currentStudentId) {
             const student = getStudent(appState.currentStudentId);
             if (student) loadDashboard(student);
@@ -239,13 +244,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return appState.data.students.find(s => s.id === id);
     }
 
-    // --- GESTION DES ÉLÈVES (ACCUEIL) ---
-    function loadStudentsList() {
+    // --- ACCÈS PARENT : LISTE DES ENFANTS ---
+    function loadParentStudentsList() {
         const list = document.getElementById('saved-students-list');
         list.innerHTML = '';
 
         if (!appState.data || !appState.data.students || appState.data.students.length === 0) {
-            list.innerHTML = '<li><span style="color: #94A3B8;">Aucun élève enregistré. Ajoutez-en un ci-dessous !</span></li>';
+            list.innerHTML = '<li><span style="color: #94A3B8;">Aucun enfant enregistré. Ajoutez-en un ci-dessous !</span></li>';
             return;
         }
 
@@ -255,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div>
                     <strong style="font-size: 1.05rem;">${student.prenom} ${student.nom}</strong>
                     <div style="font-size: 0.85rem; color: #64748B; margin-top: 2px;">
-                        ${(student.sessions || []).length} séance(s) planifiée(s)
+                        ${(student.sessions || []).length} séance(s) • ${(student.matieres || []).length} matière(s)
                     </div>
                 </div>
                 <span class="student-class-badge">${student.classe}</span>
@@ -269,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Formulaire d'ajout d'élève
+    // Ajout d'enfant par le parent
     document.getElementById('form-add-student').addEventListener('submit', (e) => {
         e.preventDefault();
         const nom = document.getElementById('nom').value.trim();
@@ -301,7 +306,109 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Enregistrement du nom du prof
+    // --- ACCÈS ÉLÈVE : LIAISON PAR CODE OU AUTONOME ---
+    // Option 1 : Vérification du Code Famille
+    document.getElementById('btn-eleve-find-family').addEventListener('click', () => {
+        const inputCode = document.getElementById('input-eleve-family-code').value.trim().toUpperCase();
+        if (!inputCode) {
+            alert('Veuillez entrer un Code Famille.');
+            return;
+        }
+
+        const handleFoundFamily = (familyData) => {
+            const students = familyData.students || [];
+            if (students.length === 0) {
+                alert('Cette famille n\'a encore aucun élève enregistré.');
+                return;
+            }
+
+            const identityOptions = document.getElementById('eleve-identity-options');
+            identityOptions.innerHTML = '';
+            document.getElementById('eleve-select-identity-container').style.display = 'block';
+
+            students.forEach(std => {
+                const card = document.createElement('div');
+                card.className = 'role-card';
+                card.innerHTML = `
+                    <h3 style="margin: 0; color: var(--sidi-blue);">${std.prenom} ${std.nom}</h3>
+                    <p style="margin: 0; font-size: 0.85rem; color: #64748B;">Classe : ${std.classe}</p>
+                `;
+                card.addEventListener('click', () => {
+                    appState.familyId = inputCode;
+                    appState.currentStudentId = std.id;
+                    localStorage.setItem('edupocket_family_id', inputCode);
+                    localStorage.setItem('edupocket_student_id', std.id);
+                    appState.data = familyData;
+                    saveData();
+                    loadDashboard(std);
+                    showView(viewDashboard);
+                });
+                identityOptions.appendChild(card);
+            });
+        };
+
+        // Recherche Cloud Firebase en priorité
+        if (typeof db !== 'undefined' && db) {
+            db.collection('edupocket_families').doc(inputCode).get().then(doc => {
+                if (doc.exists) {
+                    handleFoundFamily(doc.data());
+                } else {
+                    // Vérification locale
+                    const local = localStorage.getItem('edupocket_family_data_' + inputCode);
+                    if (local) {
+                        handleFoundFamily(JSON.parse(local));
+                    } else {
+                        alert('Code Famille introuvable. Demandez à vos parents de vous transmettre le code exact.');
+                    }
+                }
+            }).catch(() => {
+                alert('Erreur de connexion. Vérifiez votre connexion internet.');
+            });
+        } else {
+            const local = localStorage.getItem('edupocket_family_data_' + inputCode);
+            if (local) {
+                handleFoundFamily(JSON.parse(local));
+            } else {
+                alert('Code Famille introuvable.');
+            }
+        }
+    });
+
+    // Option 2 : Inscription élève autonome
+    document.getElementById('form-eleve-self-signup').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nom = document.getElementById('eleve-self-nom').value.trim();
+        const prenom = document.getElementById('eleve-self-prenom').value.trim();
+        const classe = document.getElementById('eleve-self-classe').value.trim();
+
+        if (nom && prenom && classe) {
+            const newStudent = {
+                id: 'std_' + Date.now(),
+                nom,
+                prenom,
+                classe,
+                matieres: [
+                    { nom: 'Anglais', prixSeance: 20, quotaPaiement: 3, professeurs: ['M. Dubois'] },
+                    { nom: 'Mathématiques', prixSeance: 25, quotaPaiement: 4, professeurs: ['Mme Sonia'] }
+                ],
+                sessions: [],
+                paiements: []
+            };
+
+            appState.data = {
+                familyId: appState.familyId,
+                students: [newStudent]
+            };
+            appState.currentStudentId = newStudent.id;
+            localStorage.setItem('edupocket_student_id', newStudent.id);
+            saveData();
+
+            loadDashboard(newStudent);
+            showView(viewDashboard);
+        }
+    });
+
+    // --- ACCÈS PROFESSEUR ---
     const btnSaveProfName = document.getElementById('btn-save-prof-name');
     if (btnSaveProfName) {
         btnSaveProfName.addEventListener('click', () => {
@@ -309,16 +416,46 @@ document.addEventListener('DOMContentLoaded', () => {
             if (name) {
                 appState.profName = name;
                 localStorage.setItem('edupocket_prof_name', name);
-                alert(`Nom de professeur enregistré : ${name}`);
+                // Si des élèves existent dans la famille, ouvrir le premier
+                if (appState.data && appState.data.students && appState.data.students.length > 0) {
+                    appState.currentStudentId = appState.data.students[0].id;
+                    loadDashboard(appState.data.students[0]);
+                    showView(viewDashboard);
+                } else {
+                    alert('Nom enregistré. Entrez le Code Famille de vos élèves pour charger leurs séances.');
+                }
+            } else {
+                alert('Veuillez saisir votre nom de professeur.');
             }
         });
     }
 
-    // Bouton retour à l'accueil
+    const btnSaveProfCode = document.getElementById('btn-save-prof-code');
+    if (btnSaveProfCode) {
+        btnSaveProfCode.addEventListener('click', () => {
+            const code = document.getElementById('prof-family-code').value.trim().toUpperCase();
+            if (code) {
+                appState.familyId = code;
+                localStorage.setItem('edupocket_family_id', code);
+                initDataPersistence();
+                alert(`Lié à la famille ${code} avec succès !`);
+            }
+        });
+    }
+
+    // Bouton Retour du Tableau de bord
     document.getElementById('btn-back').addEventListener('click', () => {
-        appState.currentStudentId = null;
-        showView(viewHome);
-        loadStudentsList();
+        if (appState.role === 'eleve') {
+            if (confirm("Voulez-vous vous déconnecter de votre espace élève ?")) {
+                localStorage.removeItem('edupocket_student_id');
+                appState.currentStudentId = null;
+                updateRoleUI();
+            }
+        } else {
+            appState.currentStudentId = null;
+            showView(viewHome);
+            loadParentStudentsList();
+        }
     });
 
     // Copie du code famille
@@ -338,7 +475,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderFilteredSessions();
     }
 
-    // Remplir les menus déroulants Matières et Professeurs
     function populateMatieresSelect(student) {
         const selectSujet = document.getElementById('sujet-seance');
         const selectProf = document.getElementById('prof-seance');
@@ -360,7 +496,6 @@ document.addEventListener('DOMContentLoaded', () => {
             filterMatiere.appendChild(filterOpt);
         });
 
-        // Quand on change la matière, mettre à jour les professeurs correspondants
         selectSujet.onchange = () => {
             const chosenName = selectSujet.value;
             selectProf.innerHTML = '<option value="Non spécifié">Non spécifié</option>';
@@ -381,6 +516,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('payment-alerts-container');
         container.innerHTML = '';
 
+        // Si l'utilisateur est un élève, ne pas afficher d'alertes de paiement
+        if (appState.role === 'eleve') return;
+
         const matieres = student.matieres || [];
         const sessions = student.sessions || [];
 
@@ -388,7 +526,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const quota = m.quotaPaiement || 3;
             const prix = m.prixSeance || 20;
 
-            // Compter les séances effectuées et NON payées
             const nonPayees = sessions.filter(s => s.sujet === m.nom && s.statut === 'Effectuée' && !s.paye);
             const count = nonPayees.length;
 
@@ -417,7 +554,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const modalDesc = document.getElementById('payment-modal-desc');
         modalDesc.innerHTML = `Règlement pour <strong>${matiere.nom}</strong> (${sessionsToPay.length} séances) : <strong>${totalDT} DT</strong>`;
         
-        // Date du jour préremplie
         const today = new Date();
         const dd = String(today.getDate()).padStart(2, '0');
         const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -435,13 +571,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Marquer les séances comme payées
             sessionsToPay.forEach(s => {
                 s.paye = true;
                 s.datePaiement = datePaiement;
             });
 
-            // Enregistrer l'historique du paiement
             if (!student.paiements) student.paiements = [];
             student.paiements.push({
                 id: 'pay_' + Date.now(),
@@ -488,12 +622,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const student = getStudent(appState.currentStudentId);
         if (student) {
-            // Validation croisée
-            let validationStatut = 'Confirmee'; // Par défaut si pas d'ambiguïté
+            let validationStatut = 'Confirmee';
             if (appState.role === 'professeur') {
-                validationStatut = 'En attente'; // Doit être confirmée par le parent ou l'élève
+                validationStatut = 'En attente';
             } else if (prof !== 'Non spécifié') {
-                validationStatut = 'En attente'; // Doit être confirmée par le professeur
+                validationStatut = 'En attente';
             }
 
             const newSession = {
@@ -537,22 +670,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let sessions = [...(student.sessions || [])];
 
-        // 1. Filtrage Statut de présence
         if (filterStatus.value !== 'Tous') {
             sessions = sessions.filter(s => s.statut === filterStatus.value);
         }
 
-        // 2. Filtrage Validation
         if (filterValidation.value !== 'Tous') {
-            sessions = sessions.filter(s => s.validation === filterValidation.value);
+            if (filterValidation.value === 'Modifiee') {
+                sessions = sessions.filter(s => s.validation === 'Modifiee par eleve');
+            } else if (filterValidation.value === 'Suppression') {
+                sessions = sessions.filter(s => s.validation === 'Demande suppression');
+            } else {
+                sessions = sessions.filter(s => s.validation === filterValidation.value);
+            }
         }
 
-        // 3. Filtrage Matière
         if (filterMatiere.value !== 'Toutes') {
             sessions = sessions.filter(s => s.sujet === filterMatiere.value);
         }
 
-        // 4. Tri
         sessions.sort((a, b) => {
             const opt = sortBy.value;
             if (opt.startsWith('date')) {
@@ -582,19 +717,55 @@ document.addEventListener('DOMContentLoaded', () => {
         sessions.forEach(session => {
             const li = document.createElement('li');
 
-            // Badges
-            const tagValidationClass = session.validation === 'Confirmee' ? 'tag-val-confirmee' : (session.validation === 'Refusee' ? 'tag-val-refusee' : 'tag-val-attente');
+            // Formatage du badge de validation
+            let tagValidationClass = 'tag-val-confirmee';
+            let validationLabel = session.validation || 'Confirmee';
+
+            if (session.validation === 'En attente') {
+                tagValidationClass = 'tag-val-attente';
+            } else if (session.validation === 'Modifiee par eleve') {
+                tagValidationClass = 'tag-val-modifiee';
+                validationLabel = '⚠️ Modifiée par élève';
+            } else if (session.validation === 'Demande suppression') {
+                tagValidationClass = 'tag-val-suppression';
+                validationLabel = '⚠️ Demande suppression';
+            } else if (session.validation === 'Refusee') {
+                tagValidationClass = 'tag-val-refusee';
+            }
+
             const tagPaiementClass = session.paye ? 'tag-paye' : 'tag-non-paye';
             const textPaiement = session.paye ? `💰 Payé le ${session.datePaiement}` : '⏳ Non payé';
 
-            // Boutons de validation croisée
-            let showConfirmButtons = false;
-            if (session.validation === 'En attente') {
-                if (appState.role === 'professeur' && (session.creePar === 'parent' || session.creePar === 'eleve')) {
-                    showConfirmButtons = true;
-                } else if ((appState.role === 'parent' || appState.role === 'eleve') && session.creePar === 'professeur') {
-                    showConfirmButtons = true;
+            // Boutons d'arbitrage parental
+            let parentReviewHtml = '';
+            if (appState.role === 'parent') {
+                if (session.validation === 'Modifiee par eleve') {
+                    parentReviewHtml = `
+                        <div class="parent-review-box">
+                            <span class="parent-review-text">⚠️ L'élève a modifié cette séance</span>
+                            <div class="validation-buttons">
+                                <button class="btn-action-sm btn-confirm btn-parent-accept-mod" data-id="${session.id}">Valider</button>
+                                <button class="btn-action-sm btn-reject btn-parent-reject-mod" data-id="${session.id}">Refuser</button>
+                            </div>
+                        </div>
+                    `;
+                } else if (session.validation === 'Demande suppression') {
+                    parentReviewHtml = `
+                        <div class="parent-review-box" style="background: #FEE2E2; border-color: #EF4444;">
+                            <span class="parent-review-text" style="color: #991B1B;">⚠️ L'élève demande la suppression</span>
+                            <div class="validation-buttons">
+                                <button class="btn-action-sm btn-reject btn-parent-accept-del" data-id="${session.id}">Confirmer suppression</button>
+                                <button class="btn-action-sm btn-confirm btn-parent-keep" data-id="${session.id}">Conserver</button>
+                            </div>
+                        </div>
+                    `;
                 }
+            }
+
+            // Boutons de validation professeur
+            let showProfConfirmButtons = false;
+            if (session.validation === 'En attente' && appState.role === 'professeur') {
+                showProfConfirmButtons = true;
             }
 
             li.innerHTML = `
@@ -610,24 +781,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <div class="session-meta-row">
-                    <span class="tag-badge ${tagValidationClass}">${session.validation || 'Confirmee'}</span>
+                    <span class="tag-badge ${tagValidationClass}">${validationLabel}</span>
                     <span class="tag-badge ${tagPaiementClass}">${textPaiement}</span>
                     <span style="font-size: 0.8rem; color: #64748B; margin-left: auto;">Statut : <strong>${session.statut}</strong></span>
                 </div>
 
+                ${parentReviewHtml}
+
                 <div class="session-actions-row">
-                    ${showConfirmButtons ? `
-                        <div class="validation-buttons">
-                            <button class="btn-action-sm btn-confirm" data-id="${session.id}">Confirmer</button>
-                            <button class="btn-action-sm btn-reject" data-id="${session.id}">Refuser</button>
-                        </div>
-                    ` : `<div></div>`}
-                    
-                    <select class="select-change-status" data-id="${session.id}" style="padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">
-                        <option value="Planifiée" ${session.statut === 'Planifiée' ? 'selected' : ''}>Planifiée</option>
-                        <option value="Effectuée" ${session.statut === 'Effectuée' ? 'selected' : ''}>Effectuée</option>
-                        <option value="Annulée" ${session.statut === 'Annulée' ? 'selected' : ''}>Annulée</option>
-                    </select>
+                    <div class="session-control-buttons">
+                        <button class="btn-icon-action btn-edit-session" data-id="${session.id}" title="Modifier">✏️ Modifier</button>
+                        <button class="btn-icon-action delete btn-delete-session" data-id="${session.id}" title="Supprimer">🗑️ Effacer</button>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        ${showProfConfirmButtons ? `
+                            <div class="validation-buttons">
+                                <button class="btn-action-sm btn-confirm btn-prof-confirm" data-id="${session.id}">Confirmer</button>
+                                <button class="btn-action-sm btn-reject btn-prof-reject" data-id="${session.id}">Refuser</button>
+                            </div>
+                        ` : ''}
+
+                        <select class="select-change-status" data-id="${session.id}" style="padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">
+                            <option value="Planifiée" ${session.statut === 'Planifiée' ? 'selected' : ''}>Planifiée</option>
+                            <option value="Effectuée" ${session.statut === 'Effectuée' ? 'selected' : ''}>Effectuée</option>
+                            <option value="Annulée" ${session.statut === 'Annulée' ? 'selected' : ''}>Annulée</option>
+                        </select>
+                    </div>
                 </div>
             `;
 
@@ -640,23 +820,100 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Événements boutons de confirmation/refus
-            if (showConfirmButtons) {
-                li.querySelector('.btn-confirm').addEventListener('click', () => {
+            // Bouton Modifier
+            li.querySelector('.btn-edit-session').addEventListener('click', () => {
+                openEditSessionModal(student, session);
+            });
+
+            // Bouton Supprimer
+            li.querySelector('.btn-delete-session').addEventListener('click', () => {
+                if (appState.role === 'eleve') {
+                    if (confirm("Voulez-vous demander la suppression de cette séance à vos parents ?")) {
+                        const target = student.sessions.find(s => s.id === session.id);
+                        if (target) {
+                            target.validation = 'Demande suppression';
+                            saveData();
+                            alert("Demande de suppression envoyée à vos parents !");
+                        }
+                    }
+                } else {
+                    if (confirm("Supprimer définitivement cette séance ?")) {
+                        const idx = student.sessions.findIndex(s => s.id === session.id);
+                        if (idx !== -1) {
+                            student.sessions.splice(idx, 1);
+                            saveData();
+                            alert("Séance supprimée définitivement.");
+                        }
+                    }
+                }
+            });
+
+            // Actions d'arbitrage parental
+            const btnAcceptMod = li.querySelector('.btn-parent-accept-mod');
+            if (btnAcceptMod) {
+                btnAcceptMod.addEventListener('click', () => {
                     const target = student.sessions.find(s => s.id === session.id);
                     if (target) {
                         target.validation = 'Confirmee';
                         saveData();
-                        alert('Séance confirmée !');
+                        alert("Modification confirmée !");
                     }
                 });
+            }
 
-                li.querySelector('.btn-reject').addEventListener('click', () => {
+            const btnRejectMod = li.querySelector('.btn-parent-reject-mod');
+            if (btnRejectMod) {
+                btnRejectMod.addEventListener('click', () => {
                     const target = student.sessions.find(s => s.id === session.id);
                     if (target) {
                         target.validation = 'Refusee';
                         saveData();
-                        alert('Séance refusée !');
+                        alert("Modification refusée.");
+                    }
+                });
+            }
+
+            const btnAcceptDel = li.querySelector('.btn-parent-accept-del');
+            if (btnAcceptDel) {
+                btnAcceptDel.addEventListener('click', () => {
+                    const idx = student.sessions.findIndex(s => s.id === session.id);
+                    if (idx !== -1) {
+                        student.sessions.splice(idx, 1);
+                        saveData();
+                        alert("Suppression validée.");
+                    }
+                });
+            }
+
+            const btnKeep = li.querySelector('.btn-parent-keep');
+            if (btnKeep) {
+                btnKeep.addEventListener('click', () => {
+                    const target = student.sessions.find(s => s.id === session.id);
+                    if (target) {
+                        target.validation = 'Confirmee';
+                        saveData();
+                        alert("Séance conservée.");
+                    }
+                });
+            }
+
+            // Boutons de confirmation Professeur
+            if (showProfConfirmButtons) {
+                li.querySelector('.btn-prof-confirm').addEventListener('click', () => {
+                    const target = student.sessions.find(s => s.id === session.id);
+                    if (target) {
+                        target.validation = 'Confirmee';
+                        saveData();
+                        alert("Séance confirmée !");
+                    }
+                });
+
+                li.querySelector('.btn-prof-reject').addEventListener('click', () => {
+                    const target = student.sessions.find(s => s.id === session.id);
+                    if (target) {
+                        target.validation = 'Refusee';
+                        saveData();
+                        alert("Séance refusée.");
                     }
                 });
             }
@@ -664,6 +921,84 @@ document.addEventListener('DOMContentLoaded', () => {
             list.appendChild(li);
         });
     }
+
+    // --- MODAL MODIFIER UNE SÉANCE ---
+    function openEditSessionModal(student, session) {
+        document.getElementById('edit-session-id').value = session.id;
+        document.getElementById('edit-date-seance').value = session.date;
+        document.getElementById('edit-heure-seance').value = session.heure || '';
+        document.getElementById('edit-statut-seance').value = session.statut;
+
+        const editSelectSujet = document.getElementById('edit-sujet-seance');
+        const editSelectProf = document.getElementById('edit-prof-seance');
+
+        editSelectSujet.innerHTML = '';
+        (student.matieres || []).forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.nom;
+            opt.textContent = m.nom;
+            if (m.nom === session.sujet) opt.selected = true;
+            editSelectSujet.appendChild(opt);
+        });
+
+        function updateEditProfs() {
+            editSelectProf.innerHTML = '<option value="Non spécifié">Non spécifié</option>';
+            const selectedSubject = student.matieres.find(m => m.nom === editSelectSujet.value);
+            if (selectedSubject && selectedSubject.professeurs) {
+                selectedSubject.professeurs.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p;
+                    opt.textContent = p;
+                    if (p === session.professeur) opt.selected = true;
+                    editSelectProf.appendChild(opt);
+                });
+            }
+        }
+
+        editSelectSujet.onchange = updateEditProfs;
+        updateEditProfs();
+
+        const warningEleve = document.getElementById('edit-session-role-warning');
+        if (appState.role === 'eleve') {
+            warningEleve.style.display = 'block';
+        } else {
+            warningEleve.style.display = 'none';
+        }
+
+        modalEditSession.style.display = 'flex';
+    }
+
+    document.getElementById('btn-close-edit-session').addEventListener('click', () => {
+        modalEditSession.style.display = 'none';
+    });
+
+    document.getElementById('form-edit-session').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const sessionId = document.getElementById('edit-session-id').value;
+        const student = getStudent(appState.currentStudentId);
+        if (!student) return;
+
+        const target = student.sessions.find(s => s.id === sessionId);
+        if (target) {
+            target.date = document.getElementById('edit-date-seance').value.trim();
+            target.heure = document.getElementById('edit-heure-seance').value.trim();
+            target.sujet = document.getElementById('edit-sujet-seance').value;
+            target.professeur = document.getElementById('edit-prof-seance').value;
+            target.statut = document.getElementById('edit-statut-seance').value;
+
+            if (appState.role === 'eleve') {
+                target.validation = 'Modifiee par eleve';
+                saveData();
+                modalEditSession.style.display = 'none';
+                alert('Modifications enregistrées ! Vos parents doivent maintenant les confirmer.');
+            } else {
+                target.validation = 'Confirmee';
+                saveData();
+                modalEditSession.style.display = 'none';
+                alert('Séance mise à jour avec succès !');
+            }
+        }
+    });
 
     // --- MODAL RÉGLAGES ET TARIFS ---
     function openSettingsModal() {
@@ -679,7 +1014,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modalSettings.style.display = 'none';
     });
 
-    // Navigation onglets
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -731,11 +1065,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Formulaire d'ajout / modification de matière
     document.getElementById('form-config-matiere').addEventListener('submit', (e) => {
         e.preventDefault();
         if (!appState.currentStudentId) {
-            alert('Veuillez d\'abord sélectionner un élève sur l\'accueil.');
+            alert('Veuillez d\'abord sélectionner un élève.');
             return;
         }
 
@@ -748,7 +1081,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (nom && prix && quota) {
             if (!student.matieres) student.matieres = [];
-            // Si la matière existe déjà, la mettre à jour
             const existing = student.matieres.find(m => m.nom.toLowerCase() === nom.toLowerCase());
             if (existing) {
                 existing.prixSeance = prix;
@@ -766,7 +1098,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Rejoindre une autre famille via le code
     document.getElementById('btn-join-family').addEventListener('click', () => {
         const inputCode = document.getElementById('input-join-family').value.trim().toUpperCase();
         if (inputCode && inputCode !== appState.familyId) {
