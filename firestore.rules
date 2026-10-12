@@ -1,0 +1,196 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // This security rules file assumes the following data structures
+    // for the isolated EduPocket application namespace within the
+    // shared mailpocket-pro Firebase project:
+    //
+    // Collection: edupocket_families
+    // Document ID: {familyId} (e.g. 'FAM-XXXX', length 3 to 64 chars)
+    // Fields:
+    //   - familyId: string (required, immutable) - Unique code for family sync
+    //   - students: list of maps (optional, max 100 entries) - Nested student profiles
+    //   - updatedAt: timestamp or number (optional) - Last update time
+    //   - createdAt: timestamp or number (optional, immutable) - Creation time
+    //
+    // Collection: edupocket_students
+    // Document ID: {studentCode} (e.g. 'ELV-XXXX', length 3 to 64 chars)
+    // Fields:
+    //   - id: string (optional, immutable) - Unique student ID
+    //   - studentCode: string (optional, immutable) - Access code
+    //   - familyId: string (optional, max 64 chars) - Associated family code
+    //   - nom: string (required, 1 to 100 chars) - Student last name
+    //   - prenom: string (required, 1 to 100 chars) - Student first name
+    //   - classe: string (optional, max 100 chars) - School grade/class
+    //   - matieres: list of maps (optional, max 50 entries) - Subjects and rates
+    //   - sessions: list of maps (optional, max 500 entries) - Tutoring sessions
+    //   - paiements: list of maps (optional, max 500 entries) - Payment logs
+    //   - updatedAt: timestamp or number (optional) - Last update time
+    //   - createdAt: timestamp or number (optional, immutable) - Creation time
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the request is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Validate document code/ID format (e.g., FAM-XXXX, ELV-XXXX)
+    function isValidDocId(id) {
+      return id is string && id.size() >= 3 && id.size() <= 64;
+    }
+
+    // Validate that required fields exist in incoming data
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate that only allowed fields are present (Strict Schema)
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Validate that specified fields are not altered during update
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators (Validator Function Pattern)
+    // ===============================================================
+
+    // Validate edupocket_families document structure
+    function isValidFamilyData(familyId) {
+      return hasOnlyAllowedFields(['familyId', 'students', 'createdAt', 'updatedAt']) &&
+             hasRequiredFields(['familyId']) &&
+             request.resource.data.familyId is string &&
+             request.resource.data.familyId == familyId &&
+             request.resource.data.familyId.size() >= 3 &&
+             request.resource.data.familyId.size() <= 64 &&
+             (!('students' in request.resource.data) ||
+               (request.resource.data.students is list && request.resource.data.students.size() <= 100)) &&
+             (!('createdAt' in request.resource.data) ||
+               (request.resource.data.createdAt is timestamp || request.resource.data.createdAt is number)) &&
+             (!('updatedAt' in request.resource.data) ||
+               (request.resource.data.updatedAt is timestamp || request.resource.data.updatedAt is number));
+    }
+
+    // Validate edupocket_families update integrity
+    function isFamilyUpdateValid(familyId) {
+      return isValidFamilyData(familyId) &&
+             request.resource.data.familyId == resource.data.familyId &&
+             (!('createdAt' in resource.data) ||
+               !('createdAt' in request.resource.data) ||
+               request.resource.data.createdAt == resource.data.createdAt);
+    }
+
+    // Validate edupocket_students document structure
+    function isValidStudentData(studentCode) {
+      return hasOnlyAllowedFields([
+               'id', 'studentCode', 'familyId', 'nom', 'prenom',
+               'classe', 'matieres', 'sessions', 'paiements',
+               'createdAt', 'updatedAt'
+             ]) &&
+             hasRequiredFields(['nom', 'prenom']) &&
+             request.resource.data.nom is string &&
+             request.resource.data.nom.size() > 0 &&
+             request.resource.data.nom.size() <= 100 &&
+             request.resource.data.prenom is string &&
+             request.resource.data.prenom.size() > 0 &&
+             request.resource.data.prenom.size() <= 100 &&
+             (!('classe' in request.resource.data) ||
+               (request.resource.data.classe is string && request.resource.data.classe.size() <= 100)) &&
+             (!('id' in request.resource.data) ||
+               (request.resource.data.id is string && request.resource.data.id.size() <= 64)) &&
+             (!('studentCode' in request.resource.data) ||
+               (request.resource.data.studentCode is string &&
+                request.resource.data.studentCode == studentCode &&
+                request.resource.data.studentCode.size() <= 64)) &&
+             (!('familyId' in request.resource.data) ||
+               (request.resource.data.familyId is string && request.resource.data.familyId.size() <= 64)) &&
+             (!('matieres' in request.resource.data) ||
+               (request.resource.data.matieres is list && request.resource.data.matieres.size() <= 50)) &&
+             (!('sessions' in request.resource.data) ||
+               (request.resource.data.sessions is list && request.resource.data.sessions.size() <= 500)) &&
+             (!('paiements' in request.resource.data) ||
+               (request.resource.data.paiements is list && request.resource.data.paiements.size() <= 500)) &&
+             (!('createdAt' in request.resource.data) ||
+               (request.resource.data.createdAt is timestamp || request.resource.data.createdAt is number)) &&
+             (!('updatedAt' in request.resource.data) ||
+               (request.resource.data.updatedAt is timestamp || request.resource.data.updatedAt is number));
+    }
+
+    // Validate edupocket_students update integrity
+    function isStudentUpdateValid(studentCode) {
+      return isValidStudentData(studentCode) &&
+             (!('id' in resource.data) ||
+               !('id' in request.resource.data) ||
+               request.resource.data.id == resource.data.id) &&
+             (!('studentCode' in resource.data) ||
+               !('studentCode' in request.resource.data) ||
+               request.resource.data.studentCode == resource.data.studentCode) &&
+             (!('createdAt' in resource.data) ||
+               !('createdAt' in request.resource.data) ||
+               request.resource.data.createdAt == resource.data.createdAt);
+    }
+
+    // ===============================================================
+    // Root Level Default Deny
+    // ===============================================================
+    // Deny all reads and writes across the entire database by default.
+    // This guarantees total isolation from other services and collections
+    // hosted on mailpocket-pro.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // EduPocket Namespaced Collection: Families
+    // ===============================================================
+    match /edupocket_families/{familyId} {
+      // Single-document lookup by exact family code
+      allow get: if isValidDocId(familyId);
+
+      // Disallow collection queries to prevent enumeration/scraping of all families
+      allow list: if false;
+
+      // Creation validated against schema
+      allow create: if isValidDocId(familyId) && isValidFamilyData(familyId);
+
+      // Updates validated against schema with immutable identifier enforcement
+      allow update: if isValidDocId(familyId) && isFamilyUpdateValid(familyId);
+
+      // Protect against deletion by client
+      allow delete: if false;
+    }
+
+    // ===============================================================
+    // EduPocket Namespaced Collection: Students
+    // ===============================================================
+    match /edupocket_students/{studentCode} {
+      // Single-document lookup by exact student code
+      allow get: if isValidDocId(studentCode);
+
+      // Disallow collection queries to prevent enumeration/scraping of all students
+      allow list: if false;
+
+      // Creation validated against schema
+      allow create: if isValidDocId(studentCode) && isValidStudentData(studentCode);
+
+      // Updates validated against schema with immutable identifier enforcement
+      allow update: if isValidDocId(studentCode) && isStudentUpdateValid(studentCode);
+
+      // Protect against deletion by client
+      allow delete: if false;
+    }
+  }
+}

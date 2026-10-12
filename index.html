@@ -96,20 +96,16 @@
                 </div>
             </div>
 
-            <!-- Section 1B : Élève - Connexion par Code Famille ou Mode Autonome -->
+            <!-- Section 1B : Élève - Connexion par Code Élève ou Mode Autonome -->
             <div id="section-student-welcome" style="display: none;">
                 <div class="student-login-box">
-                    <h3>Option 1 : Rejoindre ma famille avec un Code</h3>
-                    <p class="tab-help">Entrez le Code Famille communiqué par vos parents pour retrouver votre dossier :</p>
+                    <h3>Option 1 : Me connecter avec mon Code Élève</h3>
+                    <p class="tab-help">Entrez votre Code Élève unique transmis par vos parents pour accéder immédiatement à votre dossier :</p>
                     <div class="input-inline">
-                        <input type="text" id="input-eleve-family-code" placeholder="Ex: FAM-8492">
-                        <button id="btn-eleve-find-family" class="btn-primary" style="width: auto;">Vérifier</button>
+                        <input type="text" id="input-eleve-code" placeholder="Ex: ELV-3K89 ou FAM-...">
+                        <button id="btn-eleve-login" class="btn-primary" style="width: auto;">Accéder</button>
                     </div>
-                    
-                    <div id="eleve-select-identity-container" style="display: none; margin-top: 15px;">
-                        <p style="font-weight: 600; color: var(--sidi-blue);">Qui es-tu ? Choisis ton prénom :</p>
-                        <div id="eleve-identity-options" class="role-options"></div>
-                    </div>
+                    <div id="eleve-login-error" style="display: none; color: #EF4444; font-size: 0.85rem; margin-top: 8px;"></div>
                 </div>
 
                 <div class="student-login-box" style="margin-top: 20px;">
@@ -176,8 +172,8 @@
                             <input type="text" id="date-seance" placeholder="JJ/MM/AAAA" required maxlength="10">
                         </div>
                         <div class="form-group form-col">
-                            <label for="heure-seance">Heure de début :</label>
-                            <input type="text" id="heure-seance" placeholder="HH:MM (Ex: 17:30)" required maxlength="5">
+                            <label for="heure-seance">Heure de début (Optionnel) :</label>
+                            <input type="text" id="heure-seance" placeholder="HH:MM (Ex: 17:30)" maxlength="5">
                         </div>
                     </div>
 
@@ -263,8 +259,8 @@
                         <input type="text" id="edit-date-seance" placeholder="JJ/MM/AAAA" required maxlength="10">
                     </div>
                     <div class="form-group form-col">
-                        <label for="edit-heure-seance">Heure de début :</label>
-                        <input type="text" id="edit-heure-seance" placeholder="HH:MM (Ex: 17:30)" required maxlength="5">
+                        <label for="edit-heure-seance">Heure de début (Optionnel) :</label>
+                        <input type="text" id="edit-heure-seance" placeholder="HH:MM (Ex: 17:30)" maxlength="5">
                     </div>
                 </div>
                 <div class="form-row">
