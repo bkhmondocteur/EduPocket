@@ -1,4 +1,4 @@
-const CACHE_NAME = 'edupocket-v12';
+const CACHE_NAME = 'edupocket-v14';
 const ASSETS = [
     './',
     './index.html',
@@ -30,15 +30,31 @@ self.addEventListener('activate', event => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim())
     );
 });
 
 self.addEventListener('fetch', event => {
+    // Ne pas intercepter les requêtes externes (Firestore, CDNs, etc.)
+    if (!event.request.url.startsWith(self.location.origin)) {
+        return;
+    }
+
+    // Stratégie Réseau d'abord (Network-First) pour toujours obtenir les derniers scripts à jour
     event.respondWith(
-        caches.match(event.request)
-        .then(response => {
-            return response || fetch(event.request);
-        })
+        fetch(event.request)
+            .then(networkResponse => {
+                if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
+                    const responseClone = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseClone);
+                    });
+                }
+                return networkResponse;
+            })
+            .catch(() => {
+                // Secours hors-ligne depuis le cache
+                return caches.match(event.request);
+            })
     );
 });

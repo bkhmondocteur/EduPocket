@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="EduPocket">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=14">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -560,14 +560,15 @@
     </div>
 
     <!-- Scripts de l'application -->
-    <script src="license-manager.js"></script>
-    <script src="firebase-config.js"></script>
-    <script src="app.js"></script>
+    <script src="license-manager.js?v=14"></script>
+    <script src="firebase-config.js?v=14"></script>
+    <script src="app.js?v=14"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(reg => {
-                    console.log('Service Worker enregistré', reg);
+                navigator.serviceWorker.register('sw.js?v=14').then(reg => {
+                    console.log('Service Worker v14 enregistré', reg);
+                    reg.update();
                 }).catch(err => {
                     console.log('Échec de l\'enregistrement du Service Worker', err);
                 });
