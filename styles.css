@@ -772,3 +772,97 @@ body.role-eleve #btn-open-settings-sub,
 body.role-eleve .dashboard-header-bar {
     display: none !important;
 }
+
+/* Bannière de Bienvenue Parent avec Licence */
+.parent-license-header {
+    background: #FFFFFF;
+    border: 1px solid #BAE6FD;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 6px rgba(0, 90, 156, 0.06);
+}
+
+.parent-greeting-text {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--sidi-blue-dark);
+}
+
+.badge-license-active {
+    background: #D1FAE5;
+    color: #065F46;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    border: 1px solid #A7F3D0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Boîte des codes professeurs combinés */
+.child-prof-codes-box {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    font-size: 0.82rem;
+}
+
+.prof-code-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px dashed #E2E8F0;
+}
+
+.prof-code-item:last-child {
+    border-bottom: none;
+}
+
+.code-badge-combined {
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 0.88rem;
+    background: #FEF3C7;
+    color: #92400E;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #FDE68A;
+    letter-spacing: 0.5px;
+}
+
+/* Bannière Professeur sur le tableau de bord */
+.prof-banner-dashboard {
+    background: linear-gradient(135deg, #005A9C, #003F6E);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.prof-banner-dashboard strong {
+    color: #FDE047;
+}
+
+/* Modal Licence Parent */
+.license-modal-info {
+    font-size: 0.9rem;
+    color: #475569;
+    line-height: 1.45;
+    margin-bottom: 16px;
+    background: #EBF4FA;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border-left: 4px solid var(--sidi-blue);
+}

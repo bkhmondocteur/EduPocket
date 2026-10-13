@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduPocket - Générateur de Clé de Licence (Keygen)</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        :root {
+            --primary: #005A9C;
+            --primary-dark: #003F6E;
+            --accent-gold: #D97706;
+            --bg: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --success: #10B981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header img {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            margin-bottom: 12px;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 580px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
+            padding: 28px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            color: var(--text);
+            background: #FFFFFF;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.15);
+        }
+
+        .btn-generate {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 90, 156, 0.25);
+            transition: transform 0.15s, opacity 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-generate:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+        }
+
+        .btn-generate:active {
+            transform: translateY(1px);
+        }
+
+        /* Résultat */
+        .result-box {
+            margin-top: 24px;
+            padding: 20px;
+            background: #F0F7FF;
+            border: 2px dashed #93C5FD;
+            border-radius: 14px;
+            display: none;
+        }
+
+        .result-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .key-display {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--primary-dark);
+            background: #FFFFFF;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #BAE6FD;
+            text-align: center;
+            margin-bottom: 12px;
+            user-select: all;
+        }
+
+        .greeting-badge {
+            display: inline-block;
+            background: #D1FAE5;
+            color: #065F46;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .btn-copy {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-copy:hover {
+            background: var(--primary-dark);
+        }
+
+        .message-preview {
+            margin-top: 16px;
+            background: #FFFFFF;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 0.88rem;
+            line-height: 1.5;
+            color: #334155;
+            white-space: pre-wrap;
+            font-family: inherit;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            background: #EBF4FA;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            background: #1E293B;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="logo.png" alt="EduPocket Logo">
+        <h1>EduPocket Keygen</h1>
+        <p>Générateur officiel de licences d'activation pour les parents</p>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-gen-btn">🔑 Générer une Clé</button>
+            <button class="tab-btn" id="tab-verif-btn">🔍 Vérifier une Clé</button>
+        </div>
+
+        <!-- ONGLET 1: GÉNÉRER UNE CLÉ -->
+        <div id="section-generate">
+            <form id="form-keygen">
+                <div class="form-row">
+                    <div class="form-group" style="width: 140px;">
+                        <label for="input-civ">Civilité :</label>
+                        <select id="input-civ" required>
+                            <option value="M.">M. (Monsieur)</option>
+                            <option value="Mme">Mme (Madame)</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-col">
+                        <label for="input-nom">Nom de famille :</label>
+                        <input type="text" id="input-nom" required placeholder="Ex: Ben Khalifa">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="input-prenom">Prénom :</label>
+                    <input type="text" id="input-prenom" required placeholder="Ex: Hamed">
+                </div>
+
+                <button type="submit" class="btn-generate">🔑 Générer la Clé de Licence</button>
+            </form>
+
+            <div id="result-box" class="result-box">
+                <div class="result-title">Clé de Licence Activée</div>
+                <div id="key-output" class="key-display">EDUP-XXXX-XXXX-XXXX-XXXX</div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div id="greeting-output" class="greeting-badge">Bonjour Monsieur ...</div>
+                    <button id="btn-copy-key" class="btn-copy">📋 Copier la clé</button>
+                </div>
+
+                <label style="margin-top: 14px;">Message complet pour le parent :</label>
+                <div id="message-output" class="message-preview"></div>
+                <button id="btn-copy-message" class="btn-copy" style="margin-top: 10px; width: 100%; justify-content: center;">
+                    📲 Copier le message WhatsApp / Email
+                </button>
+            </div>
+        </div>
+
+        <!-- ONGLET 2: VÉRIFIER UNE CLÉ -->
+        <div id="section-verify" style="display: none;">
+            <form id="form-verify">
+                <div class="form-row">
+                    <div class="form-group" style="width: 140px;">
+                        <label for="verif-civ">Civilité :</label>
+                        <select id="verif-civ">
+                            <option value="M.">M. (Monsieur)</option>
+                            <option value="Mme">Mme (Madame)</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-col">
+                        <label for="verif-nom">Nom :</label>
+                        <input type="text" id="verif-nom" required placeholder="Ex: Ben Khalifa">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="verif-prenom">Prénom :</label>
+                    <input type="text" id="verif-prenom" required placeholder="Ex: Hamed">
+                </div>
+                <div class="form-group">
+                    <label for="verif-key">Clé à vérifier :</label>
+                    <input type="text" id="verif-key" required placeholder="Ex: EDUP-03FD-0AFB-DAB9-AD2D">
+                </div>
+                <button type="submit" class="btn-generate" style="background: var(--text);">Tester la Clé</button>
+            </form>
+
+            <div id="verif-result" style="display: none; margin-top: 18px; padding: 14px; border-radius: 10px; font-weight: 600; text-align: center;"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Texte copié !</div>
+
+    <!-- Script du gestionnaire de licence -->
+    <script src="license-manager.js"></script>
+    <script>
+        const formKeygen = document.getElementById('form-keygen');
+        const resultBox = document.getElementById('result-box');
+        const keyOutput = document.getElementById('key-output');
+        const greetingOutput = document.getElementById('greeting-output');
+        const messageOutput = document.getElementById('message-output');
+        const btnCopyKey = document.getElementById('btn-copy-key');
+        const btnCopyMessage = document.getElementById('btn-copy-message');
+        const toast = document.getElementById('toast');
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2500);
+        }
+
+        formKeygen.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const civ = document.getElementById('input-civ').value;
+            const nom = document.getElementById('input-nom').value.trim();
+            const prenom = document.getElementById('input-prenom').value.trim();
+
+            if (!nom || !prenom) return;
+
+            const key = EduPocketLicense.generateLicenseKey(civ, prenom, nom);
+            const greeting = EduPocketLicense.getWelcomeGreeting(civ, nom);
+
+            keyOutput.textContent = key;
+            greetingOutput.textContent = `👋 ${greeting}`;
+
+            const clientMessage = 
+`${greeting},
+
+Merci pour votre souscription à l'application EduPocket !
+
+Voici vos informations d'activation :
+--------------------------------------------------
+👤 Titulaire : ${civ} ${prenom} ${nom}
+🔑 Clé de licence : ${key}
+🌐 Application : https://bkhmondocteur.github.io/EduPocket/
+--------------------------------------------------
+
+Instructions :
+1. Ouvrez le lien de l'application.
+2. Choisissez "Je suis Parent".
+3. Saisissez votre civilité (${civ}), nom, prénom et votre clé de licence.
+4. Vos enfants pourront ensuite se connecter avec leur Code Famille et leur Code Élève.
+
+Bien cordialement,
+L'équipe EduPocket`;
+
+            messageOutput.textContent = clientMessage;
+            resultBox.style.display = 'block';
+            resultBox.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        btnCopyKey.addEventListener('click', () => {
+            navigator.clipboard.writeText(keyOutput.textContent).then(() => {
+                showToast('Clé de licence copiée dans le presse-papier !');
+            });
+        });
+
+        btnCopyMessage.addEventListener('click', () => {
+            navigator.clipboard.writeText(messageOutput.textContent).then(() => {
+                showToast('Message client copié avec succès !');
+            });
+        });
+
+        // Tabs
+        const tabGenBtn = document.getElementById('tab-gen-btn');
+        const tabVerifBtn = document.getElementById('tab-verif-btn');
+        const secGen = document.getElementById('section-generate');
+        const secVerif = document.getElementById('section-verify');
+
+        tabGenBtn.addEventListener('click', () => {
+            tabGenBtn.classList.add('active');
+            tabVerifBtn.classList.remove('active');
+            secGen.style.display = 'block';
+            secVerif.style.display = 'none';
+        });
+
+        tabVerifBtn.addEventListener('click', () => {
+            tabVerifBtn.classList.add('active');
+            tabGenBtn.classList.remove('active');
+            secGen.style.display = 'none';
+            secVerif.style.display = 'block';
+        });
+
+        // Vérification
+        const formVerify = document.getElementById('form-verify');
+        const verifResult = document.getElementById('verif-result');
+
+        formVerify.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const civ = document.getElementById('verif-civ').value;
+            const nom = document.getElementById('verif-nom').value.trim();
+            const prenom = document.getElementById('verif-prenom').value.trim();
+            const key = document.getElementById('verif-key').value.trim();
+
+            const isValid = EduPocketLicense.verifyLicenseKey(civ, prenom, nom, key);
+            verifResult.style.display = 'block';
+
+            if (isValid) {
+                verifResult.style.background = '#D1FAE5';
+                verifResult.style.color = '#065F46';
+                verifResult.innerHTML = `✅ Clé Valide pour ${EduPocketLicense.getWelcomeGreeting(civ, nom)} (${prenom}) !`;
+            } else {
+                verifResult.style.background = '#FEE2E2';
+                verifResult.style.color = '#991B1B';
+                verifResult.innerHTML = `❌ Clé Invalide pour ${civ} ${prenom} ${nom}.`;
+            }
+        });
+    </script>
+</body>
+</html>
