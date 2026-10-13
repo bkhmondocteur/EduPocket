@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="EduPocket">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="styles.css?v=15">
+    <link rel="stylesheet" href="styles.css?v=16">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -447,7 +447,7 @@
                     </div>
                     <div class="form-group">
                         <label for="cfg-professeurs">Professeurs (séparés par virgules) :</label>
-                        <input type="text" id="cfg-professeurs" placeholder="Ex: M. Dubois, Mme Smith">
+                        <input type="text" id="cfg-professeurs" placeholder="Ex: M. Ben Salem, Mme Trabelsi">
                     </div>
                     <button type="submit" class="btn-primary">Enregistrer la matière</button>
                 </form>
@@ -572,15 +572,53 @@
         </div>
     </div>
 
+    <!-- MODAL MODIFIER PROFESSEUR -->
+    <div id="modal-edit-prof" class="modal-overlay" style="display: none;">
+        <div class="modal-card" style="max-width: 440px;">
+            <div class="modal-header">
+                <h2>✏️ Modifier le Professeur</h2>
+                <button id="btn-close-edit-prof" class="btn-close">&times;</button>
+            </div>
+            <form id="form-edit-prof">
+                <input type="hidden" id="edit-prof-student-id">
+                <input type="hidden" id="edit-prof-old-name">
+                <input type="hidden" id="edit-prof-matiere">
+
+                <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;">
+                    <div style="font-size: 0.8rem; color: #64748B;">Élève : <strong id="edit-prof-student-name" style="color: var(--sidi-blue-dark);"></strong></div>
+                    <div style="font-size: 0.8rem; color: #64748B; margin-top: 4px;">Matière : <strong id="edit-prof-matiere-name" style="color: var(--sidi-blue);"></strong></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-prof-nom">Nom et Titre du Professeur :</label>
+                    <input type="text" id="edit-prof-nom" required placeholder="Ex: M. Ahmed Ben Salem">
+                </div>
+
+                <div class="form-group">
+                    <label>Code d'accès combiné de ce professeur :</label>
+                    <code id="edit-prof-current-code" class="code-badge-combined" style="display: inline-block; padding: 6px 10px; font-size: 0.9rem;"></code>
+                    <div style="font-size: 0.74rem; color: #64748B; margin-top: 4px;">
+                        Le code combiné reste inchangé afin que le professeur conserve son accès sans interruption.
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 18px;">
+                    <button type="button" id="btn-cancel-edit-prof" class="btn-secondary" style="flex: 1;">Annuler</button>
+                    <button type="submit" class="btn-primary" style="flex: 2;">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts de l'application -->
-    <script src="license-manager.js?v=15"></script>
-    <script src="firebase-config.js?v=15"></script>
-    <script src="app.js?v=15"></script>
+    <script src="license-manager.js?v=16"></script>
+    <script src="firebase-config.js?v=16"></script>
+    <script src="app.js?v=16"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=15').then(reg => {
-                    console.log('Service Worker v15 enregistré', reg);
+                navigator.serviceWorker.register('sw.js?v=16').then(reg => {
+                    console.log('Service Worker v16 enregistré', reg);
                     reg.update();
                 }).catch(err => {
                     console.log('Échec de l\'enregistrement du Service Worker', err);

@@ -419,6 +419,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function cleanupFictionalProfessors() {
+        if (!appState.data || !appState.data.students) return false;
+        let modified = false;
+        const fictional = ['m. dubois', 'dubois', 'mme sonia', 'sonia', 'mme smith'];
+
+        appState.data.students.forEach(student => {
+            if (!student.matieres) return;
+            student.matieres.forEach(m => {
+                if (m.professeurs && m.professeurs.length > 0) {
+                    const countBefore = m.professeurs.length;
+                    m.professeurs = m.professeurs.filter(p => {
+                        const name = (typeof p === 'string' ? p : (p.nom || '')).trim().toLowerCase();
+                        return !fictional.includes(name);
+                    });
+                    if (m.professeurs.length !== countBefore) modified = true;
+                }
+                if (m.profCodes && m.profCodes.length > 0) {
+                    const countCodesBefore = m.profCodes.length;
+                    m.profCodes = m.profCodes.filter(pc => {
+                        const name = (pc.nom || '').trim().toLowerCase();
+                        return !fictional.includes(name);
+                    });
+                    if (m.profCodes.length !== countCodesBefore) modified = true;
+                }
+            });
+        });
+
+        return modified;
+    }
+
     function ensureProfCodes(student) {
         if (!student) return false;
         if (!student.matieres) student.matieres = [];
@@ -428,6 +458,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!m.profCodes) m.profCodes = [];
             const profsList = m.professeurs || [];
 
+            // 1. Nettoyer les profs supprimés de la liste
+            const validNamesLower = profsList.map(p => (typeof p === 'string' ? p.trim() : (p.nom || '').trim()).toLowerCase()).filter(Boolean);
+            const beforeLen = m.profCodes.length;
+            m.profCodes = m.profCodes.filter(pc => validNamesLower.includes((pc.nom || '').toLowerCase()));
+            if (m.profCodes.length !== beforeLen) modified = true;
+
+            // 2. Générer ou maintenir le code combiné pour les profs actuels
             profsList.forEach(p => {
                 const profName = typeof p === 'string' ? p.trim() : (p.nom || '').trim();
                 if (!profName || profName.toLowerCase() === 'non spécifié') return;
@@ -447,6 +484,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     existing.code = `PRF-${randomTag}-${student.codeEleve}`;
                     existing.matiere = m.nom;
                     modified = true;
+                } else {
+                    existing.matiere = m.nom;
                 }
             });
         });
@@ -457,6 +496,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function ensureStudentCodes() {
         if (!appState.data || !appState.data.students) return;
         let modified = false;
+
+        if (cleanupFictionalProfessors()) {
+            modified = true;
+        }
+
         appState.data.students.forEach(s => {
             if (!s.codeEleve) {
                 s.codeEleve = 'ELV-' + Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -603,8 +647,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 prenom,
                 classe,
                 matieres: [
-                    { nom: 'Anglais', prixSeance: 20, quotaPaiement: 3, professeurs: ['M. Dubois'], profCodes: [] },
-                    { nom: 'Mathématiques', prixSeance: 25, quotaPaiement: 4, professeurs: ['Mme Sonia'], profCodes: [] }
+                    { nom: 'Anglais', prixSeance: 20, quotaPaiement: 3, professeurs: [], profCodes: [] },
+                    { nom: 'Mathématiques', prixSeance: 25, quotaPaiement: 4, professeurs: [], profCodes: [] }
                 ],
                 sessions: [],
                 paiements: []
@@ -761,8 +805,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 prenom,
                 classe,
                 matieres: [
-                    { nom: 'Anglais', prixSeance: 20, quotaPaiement: 3, professeurs: ['M. Dubois'], profCodes: [] },
-                    { nom: 'Mathématiques', prixSeance: 25, quotaPaiement: 4, professeurs: ['Mme Sonia'], profCodes: [] }
+                    { nom: 'Anglais', prixSeance: 20, quotaPaiement: 3, professeurs: [], profCodes: [] },
+                    { nom: 'Mathématiques', prixSeance: 25, quotaPaiement: 4, professeurs: [], profCodes: [] }
                 ],
                 sessions: [],
                 paiements: []
@@ -2089,12 +2133,18 @@ ${profName}`;
                                             <code class="code-badge-combined" style="font-size: 0.88rem; font-weight: 700; background: #EEF2FF; color: #3730A3; padding: 3px 8px; border-radius: 6px; border: 1px solid #C7D2FE;">${pc.code}</code>
                                         </div>
                                     </div>
-                                    <div style="display: flex; gap: 6px; align-items: center;">
-                                        <button class="btn-sm btn-copy-prof-code-item" data-code="${pc.code}" data-prof="${pc.nom}" data-matiere="${m.nom}" data-eleve="${student.prenom}" style="background: var(--sidi-blue); color: white; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">
+                                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                                        <button class="btn-sm btn-copy-prof-code-item" data-code="${pc.code}" data-prof="${pc.nom}" data-matiere="${m.nom}" data-eleve="${student.prenom}" style="background: var(--sidi-blue); color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Copier le code">
                                             📋 Copier
                                         </button>
-                                        <button class="btn-sm btn-share-prof-whatsapp" data-code="${pc.code}" data-prof="${pc.nom}" data-matiere="${m.nom}" data-eleve="${student.prenom}" style="background: #25D366; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;" title="Envoyer par WhatsApp">
+                                        <button class="btn-sm btn-share-prof-whatsapp" data-code="${pc.code}" data-prof="${pc.nom}" data-matiere="${m.nom}" data-eleve="${student.prenom}" style="background: #25D366; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Envoyer par WhatsApp">
                                             💬 WhatsApp
+                                        </button>
+                                        <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" data-code="${pc.code}" style="background: #F59E0B; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Modifier les données de ce professeur">
+                                            ✏️ Modifier
+                                        </button>
+                                        <button class="btn-sm btn-delete-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" style="background: #EF4444; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Supprimer ce professeur">
+                                            🗑️ Supprimer
                                         </button>
                                     </div>
                                 </div>
@@ -2228,6 +2278,28 @@ ${profName}`;
                 });
             });
 
+            card.querySelectorAll('.btn-edit-prof-action').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sId = btn.getAttribute('data-student-id');
+                    const m = btn.getAttribute('data-matiere');
+                    const p = btn.getAttribute('data-prof');
+                    const c = btn.getAttribute('data-code') || '';
+                    openEditProfessorModal(sId, m, p, c);
+                });
+            });
+
+            card.querySelectorAll('.btn-delete-prof-action').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sId = btn.getAttribute('data-student-id');
+                    const m = btn.getAttribute('data-matiere');
+                    const p = btn.getAttribute('data-prof');
+                    if (confirm(`Voulez-vous vraiment supprimer le professeur "${p}" de la matière ${m} pour ${student.prenom} ?`)) {
+                        deleteProfessor(sId, m, p);
+                        alert(`Professeur "${p}" supprimé avec succès.`);
+                    }
+                });
+            });
+
             const btnGotoMatiere = card.querySelector('.btn-goto-config-matiere');
             if (btnGotoMatiere) {
                 btnGotoMatiere.addEventListener('click', () => {
@@ -2290,17 +2362,41 @@ ${profName}`;
             if (m.profCodes && m.profCodes.length > 0) {
                 m.profCodes.forEach(pc => {
                     profsHtml += `
-                        <div style="margin-top: 4px; font-size: 0.8rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; background: #F1F5F9; padding: 4px 8px; border-radius: 6px;">
-                            <span>👨‍🏫 <strong>${pc.nom}</strong> : <code class="code-badge-combined">${pc.code}</code></span>
-                            <button class="btn-sm btn-copy-prof-code-cfg" data-code="${pc.code}" style="padding: 2px 8px; font-size: 0.75rem; background: var(--sidi-blue); color: white;">📋 Copier</button>
+                        <div style="margin-top: 6px; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; background: #F8FAFC; padding: 6px 10px; border-radius: 8px; border: 1px solid #E2E8F0; flex-wrap: wrap;">
+                            <div>
+                                <span>👨‍🏫 <strong>${pc.nom}</strong> : <code class="code-badge-combined">${pc.code}</code></span>
+                            </div>
+                            <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+                                <button class="btn-sm btn-copy-prof-code-cfg" data-code="${pc.code}" style="padding: 3px 8px; font-size: 0.75rem; background: var(--sidi-blue); color: white;">📋 Copier</button>
+                                <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" data-code="${pc.code}" style="padding: 3px 8px; font-size: 0.75rem; background: #F59E0B; color: white;">✏️ Modifier</button>
+                                <button class="btn-sm btn-delete-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" style="padding: 3px 8px; font-size: 0.75rem; background: #EF4444; color: white;">🗑️ Supprimer</button>
+                            </div>
                         </div>
                     `;
                 });
             } else if (m.professeurs && m.professeurs.length > 0) {
-                profsHtml = `<div style="font-size: 0.8rem; color: #64748B; margin-top: 4px;">Profs : ${m.professeurs.join(', ')}</div>`;
+                m.professeurs.forEach(pName => {
+                    profsHtml += `
+                        <div style="margin-top: 6px; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; background: #F8FAFC; padding: 6px 10px; border-radius: 8px; border: 1px solid #E2E8F0; flex-wrap: wrap;">
+                            <span>👨‍🏫 <strong>${pName}</strong></span>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pName}" style="padding: 3px 8px; font-size: 0.75rem; background: #F59E0B; color: white;">✏️ Modifier</button>
+                                <button class="btn-sm btn-delete-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pName}" style="padding: 3px 8px; font-size: 0.75rem; background: #EF4444; color: white;">🗑️ Supprimer</button>
+                            </div>
+                        </div>
+                    `;
+                });
             } else {
                 profsHtml = `<div style="font-size: 0.8rem; color: #94A3B8; margin-top: 4px;">Aucun professeur assigné</div>`;
             }
+
+            profsHtml += `
+                <div style="margin-top: 8px;">
+                    <button class="btn-sm btn-add-prof-direct" data-student-id="${student.id}" data-matiere="${m.nom}" style="background: #F1F5F9; color: var(--sidi-blue-dark); border: 1px dashed var(--sidi-blue); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;">
+                        ➕ Ajouter un professeur à ${m.nom}
+                    </button>
+                </div>
+            `;
 
             const item = document.createElement('div');
             item.className = 'matiere-config-item';
@@ -2332,13 +2428,218 @@ ${profName}`;
                 b.addEventListener('click', () => {
                     const c = b.getAttribute('data-code');
                     navigator.clipboard.writeText(c).then(() => {
-                        alert(`Code Professeur copié : ${c}\n\nTransmettez ce code au professeur pour qu'il accède directement à l'élève pour la matière ${m.nom} uniquement.`);
+                        alert(`Code Professeur copié : ${c}\\n\\nTransmettez ce code au professeur pour qu'il accède directement à l'élève pour la matière ${m.nom} uniquement.`);
                     });
                 });
             });
 
+            item.querySelectorAll('.btn-edit-prof-action').forEach(b => {
+                b.addEventListener('click', () => {
+                    const sId = b.getAttribute('data-student-id');
+                    const mName = b.getAttribute('data-matiere');
+                    const pName = b.getAttribute('data-prof');
+                    const c = b.getAttribute('data-code') || '';
+                    openEditProfessorModal(sId, mName, pName, c);
+                });
+            });
+
+            item.querySelectorAll('.btn-delete-prof-action').forEach(b => {
+                b.addEventListener('click', () => {
+                    const sId = b.getAttribute('data-student-id');
+                    const mName = b.getAttribute('data-matiere');
+                    const pName = b.getAttribute('data-prof');
+                    if (confirm(`Voulez-vous vraiment supprimer le professeur "${pName}" de la matière ${mName} ?`)) {
+                        deleteProfessor(sId, mName, pName);
+                        alert(`Professeur "${pName}" supprimé avec succès.`);
+                    }
+                });
+            });
+
+            const btnAddProf = item.querySelector('.btn-add-prof-direct');
+            if (btnAddProf) {
+                btnAddProf.addEventListener('click', () => {
+                    const sId = btnAddProf.getAttribute('data-student-id');
+                    const mName = btnAddProf.getAttribute('data-matiere');
+                    const newProf = prompt(`Nom du professeur à ajouter pour la matière "${mName}" (ex: M. Ahmed Ben Salem) :`);
+                    if (newProf && newProf.trim()) {
+                        addProfessor(sId, mName, newProf.trim());
+                        alert(`Professeur "${newProf.trim()}" ajouté avec succès à la matière ${mName} !`);
+                    }
+                });
+            }
+
             container.appendChild(item);
         });
+    }
+
+    // --- GESTION DES PROFESSEURS : MODIFICATION ET SUPPRESSION ---
+    const modalEditProf = document.getElementById('modal-edit-prof');
+    const formEditProf = document.getElementById('form-edit-prof');
+    const btnCloseEditProf = document.getElementById('btn-close-edit-prof');
+    const btnCancelEditProf = document.getElementById('btn-cancel-edit-prof');
+
+    function openEditProfessorModal(studentId, matiereName, profName, profCode) {
+        const student = getStudent(studentId);
+        if (!student) return;
+
+        document.getElementById('edit-prof-student-id').value = studentId;
+        document.getElementById('edit-prof-student-name').textContent = `${student.prenom} ${student.nom} (${student.classe || 'Élève'})`;
+        document.getElementById('edit-prof-matiere').value = matiereName;
+        document.getElementById('edit-prof-matiere-name').textContent = matiereName;
+        document.getElementById('edit-prof-old-name').value = profName;
+        document.getElementById('edit-prof-nom').value = profName;
+        document.getElementById('edit-prof-current-code').textContent = profCode || '---';
+
+        if (modalEditProf) {
+            modalEditProf.style.display = 'flex';
+            setTimeout(() => {
+                const inp = document.getElementById('edit-prof-nom');
+                if (inp) inp.focus();
+            }, 50);
+        }
+    }
+
+    if (btnCloseEditProf) {
+        btnCloseEditProf.addEventListener('click', () => {
+            if (modalEditProf) modalEditProf.style.display = 'none';
+        });
+    }
+    if (btnCancelEditProf) {
+        btnCancelEditProf.addEventListener('click', () => {
+            if (modalEditProf) modalEditProf.style.display = 'none';
+        });
+    }
+
+    if (formEditProf) {
+        formEditProf.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const studentId = document.getElementById('edit-prof-student-id').value;
+            const matiere = document.getElementById('edit-prof-matiere').value;
+            const oldName = document.getElementById('edit-prof-old-name').value;
+            const newName = document.getElementById('edit-prof-nom').value.trim();
+
+            if (!newName) {
+                alert('Veuillez saisir le nom du professeur.');
+                return;
+            }
+
+            const success = updateProfessor(studentId, matiere, oldName, newName);
+            if (success) {
+                if (modalEditProf) modalEditProf.style.display = 'none';
+                alert(`Données du professeur mises à jour : "${newName}" !`);
+            }
+        });
+    }
+
+    function updateProfessor(studentId, matiereName, oldName, newName) {
+        if (!newName || !newName.trim()) return false;
+        const cleanNewName = newName.trim();
+        const student = getStudent(studentId);
+        if (!student || !student.matieres) return false;
+
+        const matiere = student.matieres.find(m => m.nom.toLowerCase() === matiereName.toLowerCase());
+        if (!matiere) return false;
+
+        // 1. Mettre à jour dans m.professeurs
+        if (matiere.professeurs) {
+            const idx = matiere.professeurs.findIndex(p => {
+                const pName = typeof p === 'string' ? p : (p.nom || '');
+                return pName.toLowerCase() === oldName.toLowerCase();
+            });
+            if (idx >= 0) {
+                matiere.professeurs[idx] = cleanNewName;
+            } else {
+                matiere.professeurs.push(cleanNewName);
+            }
+        } else {
+            matiere.professeurs = [cleanNewName];
+        }
+
+        // 2. Mettre à jour dans m.profCodes
+        if (matiere.profCodes) {
+            const pc = matiere.profCodes.find(c => c.nom.toLowerCase() === oldName.toLowerCase());
+            if (pc) {
+                pc.nom = cleanNewName;
+            }
+        }
+
+        // 3. Mettre à jour dans les séances passées
+        if (student.sessions) {
+            student.sessions.forEach(s => {
+                if (s.matiere && s.matiere.toLowerCase() === matiereName.toLowerCase()) {
+                    if (s.professeur && s.professeur.toLowerCase() === oldName.toLowerCase()) {
+                        s.professeur = cleanNewName;
+                    }
+                }
+            });
+        }
+
+        ensureProfCodes(student);
+        saveData();
+        renderSettingsStudentsCodes();
+        renderMatieresConfigList();
+        if (appState.currentStudentId === studentId) {
+            loadDashboard(student);
+        }
+        return true;
+    }
+
+    function deleteProfessor(studentId, matiereName, profName) {
+        const student = getStudent(studentId);
+        if (!student || !student.matieres) return false;
+
+        const matiere = student.matieres.find(m => m.nom.toLowerCase() === matiereName.toLowerCase());
+        if (!matiere) return false;
+
+        // Supprimer de m.professeurs
+        if (matiere.professeurs) {
+            matiere.professeurs = matiere.professeurs.filter(p => {
+                const pName = typeof p === 'string' ? p : (p.nom || '');
+                return pName.toLowerCase() !== profName.toLowerCase();
+            });
+        }
+
+        // Supprimer de m.profCodes
+        if (matiere.profCodes) {
+            matiere.profCodes = matiere.profCodes.filter(c => c.nom.toLowerCase() !== profName.toLowerCase());
+        }
+
+        ensureProfCodes(student);
+        saveData();
+        renderSettingsStudentsCodes();
+        renderMatieresConfigList();
+        if (appState.currentStudentId === studentId) {
+            loadDashboard(student);
+        }
+        return true;
+    }
+
+    function addProfessor(studentId, matiereName, profName) {
+        if (!profName || !profName.trim()) return false;
+        const cleanName = profName.trim();
+        const student = getStudent(studentId);
+        if (!student || !student.matieres) return false;
+
+        const matiere = student.matieres.find(m => m.nom.toLowerCase() === matiereName.toLowerCase());
+        if (!matiere) return false;
+
+        if (!matiere.professeurs) matiere.professeurs = [];
+        const exists = matiere.professeurs.some(p => {
+            const pName = typeof p === 'string' ? p : (p.nom || '');
+            return pName.toLowerCase() === cleanName.toLowerCase();
+        });
+        if (!exists) {
+            matiere.professeurs.push(cleanName);
+        }
+
+        ensureProfCodes(student);
+        saveData();
+        renderSettingsStudentsCodes();
+        renderMatieresConfigList();
+        if (appState.currentStudentId === studentId) {
+            loadDashboard(student);
+        }
+        return true;
     }
 
     document.getElementById('form-config-matiere').addEventListener('submit', (e) => {
