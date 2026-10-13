@@ -196,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const sectionStudent = document.getElementById('section-student-welcome');
         const sectionProf = document.getElementById('section-prof-setup');
         const btnTabTarifs = document.getElementById('btn-tab-tarifs');
+        const btnTabCodes = document.getElementById('btn-tab-codes');
         const parentBanner = document.getElementById('parent-license-banner');
         const parentGreeting = document.getElementById('parent-greeting-display');
 
@@ -227,6 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.body.classList.toggle('role-eleve', appState.role === 'eleve');
 
+        if (btnTabCodes) btnTabCodes.style.display = (appState.role === 'parent') ? 'block' : 'none';
+
         if (appState.role === 'parent') {
             // VÉRIFICATION STRICTE DE LA LICENCE PARENT
             const parentLicense = getActiveLicense('parent');
@@ -242,8 +245,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 parentBanner.style.display = 'flex';
             }
 
-            bannerFamilyCode.style.display = 'flex';
-            homeRoleDesc.innerHTML = '<strong>Espace Parents :</strong> Gérez vos enfants, transmettez-leur leur <strong>Code Famille & Code Élève</strong>, configurez les tarifs et partagez les codes professeurs.';
+            bannerFamilyCode.style.display = 'none';
+            homeRoleDesc.innerHTML = '<strong>Espace Parents :</strong> Cliquez sur un enfant pour ouvrir son dossier. Retrouvez tous les codes d\'accès dans les <strong>Réglages ⚙️</strong>.';
             sectionParent.style.display = 'block';
             sectionStudent.style.display = 'none';
             sectionProf.style.display = 'none';
@@ -542,6 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- ACCÈS PARENT : LISTE DES ENFANTS AVEC CODES ÉLÈVE ET PROFESSEUR ---
+    // --- ACCÈS PARENT : LISTE DES ENFANTS SUR L'ACCUEIL (INTERFACE ÉPURÉE SANS CODES) ---
     function loadParentStudentsList() {
         const list = document.getElementById('saved-students-list');
         list.innerHTML = '';
@@ -554,106 +558,29 @@ document.addEventListener('DOMContentLoaded', () => {
         appState.data.students.forEach(student => {
             ensureProfCodes(student);
 
-            // Construction de la liste des codes professeurs combinés
-            let profCodesHtml = '';
-            let totalProfs = 0;
-            (student.matieres || []).forEach(m => {
-                (m.profCodes || []).forEach(pc => {
-                    totalProfs++;
-                    profCodesHtml += `
-                        <div class="prof-code-item">
-                            <span>👨‍🏫 <strong>${pc.nom}</strong> (${m.nom})</span>
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <code class="code-badge-combined">${pc.code}</code>
-                                <button class="btn-sm btn-copy-prof-code" data-code="${pc.code}" style="padding: 2px 8px; font-size: 0.75rem; background: var(--sidi-blue); color: white;">📋 Copier</button>
-                            </div>
-                        </div>
-                    `;
-                });
-            });
-
-            if (totalProfs === 0) {
-                profCodesHtml = '<div style="color: #94A3B8; font-size: 0.8rem; padding: 4px 0;">Aucun professeur configuré. Ajoutez-en dans Réglages > Tarifs & Matières.</div>';
-            }
-
             const li = document.createElement('li');
+            li.style.cursor = 'pointer';
             li.innerHTML = `
                 <div style="flex: 1;">
-                    <strong style="font-size: 1.05rem;">${student.prenom} ${student.nom}</strong>
-                    <div style="font-size: 0.85rem; color: #64748B; margin-top: 2px;">
-                        ${(student.sessions || []).length} séance(s) • ${(student.matieres || []).length} matière(s)
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <strong style="font-size: 1.15rem; color: var(--sidi-blue-dark);">${student.prenom} ${student.nom}</strong>
+                        <span class="class-badge" style="font-size: 0.8rem; padding: 2px 10px;">${student.classe || 'Élève'}</span>
                     </div>
-
-                    <!-- Codes pour l'élève -->
-                    <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <span style="font-size: 0.82rem; background: #EBF4FA; color: #005A9C; padding: 4px 8px; border-radius: 6px; font-weight: 700; border: 1px solid #BAE6FD;">
-                            Code Famille : <strong>${appState.familyId}</strong>
-                        </span>
-                        <button class="btn-sm btn-copy-child-fam" data-code="${appState.familyId}" style="padding: 3px 8px; font-size: 0.75rem;">📋 Copier</button>
-
-                        <span style="font-size: 0.82rem; background: #EBF4FA; color: #005A9C; padding: 4px 8px; border-radius: 6px; font-weight: 700; border: 1px solid #BAE6FD;">
-                            🔑 Code Élève : <strong>${student.codeEleve}</strong>
-                        </span>
-                        <button class="btn-sm btn-copy-child-code" data-code="${student.codeEleve}" style="padding: 3px 8px; font-size: 0.75rem; background: #005A9C; color: white;">📋 Copier</button>
-                    </div>
-
-                    <div style="font-size: 0.76rem; color: #007799; margin-top: 4px;">
-                        👉 Transmettez le <strong>Code Famille</strong> ET le <strong>Code Élève</strong> à ${student.prenom} pour qu'il ouvre son espace.
-                    </div>
-
-                    <!-- Codes pour les professeurs de cet élève -->
-                    <div class="child-prof-codes-box">
-                        <div style="font-weight: 700; color: #005A9C; margin-bottom: 4px;">
-                            👨‍🏫 Codes d'accès Professeurs combinés :
-                        </div>
-                        ${profCodesHtml}
-                        <div style="font-size: 0.74rem; color: #64748B; margin-top: 4px;">
-                            Transmettez ce code à chaque professeur pour qu'il accède uniquement aux séances de sa matière.
-                        </div>
+                    <div style="font-size: 0.85rem; color: #64748B; margin-top: 5px;">
+                        ${(student.sessions || []).length} séance(s) effectuée(s) • ${(student.matieres || []).length} matière(s)
                     </div>
                 </div>
-                <span class="student-class-badge">${student.classe}</span>
+                <div style="display: flex; align-items: center; gap: 6px; color: var(--sidi-blue); font-weight: 700; font-size: 0.92rem;">
+                    <span>Ouvrir</span>
+                    <span style="font-size: 1.25rem; line-height: 1;">→</span>
+                </div>
             `;
 
-            // Clic sur l'élève pour ouvrir son dossier
-            li.addEventListener('click', (e) => {
-                if (e.target.classList.contains('btn-copy-child-code') || 
-                    e.target.classList.contains('btn-copy-child-fam') || 
-                    e.target.classList.contains('btn-copy-prof-code')) return;
+            // Clic sur l'élève pour ouvrir son tableau de bord
+            li.addEventListener('click', () => {
                 appState.currentStudentId = student.id;
                 loadDashboard(student);
                 showView(viewDashboard);
-            });
-
-            // Boutons copier
-            const btnCopyCode = li.querySelector('.btn-copy-child-code');
-            if (btnCopyCode) {
-                btnCopyCode.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(student.codeEleve).then(() => {
-                        alert(`Code unique de ${student.prenom} copié : ${student.codeEleve}\n\nTransmettez ce code avec le Code Famille (${appState.familyId}) à votre enfant pour qu'il se connecte.`);
-                    });
-                });
-            }
-
-            const btnCopyFam = li.querySelector('.btn-copy-child-fam');
-            if (btnCopyFam) {
-                btnCopyFam.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(appState.familyId).then(() => {
-                        alert(`Code Famille copié : ${appState.familyId}`);
-                    });
-                });
-            }
-
-            li.querySelectorAll('.btn-copy-prof-code').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const pCode = btn.getAttribute('data-code');
-                    navigator.clipboard.writeText(pCode).then(() => {
-                        alert(`Code Professeur combiné copié : ${pCode}\n\nTransmettez ce code au professeur pour qu'il accède directement aux séances de ${student.prenom} pour sa matière uniquement.`);
-                    });
-                });
             });
 
             list.appendChild(li);
@@ -2060,14 +1987,47 @@ ${profName}`;
     });
 
     // --- MODAL RÉGLAGES ET TARIFS ---
-    function openSettingsModal() {
+    function openSettingsModal(targetTab = null) {
         modalSettings.style.display = 'flex';
-        renderMatieresConfigList();
+
+        // Déterminer l'onglet par défaut selon le rôle
+        let tabToOpen = targetTab;
+        if (!tabToOpen) {
+            tabToOpen = (appState.role === 'parent') ? 'tab-codes' : 'tab-sync';
+        }
+
+        // Basculer vers l'onglet cible
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            if (btn.getAttribute('data-tab') === tabToOpen) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        document.querySelectorAll('.tab-content').forEach(content => {
+            if (content.id === tabToOpen) {
+                content.classList.add('active');
+            } else {
+                content.classList.remove('active');
+            }
+        });
+
+        if (tabToOpen === 'tab-codes') {
+            renderSettingsStudentsCodes();
+        } else if (tabToOpen === 'tab-tarifs') {
+            renderMatieresConfigList();
+        }
     }
 
-    document.getElementById('btn-open-settings').addEventListener('click', openSettingsModal);
+    document.getElementById('btn-open-settings').addEventListener('click', () => openSettingsModal('tab-codes'));
     const btnSubSettings = document.getElementById('btn-open-settings-sub');
-    if (btnSubSettings) btnSubSettings.addEventListener('click', openSettingsModal);
+    if (btnSubSettings) btnSubSettings.addEventListener('click', () => openSettingsModal('tab-tarifs'));
+
+    const btnQuickOpenCodes = document.getElementById('btn-quick-open-codes');
+    if (btnQuickOpenCodes) {
+        btnQuickOpenCodes.addEventListener('click', () => openSettingsModal('tab-codes'));
+    }
 
     document.getElementById('btn-close-settings').addEventListener('click', () => {
         modalSettings.style.display = 'none';
@@ -2079,9 +2039,235 @@ ${profName}`;
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             btn.classList.add('active');
             const targetId = btn.getAttribute('data-tab');
-            document.getElementById(targetId).classList.add('active');
+            const targetContent = document.getElementById(targetId);
+            if (targetContent) targetContent.classList.add('active');
+            if (targetId === 'tab-codes') {
+                renderSettingsStudentsCodes();
+            } else if (targetId === 'tab-tarifs') {
+                renderMatieresConfigList();
+            }
         });
     });
+
+    // --- GESTION ET AFFICHAGE DES CODES D'ACCÈS DANS LES RÉGLAGES ---
+    function renderSettingsStudentsCodes() {
+        const container = document.getElementById('settings-students-codes-list');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (!appState.data || !appState.data.students || appState.data.students.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 25px 15px; color: #64748B; background: #F8FAFC; border-radius: 12px; border: 1px dashed #CBD5E1;">
+                    <div style="font-size: 2rem; margin-bottom: 8px;">👨‍👩‍👧‍👦</div>
+                    <strong style="color: var(--sidi-blue-dark);">Aucun élève enregistré</strong>
+                    <p style="font-size: 0.85rem; margin-top: 5px; color: #94A3B8;">Ajoutez d'abord un enfant depuis l'accueil pour générer ses codes d'accès.</p>
+                </div>
+            `;
+            return;
+        }
+
+        appState.data.students.forEach(student => {
+            ensureProfCodes(student);
+
+            let profsListHtml = '';
+            let allProfsCount = 0;
+            let shareProfsText = '';
+
+            if (student.matieres && student.matieres.length > 0) {
+                student.matieres.forEach(m => {
+                    if (m.profCodes && m.profCodes.length > 0) {
+                        m.profCodes.forEach(pc => {
+                            allProfsCount++;
+                            shareProfsText += `\\n• ${pc.nom} (${m.nom}) : ${pc.code}`;
+                            profsListHtml += `
+                                <div class="settings-prof-code-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #E2E8F0; gap: 8px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 190px;">
+                                        <div style="font-weight: 700; color: #1E293B; font-size: 0.95rem;">
+                                            👨‍🏫 ${pc.nom} <span style="font-size: 0.8rem; font-weight: 600; color: var(--sidi-blue); background: #E0F2FE; padding: 2px 8px; border-radius: 4px; margin-left: 4px;">${m.nom}</span>
+                                        </div>
+                                        <div style="margin-top: 5px; display: flex; align-items: center; gap: 6px;">
+                                            <code class="code-badge-combined" style="font-size: 0.88rem; font-weight: 700; background: #EEF2FF; color: #3730A3; padding: 3px 8px; border-radius: 6px; border: 1px solid #C7D2FE;">${pc.code}</code>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 6px; align-items: center;">
+                                        <button class="btn-sm btn-copy-prof-code-item" data-code="${pc.code}" data-prof="${pc.nom}" data-matiere="${m.nom}" data-eleve="${student.prenom}" style="background: var(--sidi-blue); color: white; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">
+                                            📋 Copier
+                                        </button>
+                                        <button class="btn-sm btn-share-prof-whatsapp" data-code="${pc.code}" data-prof="${pc.nom}" data-matiere="${m.nom}" data-eleve="${student.prenom}" style="background: #25D366; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;" title="Envoyer par WhatsApp">
+                                            💬 WhatsApp
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                });
+            }
+
+            if (allProfsCount === 0) {
+                profsListHtml = `
+                    <div style="padding: 10px 0; font-size: 0.85rem; color: #64748B;">
+                        Aucun professeur configuré pour ${student.prenom}.<br>
+                        <button class="btn-sm btn-goto-config-matiere" data-student-id="${student.id}" style="margin-top: 6px; background: #F1F5F9; color: var(--sidi-blue-dark); border: 1px solid #CBD5E1; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">
+                            ➕ Configurer les professeurs dans l'onglet Tarifs & Matières
+                        </button>
+                    </div>
+                `;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'settings-student-codes-card';
+            card.innerHTML = `
+                <div class="settings-student-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #F1F5F9; padding-bottom: 8px;">
+                    <div>
+                        <strong style="font-size: 1.15rem; color: var(--sidi-blue-dark);">${student.prenom} ${student.nom}</strong>
+                        <span class="class-badge" style="font-size: 0.78rem; padding: 2px 8px; margin-left: 6px;">${student.classe || 'Élève'}</span>
+                    </div>
+                    <button class="btn-sm btn-open-student-dash" data-student-id="${student.id}" style="background: transparent; color: var(--sidi-blue); border: 1px solid var(--sidi-blue); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;">
+                        Voir tableau de bord ↗
+                    </button>
+                </div>
+
+                <!-- Codes Accès Espace Élève -->
+                <div class="settings-code-box" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #0F172A; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                        <span>🎓 Accès Espace Élève de ${student.prenom}</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div style="background: white; border: 1px solid #CBD5E1; border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 0.72rem; color: #64748B; text-transform: uppercase; font-weight: 600;">Code Famille</div>
+                                <strong style="font-size: 1.05rem; color: #0284C7; font-family: monospace;">${appState.familyId}</strong>
+                            </div>
+                            <button class="btn-sm btn-copy-settings-fam" data-fam="${appState.familyId}" style="background: #E0F2FE; color: #0369A1; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600;">Copier</button>
+                        </div>
+
+                        <div style="background: white; border: 1px solid #CBD5E1; border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 0.72rem; color: #64748B; text-transform: uppercase; font-weight: 600;">Code Élève Unique</div>
+                                <strong style="font-size: 1.05rem; color: #0D9488; font-family: monospace;">${student.codeEleve}</strong>
+                            </div>
+                            <button class="btn-sm btn-copy-settings-elv" data-code="${student.codeEleve}" data-nom="${student.prenom}" style="background: #CCFBF1; color: #0F766E; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600;">Copier</button>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.75rem; color: #64748B; margin-top: 8px;">
+                        ℹ️ L'élève clique sur <em>"Je suis Élève"</em> et saisit ces deux codes pour ouvrir son espace.
+                    </div>
+                </div>
+
+                <!-- Codes Accès Professeurs -->
+                <div style="background: #FAFAFA; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #0F172A; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>👨‍🏫 Professeurs de ${student.prenom} (${allProfsCount})</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: #64748B; margin-bottom: 8px;">
+                        Chaque professeur utilise son code combiné unique pour voir et gérer uniquement sa matière pour cet élève.
+                    </div>
+                    <div class="settings-profs-container">
+                        ${profsListHtml}
+                    </div>
+                </div>
+
+                <!-- Bouton Partager le pack complet pour cet élève -->
+                <div style="text-align: right;">
+                    <button class="btn-sm btn-share-full-student-pack" data-student-id="${student.id}" style="background: var(--sidi-blue-dark); color: white; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                        <span>📲 Partager tous les accès de ${student.prenom}</span>
+                    </button>
+                </div>
+            `;
+
+            // Événements pour la carte
+            const btnFam = card.querySelector('.btn-copy-settings-fam');
+            if (btnFam) {
+                btnFam.addEventListener('click', () => {
+                    navigator.clipboard.writeText(appState.familyId).then(() => {
+                        alert(`Code Famille copié : ${appState.familyId}`);
+                    });
+                });
+            }
+
+            const btnElv = card.querySelector('.btn-copy-settings-elv');
+            if (btnElv) {
+                btnElv.addEventListener('click', () => {
+                    navigator.clipboard.writeText(student.codeEleve).then(() => {
+                        alert(`Code Élève de ${student.prenom} copié : ${student.codeEleve}\\n\\nTransmettez ce code avec le Code Famille (${appState.familyId}) à votre enfant.`);
+                    });
+                });
+            }
+
+            const btnDash = card.querySelector('.btn-open-student-dash');
+            if (btnDash) {
+                btnDash.addEventListener('click', () => {
+                    modalSettings.style.display = 'none';
+                    appState.currentStudentId = student.id;
+                    loadDashboard(student);
+                    showView(viewDashboard);
+                });
+            }
+
+            card.querySelectorAll('.btn-copy-prof-code-item').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const c = btn.getAttribute('data-code');
+                    const p = btn.getAttribute('data-prof');
+                    const m = btn.getAttribute('data-matiere');
+                    navigator.clipboard.writeText(c).then(() => {
+                        alert(`Code Professeur de ${p} (${m}) copié : ${c}\\n\\nTransmettez ce code au professeur pour son accès direct.`);
+                    });
+                });
+            });
+
+            card.querySelectorAll('.btn-share-prof-whatsapp').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const c = btn.getAttribute('data-code');
+                    const p = btn.getAttribute('data-prof');
+                    const m = btn.getAttribute('data-matiere');
+                    const text = encodeURIComponent(`Bonjour ${p},\\n\\nVoici votre code d'accès professeur EduPocket pour suivre les cours de ${m} avec ${student.prenom} :\\n👉 ${c}\\n\\nAccédez à l'application ici : https://bkhmondocteur.github.io/EduPocket/\\n(Choisissez "Je suis Professeur" et saisissez ce code combiné)`);
+                    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+                });
+            });
+
+            const btnGotoMatiere = card.querySelector('.btn-goto-config-matiere');
+            if (btnGotoMatiere) {
+                btnGotoMatiere.addEventListener('click', () => {
+                    appState.currentStudentId = student.id;
+                    openSettingsModal('tab-tarifs');
+                });
+            }
+
+            const btnSharePack = card.querySelector('.btn-share-full-student-pack');
+            if (btnSharePack) {
+                btnSharePack.addEventListener('click', () => {
+                    let msg = `🎓 EduPocket - Dossier de ${student.prenom} ${student.nom} (${student.classe || 'Élève'})\\n\\n`;
+                    msg += `🔑 Accès Espace Élève :\\n`;
+                    msg += `• Code Famille : ${appState.familyId}\\n`;
+                    msg += `• Code Élève : ${student.codeEleve}\\n\\n`;
+                    if (shareProfsText) {
+                        msg += `👨‍🏫 Accès Professeurs combinés :${shareProfsText}\\n\\n`;
+                    }
+                    msg += `Application EduPocket : https://bkhmondocteur.github.io/EduPocket/`;
+
+                    if (navigator.share) {
+                        navigator.share({
+                            title: `Codes EduPocket - ${student.prenom}`,
+                            text: msg
+                        }).catch(() => {
+                            navigator.clipboard.writeText(msg).then(() => {
+                                alert('Tous les codes d\'accès de ' + student.prenom + ' ont été copiés dans le presse-papier !');
+                            });
+                        });
+                    } else {
+                        navigator.clipboard.writeText(msg).then(() => {
+                            alert('Tous les codes d\'accès de ' + student.prenom + ' ont été copiés dans le presse-papier !');
+                        });
+                    }
+                });
+            }
+
+            container.appendChild(card);
+        });
+    }
 
     function renderMatieresConfigList() {
         const container = document.getElementById('current-matieres-list');
@@ -2137,6 +2323,7 @@ ${profName}`;
                     student.matieres.splice(idx, 1);
                     saveData();
                     renderMatieresConfigList();
+                    renderSettingsStudentsCodes();
                     populateMatieresSelect(student);
                 }
             });
@@ -2183,6 +2370,7 @@ ${profName}`;
             saveData();
             document.getElementById('form-config-matiere').reset();
             renderMatieresConfigList();
+            renderSettingsStudentsCodes();
             populateMatieresSelect(student);
             alert(`Matière "${nom}" enregistrée (${prix} DT / quota ${quota}) avec codes professeurs générés !`);
         }

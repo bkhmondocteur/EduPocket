@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="EduPocket">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="styles.css?v=14">
+    <link rel="stylesheet" href="styles.css?v=15">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -80,6 +80,10 @@
                 </div>
 
                 <h2 id="home-list-title">Mes Enfants</h2>
+                <div class="quick-codes-banner">
+                    <span>🔑 <strong>Codes Élèves & Professeurs</strong> : Rangés dans les réglages</span>
+                    <button id="btn-quick-open-codes" class="btn-sm" style="background: var(--sidi-blue); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600;">Voir les codes</button>
+                </div>
                 <div id="students-list-container">
                     <ul id="saved-students-list" class="student-list">
                         <!-- Enfants injectés ici -->
@@ -406,13 +410,22 @@
             </div>
             
             <div class="modal-tabs">
-                <button class="tab-btn active" data-tab="tab-tarifs" id="btn-tab-tarifs">Tarifs & Matières</button>
+                <button class="tab-btn active" data-tab="tab-codes" id="btn-tab-codes">🔑 Codes d'accès</button>
+                <button class="tab-btn" data-tab="tab-tarifs" id="btn-tab-tarifs">Tarifs & Matières</button>
                 <button class="tab-btn" data-tab="tab-sync">Cloud & Sauvegarde</button>
                 <button class="tab-btn" data-tab="tab-profil">Profil & Rôle</button>
             </div>
 
+            <!-- Onglet 0: Codes d'accès Élèves & Professeurs -->
+            <div id="tab-codes" class="tab-content active">
+                <p class="tab-help">Retrouvez ici pour chaque élève son <strong>Code Élève</strong> et les <strong>Codes Professeurs</strong> combinés pour chacun de ses enseignants :</p>
+                <div id="settings-students-codes-list">
+                    <!-- Enfants et leurs professeurs injectés ici -->
+                </div>
+            </div>
+
             <!-- Onglet 1: Tarifs & Matières -->
-            <div id="tab-tarifs" class="tab-content active">
+            <div id="tab-tarifs" class="tab-content">
                 <p class="tab-help">Définissez pour chaque matière le prix par séance et le quota requis avant paiement.</p>
                 <div id="current-matieres-list" class="matieres-config-list"></div>
 
@@ -560,14 +573,14 @@
     </div>
 
     <!-- Scripts de l'application -->
-    <script src="license-manager.js?v=14"></script>
-    <script src="firebase-config.js?v=14"></script>
-    <script src="app.js?v=14"></script>
+    <script src="license-manager.js?v=15"></script>
+    <script src="firebase-config.js?v=15"></script>
+    <script src="app.js?v=15"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=14').then(reg => {
-                    console.log('Service Worker v14 enregistré', reg);
+                navigator.serviceWorker.register('sw.js?v=15').then(reg => {
+                    console.log('Service Worker v15 enregistré', reg);
                     reg.update();
                 }).catch(err => {
                     console.log('Échec de l\'enregistrement du Service Worker', err);

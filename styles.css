@@ -939,3 +939,55 @@ body.role-eleve .dashboard-header-bar {
     margin-top: 22px;
 }
 
+/* Bannière d'accès rapide aux codes */
+.quick-codes-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #F0F9FF;
+    border: 1px solid #BAE6FD;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 0.86rem;
+    color: #0369A1;
+}
+
+/* Cartes des codes dans les réglages */
+.settings-student-codes-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    border-left: 5px solid var(--sidi-blue);
+}
+
+.settings-student-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.settings-code-box {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.settings-prof-code-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed #E2E8F0;
+}
+
+.settings-prof-code-item:last-child {
+    border-bottom: none;
+}
+
+
