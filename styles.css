@@ -990,4 +990,57 @@ body.role-eleve .dashboard-header-bar {
     border-bottom: none;
 }
 
+.btn-whatsapp {
+    background: #25D366;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.btn-whatsapp:hover {
+    background: #1EBE5D;
+}
+
+.btn-whatsapp-sm {
+    background: #25D366;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.btn-whatsapp-sm:hover {
+    background: #1EBE5D;
+}
+
+.phone-tag {
+    font-size: 0.8rem;
+    color: #475569;
+    background: #F1F5F9;
+    padding: 2px 7px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: monospace;
+}
+
+
 

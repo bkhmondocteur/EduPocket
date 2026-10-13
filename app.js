@@ -54,6 +54,32 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
+    // --- UTILITAIRES WHATSAPP ---
+    function formatWhatsAppPhone(phone) {
+        if (!phone) return '';
+        let cleaned = phone.toString().replace(/[^\d+]/g, '');
+        if (cleaned.startsWith('+')) {
+            cleaned = cleaned.substring(1);
+        }
+        // Numéro tunisien standard à 8 chiffres (commence par 2, 4, 5, 7, 9)
+        if (/^[2-9]\d{7}$/.test(cleaned)) {
+            cleaned = '216' + cleaned;
+        }
+        return cleaned;
+    }
+
+    function openWhatsApp(phone, message) {
+        const formatted = formatWhatsAppPhone(phone);
+        const encodedText = encodeURIComponent(message || '');
+        let url = '';
+        if (formatted) {
+            url = `https://api.whatsapp.com/send?phone=${formatted}&text=${encodedText}`;
+        } else {
+            url = `https://api.whatsapp.com/send?text=${encodedText}`;
+        }
+        window.open(url, '_blank');
+    }
+
     function promptLicenseActivation(role = 'parent', onSuccess) {
         const modal = document.getElementById('modal-license-activation');
         const form = document.getElementById('form-license-activation');
@@ -62,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const titleEl = document.getElementById('lic-modal-title');
         const descEl = document.getElementById('lic-modal-desc');
         const keyInput = document.getElementById('lic-key');
+        const telInput = document.getElementById('lic-telephone');
 
         if (!modal || !form) return;
         errEl.style.display = 'none';
@@ -75,6 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (keyInput) {
             keyInput.placeholder = isProf ? 'Ex: EDUP-PRF-XXXX-XXXX-XXXX' : 'Ex: EDUP-PAR-XXXX-XXXX-XXXX';
+        }
+        if (telInput) {
+            const currentPhone = localStorage.getItem('edupocket_user_phone') || '';
+            telInput.value = currentPhone;
         }
 
         modal.style.display = 'flex';
@@ -93,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const civ = document.getElementById('lic-civilite').value;
             const nom = document.getElementById('lic-nom').value.trim();
             const prenom = document.getElementById('lic-prenom').value.trim();
+            const tel = (document.getElementById('lic-telephone') ? document.getElementById('lic-telephone').value : '').trim();
             const key = document.getElementById('lic-key').value.trim();
 
             if (!nom || !prenom || !key) {
@@ -114,11 +146,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     civilite: civ,
                     nom,
                     prenom,
+                    telephone: tel,
                     key: key.toUpperCase(),
                     activatedAt: Date.now()
                 };
                 const storageKey = isProf ? 'edupocket_prof_license' : 'edupocket_license';
                 localStorage.setItem(storageKey, JSON.stringify(licenseObj));
+                if (tel) {
+                    localStorage.setItem('edupocket_user_phone', tel);
+                }
                 if (isProf) {
                     appState.profName = `${civ} ${nom}`;
                     localStorage.setItem('edupocket_prof_name', appState.profName);
@@ -227,6 +263,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (displayFamilyCode) displayFamilyCode.textContent = appState.familyId;
         if (settingsFamilyCode) settingsFamilyCode.textContent = appState.familyId;
+
+        const profilePhoneInput = document.getElementById('profile-phone-input');
+        if (profilePhoneInput) {
+            profilePhoneInput.value = localStorage.getItem('edupocket_user_phone') || '';
+        }
 
         document.body.classList.toggle('role-eleve', appState.role === 'eleve');
 
@@ -666,12 +707,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="font-size: 0.85rem; color: #64748B; margin-top: 5px;">
                         ${(student.sessions || []).length} séance(s) effectuée(s) • ${(student.matieres || []).length} matière(s)
                     </div>
+                    ${(student.telephone || student.telephoneParent) ? `
+                        <div style="margin-top: 6px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                            ${student.telephone ? `<span class="phone-tag">📱 Élève : ${student.telephone}</span>` : ''}
+                            ${student.telephoneParent ? `<span class="phone-tag">📞 Parent : ${student.telephoneParent}</span>` : ''}
+                        </div>
+                    ` : ''}
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px; color: var(--sidi-blue); font-weight: 700; font-size: 0.92rem;">
-                    <span>Ouvrir</span>
-                    <span style="font-size: 1.25rem; line-height: 1;">→</span>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    ${student.telephone ? `
+                        <button class="btn-whatsapp-sm btn-parent-whatsapp-student" title="Envoyer un message WhatsApp à l'élève">
+                            💬 WhatsApp
+                        </button>
+                    ` : ''}
+                    <div style="display: flex; align-items: center; gap: 4px; color: var(--sidi-blue); font-weight: 700; font-size: 0.92rem;">
+                        <span>Ouvrir</span>
+                        <span style="font-size: 1.25rem; line-height: 1;">→</span>
+                    </div>
                 </div>
             `;
+
+            // Bouton WhatsApp pour joindre l'élève directement
+            const btnWa = li.querySelector('.btn-parent-whatsapp-student');
+            if (btnWa) {
+                btnWa.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const msg = `Bonjour ${student.prenom},\nVoici tes accès EduPocket :\nCode Famille : ${appState.familyId}\nCode Élève : ${student.codeEleve}\nApplication : https://bkhmondocteur.github.io/EduPocket/`;
+                    openWhatsApp(student.telephone, msg);
+                });
+            }
 
             // Clic sur l'élève pour ouvrir son tableau de bord
             li.addEventListener('click', () => {
@@ -690,15 +754,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const nom = document.getElementById('nom').value.trim();
         const prenom = document.getElementById('prenom').value.trim();
         const classe = document.getElementById('classe').value.trim();
+        const telStudent = (document.getElementById('telephone-student') ? document.getElementById('telephone-student').value : '').trim();
+        const telParent = (document.getElementById('telephone-parent') ? document.getElementById('telephone-parent').value : '').trim();
 
         if (nom && prenom && classe) {
             const uniqueCode = 'ELV-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+            const parentPhone = telParent || (localStorage.getItem('edupocket_user_phone') || '');
+            if (parentPhone) {
+                localStorage.setItem('edupocket_user_phone', parentPhone);
+            }
+
             const newStudent = {
                 id: 'std_' + Date.now(),
                 codeEleve: uniqueCode,
                 nom,
                 prenom,
                 classe,
+                telephone: telStudent,
+                telephoneParent: parentPhone,
                 matieres: [
                     { nom: 'Anglais', prixSeance: 20, quotaPaiement: 3, professeurs: [], profCodes: [] },
                     { nom: 'Mathématiques', prixSeance: 25, quotaPaiement: 4, professeurs: [], profCodes: [] }
@@ -852,6 +925,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const nom = document.getElementById('eleve-self-nom').value.trim();
         const prenom = document.getElementById('eleve-self-prenom').value.trim();
         const classe = document.getElementById('eleve-self-classe').value.trim();
+        const tel = (document.getElementById('eleve-self-telephone') ? document.getElementById('eleve-self-telephone').value : '').trim();
+        const telParent = (document.getElementById('eleve-self-telephone-parent') ? document.getElementById('eleve-self-telephone-parent').value : '').trim();
 
         if (nom && prenom && classe) {
             const uniqueCode = 'ELV-' + Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -861,6 +936,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 nom,
                 prenom,
                 classe,
+                telephone: tel,
+                telephoneParent: telParent,
                 matieres: [
                     { nom: 'Anglais', prixSeance: 20, quotaPaiement: 3, professeurs: [], profCodes: [] },
                     { nom: 'Mathématiques', prixSeance: 25, quotaPaiement: 4, professeurs: [], profCodes: [] }
@@ -931,6 +1008,8 @@ document.addEventListener('DOMContentLoaded', () => {
             nom: student.nom,
             prenom: student.prenom,
             classe: student.classe || '',
+            telephone: student.telephone || '',
+            telephoneParent: student.telephoneParent || '',
             matiere: matiere || (student.matieres && student.matieres[0] ? student.matieres[0].nom : 'Général'),
             profCode: profCode || '',
             updatedAt: Date.now()
@@ -967,13 +1046,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div>🏷️ Code Famille : <strong style="font-family: monospace; color: var(--sidi-blue);">${st.familyId}</strong></div>
                     <div>🎓 Code Élève : <strong style="font-family: monospace; color: #065F46;">${st.studentCode}</strong></div>
                     ${st.profCode ? `<div>👨‍🏫 Code Professeur : <strong style="font-family: monospace; color: #92400E;">${st.profCode}</strong></div>` : ''}
+                    ${(st.telephone || st.telephoneParent) ? `
+                        <div style="margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap;">
+                            ${st.telephone ? `<span class="phone-tag">📱 Élève : ${st.telephone}</span>` : ''}
+                            ${st.telephoneParent ? `<span class="phone-tag">📞 Parent : ${st.telephoneParent}</span>` : ''}
+                        </div>
+                    ` : ''}
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
-                    <button class="btn-primary btn-open-prof-student" data-index="${idx}" style="flex: 2; padding: 9px 12px; font-size: 0.9rem;">
-                        📂 Ouvrir le dossier (Séances)
+                    <button class="btn-primary btn-open-prof-student" data-index="${idx}" style="flex: 2; padding: 8px 12px; font-size: 0.88rem;">
+                        📂 Dossier & Séances
                     </button>
-                    <button class="btn-secondary btn-share-prof-student" data-index="${idx}" style="flex: 2; padding: 9px 12px; font-size: 0.9rem;">
-                        📲 Partager aux parents
+                    <button class="btn-whatsapp-sm btn-prof-whatsapp-parent" data-index="${idx}" style="flex: 1.5; padding: 8px 10px; font-size: 0.82rem;" title="Envoyer le message d'invitation ou contacter les parents par WhatsApp">
+                        💬 WhatsApp Parent
+                    </button>
+                    ${st.telephone ? `
+                    <button class="btn-whatsapp-sm btn-prof-whatsapp-student" data-index="${idx}" style="flex: 1.5; padding: 8px 10px; font-size: 0.82rem;" title="Envoyer un message WhatsApp à l'élève">
+                        💬 WhatsApp Élève
+                    </button>
+                    ` : ''}
+                    <button class="btn-secondary btn-share-prof-student" data-index="${idx}" style="flex: 1; padding: 8px 10px; font-size: 0.82rem;" title="Copier le message d'invitation">
+                        📋 Copier
                     </button>
                     <button class="btn-icon-action delete btn-remove-prof-student" data-index="${idx}" title="Retirer de ma liste" style="flex: 0 0 36px;">
                         🗑️
@@ -992,6 +1085,45 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        container.querySelectorAll('.btn-prof-whatsapp-parent').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = Number(btn.getAttribute('data-index'));
+                const st = list[idx];
+                if (!st) return;
+                const profLic = getActiveLicense('professeur');
+                const profName = profLic ? `${profLic.civilite} ${profLic.nom}` : (appState.profName || 'Professeur');
+                const inviteMsg =
+`Bonjour,
+Votre professeur ${profName} suit ${st.prenom} ${st.nom} en ${st.matiere} sur l'application EduPocket.
+
+Pour ajouter votre enfant à votre espace Parent :
+---------------------------------------------
+🏷️ Code Famille : ${st.familyId}
+🎓 Code Élève   : ${st.studentCode}
+${st.profCode ? ('👨‍🏫 Code Professeur : ' + st.profCode + '\n') : ''}🌐 Application  : https://bkhmondocteur.github.io/EduPocket/
+---------------------------------------------
+Instructions :
+1. Ouvrez l'application et choisissez "Je suis Parent".
+2. Dans la section "🔗 Rattacher un enfant créé par un professeur", entrez le Code Famille (${st.familyId}) ou le Code Élève (${st.studentCode}).
+
+Bien cordialement,
+${profName}`;
+                openWhatsApp(st.telephoneParent, inviteMsg);
+            });
+        });
+
+        container.querySelectorAll('.btn-prof-whatsapp-student').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = Number(btn.getAttribute('data-index'));
+                const st = list[idx];
+                if (!st) return;
+                const profLic = getActiveLicense('professeur');
+                const profName = profLic ? `${profLic.civilite} ${profLic.nom}` : (appState.profName || 'Professeur');
+                const msg = `Bonjour ${st.prenom}, c'est votre professeur ${profName} (${st.matiere}) sur EduPocket.\nTes accès :\nCode Famille : ${st.familyId}\nCode Élève : ${st.studentCode}\nhttps://bkhmondocteur.github.io/EduPocket/`;
+                openWhatsApp(st.telephone, msg);
+            });
+        });
+
         container.querySelectorAll('.btn-share-prof-student').forEach(btn => {
             btn.addEventListener('click', () => {
                 const idx = Number(btn.getAttribute('data-index'));
@@ -1007,7 +1139,7 @@ Pour ajouter votre enfant à votre espace Parent :
 ---------------------------------------------
 🏷️ Code Famille : ${st.familyId}
 🎓 Code Élève   : ${st.studentCode}
-🌐 Application  : https://bkhmondocteur.github.io/EduPocket/
+${st.profCode ? ('👨‍🏫 Code Professeur : ' + st.profCode + '\n') : ''}🌐 Application  : https://bkhmondocteur.github.io/EduPocket/
 ---------------------------------------------
 Instructions :
 1. Ouvrez l'application et choisissez "Je suis Parent".
@@ -1094,6 +1226,8 @@ ${profName}`;
             const classe = document.getElementById('prof-create-classe').value.trim();
             const matiere = document.getElementById('prof-create-matiere').value.trim();
             const prix = Number(document.getElementById('prof-create-prix').value) || 25;
+            const telStudent = (document.getElementById('prof-create-tel-student') ? document.getElementById('prof-create-tel-student').value : '').trim();
+            const telParent = (document.getElementById('prof-create-tel-parent') ? document.getElementById('prof-create-tel-parent').value : '').trim();
 
             if (!nom || !prenom || !classe || !matiere) return;
 
@@ -1112,6 +1246,8 @@ ${profName}`;
                 nom,
                 prenom,
                 classe,
+                telephone: telStudent,
+                telephoneParent: telParent,
                 matieres: [{
                     nom: matiere,
                     prixSeance: prix,
@@ -1120,7 +1256,8 @@ ${profName}`;
                     profCodes: [{
                         nom: profName,
                         code: combinedProfCode,
-                        matiere: matiere
+                        matiere: matiere,
+                        telephone: (profLic && profLic.telephone) || ''
                     }]
                 }],
                 sessions: [],
@@ -1167,6 +1304,12 @@ ${profName}`;
                     <div style="margin-top: 6px;">🏷️ Code Famille généré : <strong style="font-family: monospace; color: var(--sidi-blue);">${uniqueFamilyCode}</strong></div>
                     <div>🎓 Code Élève généré : <strong style="font-family: monospace; color: #065F46;">${uniqueStudentCode}</strong></div>
                     <div>👨‍🏫 Code Professeur : <strong style="font-family: monospace; color: #92400E;">${combinedProfCode}</strong></div>
+                    ${(telStudent || telParent) ? `
+                        <div style="margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap;">
+                            ${telStudent ? `<span class="phone-tag">📱 Élève : ${telStudent}</span>` : ''}
+                            ${telParent ? `<span class="phone-tag">📞 Parent : ${telParent}</span>` : ''}
+                        </div>
+                    ` : ''}
                 `;
             }
 
@@ -1176,6 +1319,8 @@ ${profName}`;
             document.getElementById('prof-create-nom').value = '';
             document.getElementById('prof-create-prenom').value = '';
             document.getElementById('prof-create-classe').value = '';
+            if (document.getElementById('prof-create-tel-student')) document.getElementById('prof-create-tel-student').value = '';
+            if (document.getElementById('prof-create-tel-parent')) document.getElementById('prof-create-tel-parent').value = '';
 
             renderProfStudentsList();
             alert(`🎉 Élève ${prenom} ${nom} créé avec succès !\nCode Famille : ${uniqueFamilyCode}\nCode Élève : ${uniqueStudentCode}\nTransmettez ce message aux parents pour qu'ils ajoutent l'enfant.`);
@@ -1809,6 +1954,20 @@ ${profName}`;
         sessions.forEach(session => {
             const li = document.createElement('li');
 
+            let profPhone = '';
+            if (student && student.matieres && session.professeur && session.professeur !== 'Non spécifié') {
+                const cleanP = session.professeur.trim().toLowerCase();
+                for (const m of student.matieres) {
+                    if (m.profCodes) {
+                        const pc = m.profCodes.find(c => (c.nom || '').trim().toLowerCase() === cleanP);
+                        if (pc && pc.telephone) {
+                            profPhone = pc.telephone;
+                            break;
+                        }
+                    }
+                }
+            }
+
             let tagValidationClass = 'tag-val-confirmee';
             let validationLabel = session.validation || 'Confirmee';
 
@@ -1863,7 +2022,15 @@ ${profName}`;
                 <div class="session-main-row">
                     <div>
                         <span class="session-subject-title">${session.sujet}</span>
-                        <div style="font-size: 0.85rem; color: #64748B; margin-top: 2px;">Prof: <strong>${session.professeur || 'Non spécifié'}</strong></div>
+                        <div style="font-size: 0.85rem; color: #64748B; margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <span>Prof : <strong>${session.professeur || 'Non spécifié'}</strong></span>
+                            ${profPhone ? `<span class="phone-tag">📱 ${profPhone}</span>` : ''}
+                            ${(session.professeur && session.professeur !== 'Non spécifié') ? `
+                                <button class="btn-whatsapp-sm btn-session-whatsapp-prof" data-prof="${session.professeur}" data-matiere="${session.sujet}" data-date="${session.date}" data-heure="${session.heure || ''}" data-phone="${profPhone}" title="Discuter avec le professeur sur WhatsApp">
+                                    💬 WhatsApp
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
                     <div style="text-align: right;">
                         <span class="session-time-badge">📅 ${session.date}</span>
@@ -1909,6 +2076,21 @@ ${profName}`;
                     saveData();
                 }
             });
+
+            // WhatsApp avec le professeur
+            const btnWaProf = li.querySelector('.btn-session-whatsapp-prof');
+            if (btnWaProf) {
+                btnWaProf.addEventListener('click', () => {
+                    const p = btnWaProf.getAttribute('data-prof');
+                    const m = btnWaProf.getAttribute('data-matiere');
+                    const d = btnWaProf.getAttribute('data-date');
+                    const h = btnWaProf.getAttribute('data-heure');
+                    const tel = btnWaProf.getAttribute('data-phone') || '';
+                    const studentName = student ? (student.prenom + ' ' + student.nom) : 'l\'élève';
+                    const msg = `Bonjour ${p},\nÀ propos de la séance de ${m} du ${d}${h ? (' à ' + h) : ''} pour ${studentName} : `;
+                    openWhatsApp(tel, msg);
+                });
+            }
 
             // Modifier séance
             li.querySelector('.btn-edit-session').addEventListener('click', () => {
@@ -2194,12 +2376,13 @@ ${profName}`;
                     if (m.profCodes && m.profCodes.length > 0) {
                         m.profCodes.forEach(pc => {
                             allProfsCount++;
-                            shareProfsText += `\\n• ${pc.nom} (${m.nom}) : ${pc.code}`;
+                            shareProfsText += `\n• ${pc.nom} (${m.nom}) : ${pc.code}`;
                             profsListHtml += `
                                 <div class="settings-prof-code-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #E2E8F0; gap: 8px; flex-wrap: wrap;">
                                     <div style="flex: 1; min-width: 190px;">
                                         <div style="font-weight: 700; color: #1E293B; font-size: 0.95rem;">
                                             👨‍🏫 ${pc.nom} <span style="font-size: 0.8rem; font-weight: 600; color: var(--sidi-blue); background: #E0F2FE; padding: 2px 8px; border-radius: 4px; margin-left: 4px;">${m.nom}</span>
+                                            ${pc.telephone ? `<span class="phone-tag" style="margin-left: 6px;">📱 ${pc.telephone}</span>` : ''}
                                         </div>
                                         <div style="margin-top: 5px; display: flex; align-items: center; gap: 6px;">
                                             <code class="code-badge-combined" style="font-size: 0.88rem; font-weight: 700; background: #EEF2FF; color: #3730A3; padding: 3px 8px; border-radius: 6px; border: 1px solid #C7D2FE;">${pc.code}</code>
@@ -2209,10 +2392,10 @@ ${profName}`;
                                         <button class="btn-sm btn-copy-prof-code-item" data-code="${pc.code}" data-prof="${pc.nom}" data-matiere="${m.nom}" data-eleve="${student.prenom}" style="background: var(--sidi-blue); color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Copier le code">
                                             📋 Copier
                                         </button>
-                                        <button class="btn-sm btn-share-prof-whatsapp" data-code="${pc.code}" data-prof="${pc.nom}" data-matiere="${m.nom}" data-eleve="${student.prenom}" style="background: #25D366; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Envoyer par WhatsApp">
+                                        <button class="btn-sm btn-share-prof-whatsapp" data-code="${pc.code}" data-prof="${pc.nom}" data-matiere="${m.nom}" data-eleve="${student.prenom}" data-phone="${pc.telephone || ''}" style="background: #25D366; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Envoyer par WhatsApp au professeur">
                                             💬 WhatsApp
                                         </button>
-                                        <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" data-code="${pc.code}" style="background: #F59E0B; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Modifier les données de ce professeur">
+                                        <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" data-code="${pc.code}" data-phone="${pc.telephone || ''}" style="background: #F59E0B; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Modifier les données de ce professeur">
                                             ✏️ Modifier
                                         </button>
                                         <button class="btn-sm btn-delete-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" style="background: #EF4444; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Supprimer ce professeur">
@@ -2240,20 +2423,36 @@ ${profName}`;
             const card = document.createElement('div');
             card.className = 'settings-student-codes-card';
             card.innerHTML = `
-                <div class="settings-student-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #F1F5F9; padding-bottom: 8px;">
+                <div class="settings-student-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #F1F5F9; padding-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                     <div>
-                        <strong style="font-size: 1.15rem; color: var(--sidi-blue-dark);">${student.prenom} ${student.nom}</strong>
-                        <span class="class-badge" style="font-size: 0.78rem; padding: 2px 8px; margin-left: 6px;">${student.classe || 'Élève'}</span>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <strong style="font-size: 1.15rem; color: var(--sidi-blue-dark);">${student.prenom} ${student.nom}</strong>
+                            <span class="class-badge" style="font-size: 0.78rem; padding: 2px 8px;">${student.classe || 'Élève'}</span>
+                        </div>
+                        <div style="margin-top: 5px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                            ${student.telephone ? `<span class="phone-tag">📱 Élève : ${student.telephone}</span>` : '<span class="phone-tag" style="color: #94A3B8;">📱 Élève : Non renseigné</span>'}
+                            ${student.telephoneParent ? `<span class="phone-tag">📞 Parent : ${student.telephoneParent}</span>` : '<span class="phone-tag" style="color: #94A3B8;">📞 Parent : Non renseigné</span>'}
+                        </div>
                     </div>
-                    <button class="btn-sm btn-open-student-dash" data-student-id="${student.id}" style="background: transparent; color: var(--sidi-blue); border: 1px solid var(--sidi-blue); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;">
-                        Voir tableau de bord ↗
-                    </button>
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <button class="btn-sm btn-edit-student-info" data-student-id="${student.id}" style="background: #F1F5F9; color: var(--sidi-blue-dark); border: 1px solid #CBD5E1; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;">
+                            ✏️ Modifier l'élève
+                        </button>
+                        <button class="btn-sm btn-open-student-dash" data-student-id="${student.id}" style="background: transparent; color: var(--sidi-blue); border: 1px solid var(--sidi-blue); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;">
+                            Voir tableau de bord ↗
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Codes Accès Espace Élève -->
                 <div class="settings-code-box" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
-                    <div style="font-size: 0.85rem; font-weight: 700; color: #0F172A; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #0F172A; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
                         <span>🎓 Accès Espace Élève de ${student.prenom}</span>
+                        ${student.telephone ? `
+                            <button class="btn-whatsapp-sm btn-share-student-whatsapp" data-student-id="${student.id}" title="Envoyer les accès à l'élève par WhatsApp">
+                                💬 WhatsApp Élève
+                            </button>
+                        ` : ''}
                     </div>
                     
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
@@ -2275,7 +2474,7 @@ ${profName}`;
                     </div>
 
                     <div style="font-size: 0.75rem; color: #64748B; margin-top: 8px;">
-                        ℹ️ L'élève clique sur <em>"Je suis Élève"</em> et saisit ces deux codes pour ouvrir son espace.
+                        ℹ️ L'élève clique sur <em>"Je suis Élève"</em> et saisit ces deux codes pour ouvrir son espace personnel.
                     </div>
                 </div>
 
@@ -2319,8 +2518,23 @@ ${profName}`;
             if (btnElv) {
                 btnElv.addEventListener('click', () => {
                     navigator.clipboard.writeText(student.codeEleve).then(() => {
-                        alert(`Code Élève de ${student.prenom} copié : ${student.codeEleve}\\n\\nTransmettez ce code avec le Code Famille (${appState.familyId}) à votre enfant.`);
+                        alert(`Code Élève de ${student.prenom} copié : ${student.codeEleve}\n\nTransmettez ce code avec le Code Famille (${appState.familyId}) à votre enfant.`);
                     });
+                });
+            }
+
+            const btnEditStd = card.querySelector('.btn-edit-student-info');
+            if (btnEditStd) {
+                btnEditStd.addEventListener('click', () => {
+                    openEditStudentModal(student.id);
+                });
+            }
+
+            const btnEleveWa = card.querySelector('.btn-share-student-whatsapp');
+            if (btnEleveWa) {
+                btnEleveWa.addEventListener('click', () => {
+                    const msg = `Bonjour ${student.prenom},\nVoici tes accès EduPocket :\n🔑 Code Famille : ${appState.familyId}\n🎓 Code Élève : ${student.codeEleve}\nLien : https://bkhmondocteur.github.io/EduPocket/\n(Clique sur "Je suis Élève" et entre ces deux codes)`;
+                    openWhatsApp(student.telephone, msg);
                 });
             }
 
@@ -2340,7 +2554,7 @@ ${profName}`;
                     const p = btn.getAttribute('data-prof');
                     const m = btn.getAttribute('data-matiere');
                     navigator.clipboard.writeText(c).then(() => {
-                        alert(`Code Professeur de ${p} (${m}) copié : ${c}\\n\\nTransmettez ce code au professeur pour son accès direct.`);
+                        alert(`Code Professeur de ${p} (${m}) copié : ${c}\n\nTransmettez ce code au professeur pour son accès direct.`);
                     });
                 });
             });
@@ -2350,8 +2564,9 @@ ${profName}`;
                     const c = btn.getAttribute('data-code');
                     const p = btn.getAttribute('data-prof');
                     const m = btn.getAttribute('data-matiere');
-                    const text = encodeURIComponent(`Bonjour ${p},\\n\\nVoici votre code d'accès professeur EduPocket pour suivre les cours de ${m} avec ${student.prenom} :\\n👉 ${c}\\n\\nAccédez à l'application ici : https://bkhmondocteur.github.io/EduPocket/\\n(Choisissez "Je suis Professeur" et saisissez ce code combiné)`);
-                    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+                    const tel = btn.getAttribute('data-phone') || '';
+                    const text = `Bonjour ${p},\n\nVoici votre code d'accès professeur EduPocket pour suivre les cours de ${m} avec ${student.prenom} :\n👉 ${c}\n\nAccédez à l'application ici : https://bkhmondocteur.github.io/EduPocket/\n(Choisissez "Je suis Professeur" et saisissez ce code combiné)`;
+                    openWhatsApp(tel, text);
                 });
             });
 
@@ -2361,7 +2576,8 @@ ${profName}`;
                     const m = btn.getAttribute('data-matiere');
                     const p = btn.getAttribute('data-prof');
                     const c = btn.getAttribute('data-code') || '';
-                    openEditProfessorModal(sId, m, p, c);
+                    const tel = btn.getAttribute('data-phone') || '';
+                    openEditProfessorModal(sId, m, p, c, tel);
                 });
             });
 
@@ -2485,10 +2701,11 @@ ${profName}`;
                         <div style="margin-top: 6px; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; background: #F8FAFC; padding: 6px 10px; border-radius: 8px; border: 1px solid #E2E8F0; flex-wrap: wrap;">
                             <div>
                                 <span>👨‍🏫 <strong>${pc.nom}</strong> : <code class="code-badge-combined">${pc.code}</code></span>
+                                ${pc.telephone ? `<span class="phone-tag" style="margin-left: 6px;">📱 ${pc.telephone}</span>` : ''}
                             </div>
                             <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                                 <button class="btn-sm btn-copy-prof-code-cfg" data-code="${pc.code}" style="padding: 3px 8px; font-size: 0.75rem; background: var(--sidi-blue); color: white;">📋 Copier</button>
-                                <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" data-code="${pc.code}" style="padding: 3px 8px; font-size: 0.75rem; background: #F59E0B; color: white;">✏️ Modifier</button>
+                                <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" data-code="${pc.code}" data-phone="${pc.telephone || ''}" style="padding: 3px 8px; font-size: 0.75rem; background: #F59E0B; color: white;">✏️ Modifier</button>
                                 <button class="btn-sm btn-delete-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" style="padding: 3px 8px; font-size: 0.75rem; background: #EF4444; color: white;">🗑️ Supprimer</button>
                             </div>
                         </div>
@@ -2548,7 +2765,7 @@ ${profName}`;
                 b.addEventListener('click', () => {
                     const c = b.getAttribute('data-code');
                     navigator.clipboard.writeText(c).then(() => {
-                        alert(`Code Professeur copié : ${c}\\n\\nTransmettez ce code au professeur pour qu'il accède directement à l'élève pour la matière ${m.nom} uniquement.`);
+                        alert(`Code Professeur copié : ${c}\n\nTransmettez ce code au professeur pour qu'il accède directement à l'élève pour la matière ${m.nom} uniquement.`);
                     });
                 });
             });
@@ -2559,7 +2776,8 @@ ${profName}`;
                     const mName = b.getAttribute('data-matiere');
                     const pName = b.getAttribute('data-prof');
                     const c = b.getAttribute('data-code') || '';
-                    openEditProfessorModal(sId, mName, pName, c);
+                    const tel = b.getAttribute('data-phone') || '';
+                    openEditProfessorModal(sId, mName, pName, c, tel);
                 });
             });
 
@@ -2598,9 +2816,18 @@ ${profName}`;
     const btnCloseEditProf = document.getElementById('btn-close-edit-prof');
     const btnCancelEditProf = document.getElementById('btn-cancel-edit-prof');
 
-    function openEditProfessorModal(studentId, matiereName, profName, profCode) {
+    function openEditProfessorModal(studentId, matiereName, profName, profCode, profTelephone) {
         const student = getStudent(studentId);
         if (!student) return;
+
+        let tel = profTelephone;
+        if (tel === undefined && student.matieres) {
+            const m = student.matieres.find(mat => mat.nom.toLowerCase() === matiereName.toLowerCase());
+            if (m && m.profCodes) {
+                const pc = m.profCodes.find(c => (c.nom || '').toLowerCase() === profName.toLowerCase());
+                if (pc) tel = pc.telephone || '';
+            }
+        }
 
         document.getElementById('edit-prof-student-id').value = studentId;
         document.getElementById('edit-prof-student-name').textContent = `${student.prenom} ${student.nom} (${student.classe || 'Élève'})`;
@@ -2608,6 +2835,8 @@ ${profName}`;
         document.getElementById('edit-prof-matiere-name').textContent = matiereName;
         document.getElementById('edit-prof-old-name').value = profName;
         document.getElementById('edit-prof-nom').value = profName;
+        const telInput = document.getElementById('edit-prof-telephone');
+        if (telInput) telInput.value = tel || '';
         document.getElementById('edit-prof-current-code').textContent = profCode || '---';
 
         if (modalEditProf) {
@@ -2637,13 +2866,14 @@ ${profName}`;
             const matiere = document.getElementById('edit-prof-matiere').value;
             const oldName = document.getElementById('edit-prof-old-name').value;
             const newName = document.getElementById('edit-prof-nom').value.trim();
+            const newTel = (document.getElementById('edit-prof-telephone') ? document.getElementById('edit-prof-telephone').value : '').trim();
 
             if (!newName) {
                 alert('Veuillez saisir le nom du professeur.');
                 return;
             }
 
-            const success = updateProfessor(studentId, matiere, oldName, newName);
+            const success = updateProfessor(studentId, matiere, oldName, newName, newTel);
             if (success) {
                 if (modalEditProf) modalEditProf.style.display = 'none';
                 alert(`Données du professeur mises à jour : "${newName}" !`);
@@ -2651,7 +2881,7 @@ ${profName}`;
         });
     }
 
-    function updateProfessor(studentId, matiereName, oldName, newName) {
+    function updateProfessor(studentId, matiereName, oldName, newName, newTelephone) {
         if (!newName || !newName.trim()) return false;
         const cleanNewName = newName.trim();
         const student = getStudent(studentId);
@@ -2680,6 +2910,9 @@ ${profName}`;
             const pc = matiere.profCodes.find(c => c.nom.toLowerCase() === oldName.toLowerCase());
             if (pc) {
                 pc.nom = cleanNewName;
+                if (newTelephone !== undefined) {
+                    pc.telephone = newTelephone;
+                }
             }
         }
 
@@ -2702,6 +2935,111 @@ ${profName}`;
             loadDashboard(student);
         }
         return true;
+    }
+
+    // --- GESTION DES ÉLÈVES : MODIFICATION DU PROFIL ET TÉLÉPHONES ---
+    const modalEditStudent = document.getElementById('modal-edit-student');
+    const formEditStudent = document.getElementById('form-edit-student');
+    const btnCloseEditStudent = document.getElementById('btn-close-edit-student');
+    const btnCancelEditStudent = document.getElementById('btn-cancel-edit-student');
+
+    function openEditStudentModal(studentId) {
+        const student = getStudent(studentId);
+        if (!student) return;
+
+        document.getElementById('edit-student-id').value = student.id;
+        document.getElementById('edit-student-nom').value = student.nom || '';
+        document.getElementById('edit-student-prenom').value = student.prenom || '';
+        document.getElementById('edit-student-classe').value = student.classe || '';
+        document.getElementById('edit-student-tel').value = student.telephone || '';
+        document.getElementById('edit-student-tel-parent').value = student.telephoneParent || '';
+
+        if (modalEditStudent) {
+            modalEditStudent.style.display = 'flex';
+            setTimeout(() => {
+                const inp = document.getElementById('edit-student-nom');
+                if (inp) inp.focus();
+            }, 50);
+        }
+    }
+
+    if (btnCloseEditStudent) {
+        btnCloseEditStudent.addEventListener('click', () => {
+            if (modalEditStudent) modalEditStudent.style.display = 'none';
+        });
+    }
+    if (btnCancelEditStudent) {
+        btnCancelEditStudent.addEventListener('click', () => {
+            if (modalEditStudent) modalEditStudent.style.display = 'none';
+        });
+    }
+
+    if (formEditStudent) {
+        formEditStudent.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const studentId = document.getElementById('edit-student-id').value;
+            const nom = document.getElementById('edit-student-nom').value.trim();
+            const prenom = document.getElementById('edit-student-prenom').value.trim();
+            const classe = document.getElementById('edit-student-classe').value.trim();
+            const tel = document.getElementById('edit-student-tel').value.trim();
+            const telParent = document.getElementById('edit-student-tel-parent').value.trim();
+
+            if (!nom || !prenom || !classe) {
+                alert('Veuillez remplir le nom, prénom et la classe.');
+                return;
+            }
+
+            const student = getStudent(studentId);
+            if (!student) return;
+
+            student.nom = nom;
+            student.prenom = prenom;
+            student.classe = classe;
+            student.telephone = tel;
+            student.telephoneParent = telParent;
+
+            saveData();
+            if (typeof db !== 'undefined' && db && student.codeEleve) {
+                db.collection('edupocket_students').doc(student.codeEleve).set(student).catch(err => console.warn(err));
+            }
+
+            loadParentStudentsList();
+            renderSettingsStudentsCodes();
+            if (appState.currentStudentId === studentId) {
+                loadDashboard(student);
+            }
+
+            if (modalEditStudent) modalEditStudent.style.display = 'none';
+            alert(`Profil de ${prenom} ${nom} mis à jour avec succès !`);
+        });
+    }
+
+    // --- GESTION DU TÉLÉPHONE DANS L'ONGLET PROFIL ---
+    const btnSaveProfilePhone = document.getElementById('btn-save-profile-phone');
+    if (btnSaveProfilePhone) {
+        btnSaveProfilePhone.addEventListener('click', () => {
+            const phoneInput = document.getElementById('profile-phone-input');
+            const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+            localStorage.setItem('edupocket_user_phone', phoneVal);
+
+            // Mettre à jour aussi dans l'objet de licence actif si présent
+            const isProf = (appState.role === 'professeur');
+            const storageKey = isProf ? 'edupocket_prof_license' : 'edupocket_license';
+            try {
+                const licRaw = localStorage.getItem(storageKey);
+                if (licRaw) {
+                    const licObj = JSON.parse(licRaw);
+                    licObj.telephone = phoneVal;
+                    localStorage.setItem(storageKey, JSON.stringify(licObj));
+                }
+            } catch (e) {}
+
+            const succEl = document.getElementById('profile-phone-success');
+            if (succEl) {
+                succEl.style.display = 'block';
+                setTimeout(() => { succEl.style.display = 'none'; }, 3000);
+            }
+        });
     }
 
     function deleteProfessor(studentId, matiereName, profName) {

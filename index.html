@@ -106,6 +106,16 @@
                             <label for="classe">Classe :</label>
                             <input type="text" id="classe" required placeholder="Ex: 3ème Math, Bac...">
                         </div>
+                        <div class="form-row">
+                            <div class="form-group form-col">
+                                <label for="telephone-student">📱 N° WhatsApp Élève :</label>
+                                <input type="tel" id="telephone-student" placeholder="Ex: 98 123 456">
+                            </div>
+                            <div class="form-group form-col">
+                                <label for="telephone-parent">📱 N° WhatsApp Parent :</label>
+                                <input type="tel" id="telephone-parent" placeholder="Ex: 98 654 321">
+                            </div>
+                        </div>
                         <button type="submit" class="btn-primary">Enregistrer et Accéder</button>
                     </form>
                 </div>
@@ -159,6 +169,16 @@
                         <div class="form-group">
                             <label for="eleve-self-classe">Classe :</label>
                             <input type="text" id="eleve-self-classe" required placeholder="Ex: 3ème Math">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group form-col">
+                                <label for="eleve-self-telephone">📱 N° WhatsApp Élève :</label>
+                                <input type="tel" id="eleve-self-telephone" placeholder="Ex: 98 123 456">
+                            </div>
+                            <div class="form-group form-col">
+                                <label for="eleve-self-telephone-parent">📱 N° WhatsApp Parent :</label>
+                                <input type="tel" id="eleve-self-telephone-parent" placeholder="Ex: 98 654 321">
+                            </div>
                         </div>
                         <button type="submit" class="btn-primary">Créer mon espace élève</button>
                     </form>
@@ -214,6 +234,16 @@
                         <div class="form-group">
                             <label for="prof-create-classe">Classe :</label>
                             <input type="text" id="prof-create-classe" required placeholder="Ex: 3ème Math, Bac...">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group form-col">
+                                <label for="prof-create-tel-student">📱 N° WhatsApp Élève :</label>
+                                <input type="tel" id="prof-create-tel-student" placeholder="Ex: 98 123 456">
+                            </div>
+                            <div class="form-group form-col">
+                                <label for="prof-create-tel-parent">📱 N° WhatsApp Parent :</label>
+                                <input type="tel" id="prof-create-tel-parent" placeholder="Ex: 98 654 321">
+                            </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group form-col">
@@ -514,6 +544,15 @@
                     </button>
                 </div>
 
+                <div class="form-group" style="margin-top: 16px; background: #F8FAFC; padding: 12px; border-radius: 10px; border: 1px solid #E2E8F0;">
+                    <label for="profile-phone-input" style="font-weight: 700; font-size: 0.9rem; color: var(--sidi-blue-dark);">📱 Mon N° WhatsApp :</label>
+                    <div class="input-inline" style="margin-top: 6px;">
+                        <input type="tel" id="profile-phone-input" placeholder="Ex: 98 123 456">
+                        <button id="btn-save-profile-phone" class="btn-primary" style="width: auto; white-space: nowrap;">Enregistrer</button>
+                    </div>
+                    <div id="profile-phone-success" style="display: none; font-size: 0.8rem; color: #10B981; margin-top: 5px; font-weight: 600;">✓ Numéro WhatsApp enregistré</div>
+                </div>
+
                 <button id="btn-reset-role" class="btn-secondary" style="width: 100%; margin-top: 15px; color: #d9534f; border-color: #d9534f;">
                     Changer de profil (Réinitialiser le rôle)
                 </button>
@@ -548,6 +587,10 @@
                 <div class="form-group">
                     <label for="lic-prenom">Prénom :</label>
                     <input type="text" id="lic-prenom" required placeholder="Ex: Hamed">
+                </div>
+                <div class="form-group">
+                    <label for="lic-telephone">📱 N° WhatsApp (Optionnel) :</label>
+                    <input type="tel" id="lic-telephone" placeholder="Ex: 98 123 456">
                 </div>
                 <div class="form-group">
                     <label for="lic-key">Clé de licence :</label>
@@ -604,6 +647,11 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="edit-prof-telephone">📱 N° WhatsApp Professeur :</label>
+                    <input type="tel" id="edit-prof-telephone" placeholder="Ex: 98 123 456">
+                </div>
+
+                <div class="form-group">
                     <label>Code d'accès combiné de ce professeur :</label>
                     <code id="edit-prof-current-code" class="code-badge-combined" style="display: inline-block; padding: 6px 10px; font-size: 0.9rem;"></code>
                     <div style="font-size: 0.74rem; color: #64748B; margin-top: 4px;">
@@ -619,15 +667,56 @@
         </div>
     </div>
 
+    <!-- MODAL MODIFIER UN ÉLÈVE -->
+    <div id="modal-edit-student" class="modal-overlay" style="display: none;">
+        <div class="modal-card" style="max-width: 440px;">
+            <div class="modal-header">
+                <h2>✏️ Modifier l'Élève</h2>
+                <button id="btn-close-edit-student" class="btn-close">&times;</button>
+            </div>
+            <form id="form-edit-student">
+                <input type="hidden" id="edit-student-id">
+                <div class="form-row">
+                    <div class="form-group form-col">
+                        <label for="edit-student-nom">Nom :</label>
+                        <input type="text" id="edit-student-nom" required>
+                    </div>
+                    <div class="form-group form-col">
+                        <label for="edit-student-prenom">Prénom :</label>
+                        <input type="text" id="edit-student-prenom" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-student-classe">Classe :</label>
+                    <input type="text" id="edit-student-classe" required placeholder="Ex: 3ème Math, Bac...">
+                </div>
+                <div class="form-row">
+                    <div class="form-group form-col">
+                        <label for="edit-student-tel">📱 N° WhatsApp Élève :</label>
+                        <input type="tel" id="edit-student-tel" placeholder="Ex: 98 123 456">
+                    </div>
+                    <div class="form-group form-col">
+                        <label for="edit-student-tel-parent">📱 N° WhatsApp Parent :</label>
+                        <input type="tel" id="edit-student-tel-parent" placeholder="Ex: 98 654 321">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 18px;">
+                    <button type="button" id="btn-cancel-edit-student" class="btn-secondary" style="flex: 1;">Annuler</button>
+                    <button type="submit" class="btn-primary" style="flex: 2;">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts de l'application -->
-    <script src="license-manager.js?v=17"></script>
-    <script src="firebase-config.js?v=17"></script>
-    <script src="app.js?v=17"></script>
+    <script src="license-manager.js?v=18"></script>
+    <script src="firebase-config.js?v=18"></script>
+    <script src="app.js?v=18"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=17').then(reg => {
-                    console.log('Service Worker v17 enregistré', reg);
+                navigator.serviceWorker.register('sw.js?v=18').then(reg => {
+                    console.log('Service Worker v18 enregistré', reg);
                     reg.update();
                 }).catch(err => {
                     console.log('Échec de l\'enregistrement du Service Worker', err);
