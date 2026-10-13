@@ -255,6 +255,42 @@
             animation: fadeIn 0.3s;
         }
 
+        .role-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .role-selector label {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 14px;
+            background: #F1F5F9;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .role-selector input[type="radio"] {
+            margin-right: 4px;
+        }
+
+        .role-selector label.active,
+        .role-selector label:has(input[type="radio"]:checked) {
+            background: #EBF4FA;
+            border-color: var(--primary);
+            color: var(--primary-dark);
+            box-shadow: 0 2px 8px rgba(0, 90, 156, 0.12);
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -266,7 +302,7 @@
     <div class="header">
         <img src="logo.png" alt="EduPocket Logo">
         <h1>EduPocket Keygen</h1>
-        <p>Générateur officiel de licences d'activation pour les parents</p>
+        <p>Générateur officiel de licences pour <strong>Parents</strong> et <strong>Professeurs</strong></p>
     </div>
 
     <div class="container">
@@ -278,6 +314,18 @@
         <!-- ONGLET 1: GÉNÉRER UNE CLÉ -->
         <div id="section-generate">
             <form id="form-keygen">
+                <div class="form-group">
+                    <label>Type de profil / licence :</label>
+                    <div class="role-selector">
+                        <label id="lbl-gen-parent" class="active">
+                            <input type="radio" name="gen-role" value="parent" checked> 👨‍👩‍👧 Je suis Parent
+                        </label>
+                        <label id="lbl-gen-prof">
+                            <input type="radio" name="gen-role" value="professeur"> 👨‍🏫 Je suis Professeur
+                        </label>
+                    </div>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group" style="width: 140px;">
                         <label for="input-civ">Civilité :</label>
@@ -301,15 +349,15 @@
             </form>
 
             <div id="result-box" class="result-box">
-                <div class="result-title">Clé de Licence Activée</div>
-                <div id="key-output" class="key-display">EDUP-XXXX-XXXX-XXXX-XXXX</div>
+                <div class="result-title" id="result-badge-role">Clé de Licence Activée</div>
+                <div id="key-output" class="key-display">EDUP-PAR-XXXX-XXXX-XXXX</div>
                 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <div id="greeting-output" class="greeting-badge">Bonjour Monsieur ...</div>
                     <button id="btn-copy-key" class="btn-copy">📋 Copier la clé</button>
                 </div>
 
-                <label style="margin-top: 14px;">Message complet pour le parent :</label>
+                <label style="margin-top: 14px;" id="lbl-message-recipient">Message complet pour le client :</label>
                 <div id="message-output" class="message-preview"></div>
                 <button id="btn-copy-message" class="btn-copy" style="margin-top: 10px; width: 100%; justify-content: center;">
                     📲 Copier le message WhatsApp / Email
@@ -320,6 +368,18 @@
         <!-- ONGLET 2: VÉRIFIER UNE CLÉ -->
         <div id="section-verify" style="display: none;">
             <form id="form-verify">
+                <div class="form-group">
+                    <label>Rôle de la licence à vérifier :</label>
+                    <div class="role-selector">
+                        <label id="lbl-verif-parent" class="active">
+                            <input type="radio" name="verif-role" value="parent" checked> 👨‍👩‍👧 Licence Parent
+                        </label>
+                        <label id="lbl-verif-prof">
+                            <input type="radio" name="verif-role" value="professeur"> 👨‍🏫 Licence Professeur
+                        </label>
+                    </div>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group" style="width: 140px;">
                         <label for="verif-civ">Civilité :</label>
@@ -339,7 +399,7 @@
                 </div>
                 <div class="form-group">
                     <label for="verif-key">Clé à vérifier :</label>
-                    <input type="text" id="verif-key" required placeholder="Ex: EDUP-03FD-0AFB-DAB9-AD2D">
+                    <input type="text" id="verif-key" required placeholder="Ex: EDUP-PAR-XXXX-XXXX-XXXX ou EDUP-PRF-...">
                 </div>
                 <button type="submit" class="btn-generate" style="background: var(--text);">Tester la Clé</button>
             </form>
@@ -355,12 +415,49 @@
     <script>
         const formKeygen = document.getElementById('form-keygen');
         const resultBox = document.getElementById('result-box');
+        const resultBadgeRole = document.getElementById('result-badge-role');
         const keyOutput = document.getElementById('key-output');
         const greetingOutput = document.getElementById('greeting-output');
         const messageOutput = document.getElementById('message-output');
         const btnCopyKey = document.getElementById('btn-copy-key');
         const btnCopyMessage = document.getElementById('btn-copy-message');
         const toast = document.getElementById('toast');
+
+        // Gestion visuelle radio buttons onglet génération
+        const radGenParent = document.querySelector('input[name="gen-role"][value="parent"]');
+        const radGenProf = document.querySelector('input[name="gen-role"][value="professeur"]');
+        const lblGenParent = document.getElementById('lbl-gen-parent');
+        const lblGenProf = document.getElementById('lbl-gen-prof');
+
+        function updateGenRoleUI() {
+            if (radGenParent.checked) {
+                lblGenParent.classList.add('active');
+                lblGenProf.classList.remove('active');
+            } else {
+                lblGenProf.classList.add('active');
+                lblGenParent.classList.remove('active');
+            }
+        }
+        radGenParent.addEventListener('change', updateGenRoleUI);
+        radGenProf.addEventListener('change', updateGenRoleUI);
+
+        // Gestion visuelle radio buttons onglet vérification
+        const radVerifParent = document.querySelector('input[name="verif-role"][value="parent"]');
+        const radVerifProf = document.querySelector('input[name="verif-role"][value="professeur"]');
+        const lblVerifParent = document.getElementById('lbl-verif-parent');
+        const lblVerifProf = document.getElementById('lbl-verif-prof');
+
+        function updateVerifRoleUI() {
+            if (radVerifParent.checked) {
+                lblVerifParent.classList.add('active');
+                lblVerifProf.classList.remove('active');
+            } else {
+                lblVerifProf.classList.add('active');
+                lblVerifParent.classList.remove('active');
+            }
+        }
+        radVerifParent.addEventListener('change', updateVerifRoleUI);
+        radVerifProf.addEventListener('change', updateVerifRoleUI);
 
         function showToast(msg) {
             toast.textContent = msg;
@@ -370,19 +467,47 @@
 
         formKeygen.addEventListener('submit', (e) => {
             e.preventDefault();
+            const role = document.querySelector('input[name="gen-role"]:checked').value; // 'parent' ou 'professeur'
             const civ = document.getElementById('input-civ').value;
             const nom = document.getElementById('input-nom').value.trim();
             const prenom = document.getElementById('input-prenom').value.trim();
 
             if (!nom || !prenom) return;
 
-            const key = EduPocketLicense.generateLicenseKey(civ, prenom, nom);
+            const key = EduPocketLicense.generateLicenseKey(role, civ, prenom, nom);
             const greeting = EduPocketLicense.getWelcomeGreeting(civ, nom);
 
             keyOutput.textContent = key;
             greetingOutput.textContent = `👋 ${greeting}`;
 
-            const clientMessage = 
+            const isProf = (role === 'professeur');
+            resultBadgeRole.textContent = isProf ? '👨‍🏫 Clé Licence Professeur' : '👨‍👩‍👧 Clé Licence Parent';
+
+            let clientMessage = '';
+            if (isProf) {
+                clientMessage = 
+`${greeting},
+
+Merci pour votre souscription à l'application EduPocket (Espace Enseignant) !
+
+Voici vos informations d'activation :
+--------------------------------------------------
+👤 Titulaire : ${civ} ${prenom} ${nom}
+🏷️ Type : Licence Professeur
+🔑 Clé de licence : ${key}
+🌐 Application : https://bkhmondocteur.github.io/EduPocket/
+--------------------------------------------------
+
+Instructions :
+1. Ouvrez le lien de l'application.
+2. Choisissez "Je suis Professeur".
+3. Saisissez votre civilité (${civ}), nom, prénom et votre clé de licence.
+4. Vous pourrez ensuite ajouter vos élèves soit en saisissant le code transmis par les parents, soit en créant un élève directement pour lui générer son code famille à transmettre aux parents.
+
+Bien cordialement,
+L'équipe EduPocket`;
+            } else {
+                clientMessage = 
 `${greeting},
 
 Merci pour votre souscription à l'application EduPocket !
@@ -390,6 +515,7 @@ Merci pour votre souscription à l'application EduPocket !
 Voici vos informations d'activation :
 --------------------------------------------------
 👤 Titulaire : ${civ} ${prenom} ${nom}
+🏷️ Type : Licence Parent
 🔑 Clé de licence : ${key}
 🌐 Application : https://bkhmondocteur.github.io/EduPocket/
 --------------------------------------------------
@@ -402,6 +528,7 @@ Instructions :
 
 Bien cordialement,
 L'équipe EduPocket`;
+            }
 
             messageOutput.textContent = clientMessage;
             resultBox.style.display = 'block';
@@ -446,22 +573,25 @@ L'équipe EduPocket`;
 
         formVerify.addEventListener('submit', (e) => {
             e.preventDefault();
+            const role = document.querySelector('input[name="verif-role"]:checked').value;
             const civ = document.getElementById('verif-civ').value;
             const nom = document.getElementById('verif-nom').value.trim();
             const prenom = document.getElementById('verif-prenom').value.trim();
             const key = document.getElementById('verif-key').value.trim();
 
-            const isValid = EduPocketLicense.verifyLicenseKey(civ, prenom, nom, key);
+            const isValid = EduPocketLicense.verifyLicenseKey(role, civ, prenom, nom, key);
             verifResult.style.display = 'block';
+
+            const roleLabel = (role === 'professeur') ? 'Professeur' : 'Parent';
 
             if (isValid) {
                 verifResult.style.background = '#D1FAE5';
                 verifResult.style.color = '#065F46';
-                verifResult.innerHTML = `✅ Clé Valide pour ${EduPocketLicense.getWelcomeGreeting(civ, nom)} (${prenom}) !`;
+                verifResult.innerHTML = `✅ Clé Valide pour ${EduPocketLicense.getWelcomeGreeting(civ, nom)} (${prenom}) [Licence ${roleLabel}] !`;
             } else {
                 verifResult.style.background = '#FEE2E2';
                 verifResult.style.color = '#991B1B';
-                verifResult.innerHTML = `❌ Clé Invalide pour ${civ} ${prenom} ${nom}.`;
+                verifResult.innerHTML = `❌ Clé Invalide pour ${civ} ${prenom} ${nom} avec le rôle ${roleLabel}.`;
             }
         });
     </script>

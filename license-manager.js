@@ -106,36 +106,118 @@
     }
 
     /**
-     * Génère la clé de licence EduPocket
-     * Format : EDUP-XXXX-XXXX-XXXX-XXXX
+     * Normalise le rôle ('parent' ou 'professeur')
      */
-    function generateLicenseKey(civilite, prenom, nom) {
-        const civ = normalizeCivility(civilite);
-        const normNom = normalizeText(nom);
-        const normPrenom = normalizeText(prenom);
+    function normalizeRole(role) {
+        if (!role) return 'PARENT';
+        const r = role.toUpperCase().trim();
+        if (r.includes('PROF') || r.includes('ENSEIGNANT')) {
+            return 'PROFESSEUR';
+        }
+        return 'PARENT';
+    }
+
+    /**
+     * Génère la clé de licence EduPocket
+     * Supporte :
+     * - generateLicenseKey('parent', 'M.', 'Hamed', 'Ben Khalifa') -> EDUP-PAR-XXXX-XXXX-XXXX
+     * - generateLicenseKey('professeur', 'M.', 'Sami', 'Dubois') -> EDUP-PRF-XXXX-XXXX-XXXX
+     * - generateLicenseKey('M.', 'Hamed', 'Ben Khalifa') -> mode rétrocompatible parent
+     */
+    function generateLicenseKey(roleOrCiv, civOrPrenom, prenomOrNom, maybeNom) {
+        let role = 'PARENT';
+        let rawCiv = 'M.';
+        let rawPrenom = '';
+        let rawNom = '';
+
+        if (maybeNom !== undefined) {
+            role = normalizeRole(roleOrCiv);
+            rawCiv = civOrPrenom;
+            rawPrenom = prenomOrNom;
+            rawNom = maybeNom;
+        } else {
+            // Mode 3 arguments : rôle parent par défaut
+            role = 'PARENT';
+            rawCiv = roleOrCiv;
+            rawPrenom = civOrPrenom;
+            rawNom = prenomOrNom;
+        }
+
+        const civ = normalizeCivility(rawCiv);
+        const normNom = normalizeText(rawNom);
+        const normPrenom = normalizeText(rawPrenom);
         
         if (!normNom || !normPrenom) return '';
 
-        const payload = `${civ}|${normNom}|${normPrenom}|${SECRET_SALT}`;
+        const prefix = role === 'PROFESSEUR' ? 'EDUP-PRF' : 'EDUP-PAR';
+        const payload = `${role}|${civ}|${normNom}|${normPrenom}|${SECRET_SALT}`;
         const hash = sha256(payload).toUpperCase();
 
         if (!hash || hash.length < 16) return '';
 
+        return `${prefix}-${hash.substring(0, 4)}-${hash.substring(4, 8)}-${hash.substring(8, 12)}`;
+    }
+
+    /**
+     * Génération de l'ancien format parent pour rétrocompatibilité
+     */
+    function generateLegacyParentKey(civilite, prenom, nom) {
+        const civ = normalizeCivility(civilite);
+        const normNom = normalizeText(nom);
+        const normPrenom = normalizeText(prenom);
+        if (!normNom || !normPrenom) return '';
+        const payload = `${civ}|${normNom}|${normPrenom}|${SECRET_SALT}`;
+        const hash = sha256(payload).toUpperCase();
         return `EDUP-${hash.substring(0, 4)}-${hash.substring(4, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}`;
     }
 
     /**
-     * Vérifie si une clé de licence est valide pour un utilisateur donné
+     * Vérifie si une clé de licence est valide pour un rôle et utilisateur donnés
+     * Supporte:
+     * - verifyLicenseKey('parent', civ, prenom, nom, key)
+     * - verifyLicenseKey('professeur', civ, prenom, nom, key)
+     * - verifyLicenseKey(civ, prenom, nom, key) (défaut parent)
      */
-    function verifyLicenseKey(civilite, prenom, nom, keyToTest) {
+    function verifyLicenseKey(roleOrCiv, civOrPrenom, prenomOrNom, keyOrNom, maybeKey) {
+        let role = 'PARENT';
+        let civ = 'M.';
+        let prenom = '';
+        let nom = '';
+        let keyToTest = '';
+
+        if (maybeKey !== undefined) {
+            role = normalizeRole(roleOrCiv);
+            civ = civOrPrenom;
+            prenom = prenomOrNom;
+            nom = keyOrNom;
+            keyToTest = maybeKey;
+        } else {
+            role = 'PARENT';
+            civ = roleOrCiv;
+            prenom = civOrPrenom;
+            nom = prenomOrNom;
+            keyToTest = keyOrNom;
+        }
+
         if (!keyToTest) return false;
-        const expected = generateLicenseKey(civilite, prenom, nom);
-        if (!expected) return false;
 
         const cleanInput = keyToTest.trim().toUpperCase().replace(/\s+/g, '');
-        const cleanExpected = expected.replace(/\s+/g, '');
 
-        return cleanInput === cleanExpected;
+        // 1. Vérification avec le rôle demandé
+        const expected = generateLicenseKey(role, civ, prenom, nom);
+        if (expected && cleanInput === expected.replace(/\s+/g, '')) {
+            return true;
+        }
+
+        // 2. Tolérance rétrocompatible pour parent (si ancienne clé à 4 blocs)
+        if (role === 'PARENT') {
+            const legacyExpected = generateLegacyParentKey(civ, prenom, nom);
+            if (legacyExpected && cleanInput === legacyExpected.replace(/\s+/g, '')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

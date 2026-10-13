@@ -104,6 +104,21 @@
                         <button type="submit" class="btn-primary">Enregistrer et Accéder</button>
                     </form>
                 </div>
+
+                <!-- Rattacher un enfant créé par un professeur -->
+                <div class="parent-link-child-box">
+                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--sidi-blue); display: flex; align-items: center; gap: 6px;">
+                        🔗 Rattacher un enfant créé par un professeur
+                    </h3>
+                    <p class="tab-help" style="margin-bottom: 12px;">
+                        Si votre professeur a déjà créé le profil de votre enfant, entrez simplement le <strong>Code Élève</strong> (ex: ELV-XXXX) ou le <strong>Code Famille</strong> qu'il vous a transmis :
+                    </p>
+                    <div class="input-inline">
+                        <input type="text" id="input-parent-join-child-code" placeholder="Ex: ELV-A1B2 ou FAM-C3D4" style="text-transform: uppercase; font-family: monospace; font-size: 0.95rem;">
+                        <button id="btn-parent-join-child" class="btn-primary" style="width: auto; white-space: nowrap;">Lier à ma famille</button>
+                    </div>
+                    <div id="parent-join-error" style="display: none; color: #EF4444; font-size: 0.85rem; margin-top: 8px;"></div>
+                </div>
             </div>
 
             <!-- Section 1B : Élève - Connexion par Code Famille & Code Élève -->
@@ -147,15 +162,85 @@
 
             <!-- Section 1C : Professeur sur l'accueil -->
             <div id="section-prof-setup" style="display: none;">
-                <div class="student-login-box">
-                    <h3>👨‍🏫 Connexion Espace Professeur</h3>
-                    <p class="tab-help">Entrez simplement votre <strong>Code Professeur combiné</strong> (transmis par les parents de votre élève) pour accéder directement à l'élève et à l'historique de votre matière uniquement :</p>
-                    <div class="form-group" style="margin-bottom: 16px;">
-                        <label for="input-prof-combined-code">Code Professeur combiné :</label>
-                        <input type="text" id="input-prof-combined-code" placeholder="Ex: PRF-XXXX-ELV-YYYY" style="text-transform: uppercase; font-family: monospace; font-size: 1.05rem; letter-spacing: 1px;">
+                <!-- Bannière Licence Professeur -->
+                <div id="prof-license-banner" class="parent-license-header" style="display: none;">
+                    <div>
+                        <div id="prof-greeting-display" class="parent-greeting-text">Bonjour</div>
+                        <span style="font-size: 0.8rem; color: #64748B;">Espace Professeur Enseignant</span>
                     </div>
-                    <button id="btn-prof-login" class="btn-primary">Accéder à ma matière</button>
+                    <span class="badge-license-active">🟢 Licence Prof Active</span>
+                </div>
+
+                <!-- Onglets Professeur -->
+                <div class="prof-hub-tabs">
+                    <button class="prof-hub-tab-btn active" id="btn-prof-tab-link">🔗 Lier un élève existant</button>
+                    <button class="prof-hub-tab-btn" id="btn-prof-tab-create">➕ Créer un élève tout seul</button>
+                </div>
+
+                <!-- Volet 1 : Lier un élève existant (avec Code Parents) -->
+                <div id="prof-pane-link" class="student-login-box">
+                    <h3>🔗 Lier un élève existant (avec Code Parents)</h3>
+                    <p class="tab-help">Entrez le <strong>Code Professeur combiné</strong> (ex: PRF-XXXX-ELV-YYYY) ou le <strong>Code Élève</strong> transmis par les parents pour accéder à son dossier :</p>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label for="input-prof-combined-code">Code Professeur combiné ou Code Élève :</label>
+                        <input type="text" id="input-prof-combined-code" placeholder="Ex: PRF-A1B2-ELV-C3D4 ou ELV-C3D4" style="text-transform: uppercase; font-family: monospace; font-size: 1.05rem; letter-spacing: 1px;">
+                    </div>
+                    <button id="btn-prof-login" class="btn-primary">Accéder à l'élève</button>
                     <div id="prof-login-error" style="display: none; color: #EF4444; font-size: 0.85rem; margin-top: 10px;"></div>
+                </div>
+
+                <!-- Volet 2 : Créer un élève tout seul (génération de codes parents) -->
+                <div id="prof-pane-create" class="student-login-box" style="display: none;">
+                    <h3>➕ Créer un élève tout seul</h3>
+                    <p class="tab-help">
+                        Créez la fiche de votre élève. Un <strong>Code Famille</strong> et un <strong>Code Élève</strong> seront générés pour que les parents puissent l'ajouter à leur application.
+                    </p>
+                    <form id="form-prof-create-student">
+                        <div class="form-row">
+                            <div class="form-group form-col">
+                                <label for="prof-create-nom">Nom de famille :</label>
+                                <input type="text" id="prof-create-nom" required placeholder="Ex: Ben Khalifa">
+                            </div>
+                            <div class="form-group form-col">
+                                <label for="prof-create-prenom">Prénom de l'élève :</label>
+                                <input type="text" id="prof-create-prenom" required placeholder="Ex: Sami">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="prof-create-classe">Classe :</label>
+                            <input type="text" id="prof-create-classe" required placeholder="Ex: 3ème Math, Bac...">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group form-col">
+                                <label for="prof-create-matiere">Matière enseignée :</label>
+                                <input type="text" id="prof-create-matiere" required placeholder="Ex: Mathématiques">
+                            </div>
+                            <div class="form-group form-col">
+                                <label for="prof-create-prix">Tarif séance (DT / €) :</label>
+                                <input type="number" id="prof-create-prix" required min="0" step="1" value="25">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary" style="margin-top: 6px;">Enregistrer l'élève & Générer les Codes Parents</button>
+                    </form>
+
+                    <div id="prof-create-result-box" class="prof-created-success-card" style="display: none;">
+                        <h4 style="margin: 0 0 6px 0; color: #065F46;">🎉 Élève créé avec succès !</h4>
+                        <p style="font-size: 0.88rem; color: #064E3B; margin-bottom: 10px;">
+                            Transmettez ce message aux parents pour qu'ils ajoutent l'enfant sur leur interface :
+                        </p>
+                        <div class="prof-student-codes-box" id="prof-created-details-text"></div>
+                        <button id="btn-copy-parent-invite" class="btn-primary" style="margin-top: 10px; width: 100%;">
+                            📲 Copier le message d'invitation pour les parents
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section : Mes Élèves Suivis -->
+                <div id="prof-my-students-container" style="margin-top: 24px;">
+                    <h3 style="color: var(--sidi-blue-dark); font-size: 1.1rem; margin-bottom: 12px;">📚 Mes Élèves</h3>
+                    <div id="prof-my-students-list">
+                        <!-- Liste des élèves injectée dynamiquement -->
+                    </div>
                 </div>
             </div>
         </section>
@@ -414,15 +499,15 @@
         </div>
     </div>
 
-    <!-- MODAL ACTIVATION LICENCE PARENT -->
+    <!-- MODAL ACTIVATION LICENCE (PARENT OU PROFESSEUR) -->
     <div id="modal-license-activation" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h2>🔐 Activation Licence Parent</h2>
+                <h2 id="lic-modal-title">🔐 Activation Licence</h2>
                 <button id="btn-cancel-license" class="btn-close">&times;</button>
             </div>
-            <p class="license-modal-info">
-                Pour débloquer votre espace Parent, veuillez saisir votre <strong>civilité</strong>, vos <strong>nom et prénom</strong> ainsi que votre <strong>clé de licence</strong> fournie par votre administrateur.
+            <p id="lic-modal-desc" class="license-modal-info">
+                Pour débloquer votre espace, veuillez saisir votre <strong>civilité</strong>, vos <strong>nom et prénom</strong> ainsi que votre <strong>clé de licence</strong> fournie par votre administrateur.
             </p>
             <form id="form-license-activation">
                 <div class="form-row">
