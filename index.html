@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="EduPocket">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="styles.css?v=16">
+    <link rel="stylesheet" href="styles.css?v=17">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -26,6 +26,7 @@
         </div>
         <div class="header-actions">
             <button id="btn-sync-status" class="btn-icon" title="Synchronisation Cloud">🟢</button>
+            <button id="btn-eleve-logout" class="btn-icon" title="Déconnexion Espace Élève" style="display: none;">🚪</button>
             <button id="btn-open-settings" class="btn-icon" title="Réglages et Tarifs">⚙️</button>
             <button id="btn-install" class="btn-install" style="display: none;">Installer</button>
         </div>
@@ -426,10 +427,18 @@
 
             <!-- Onglet 1: Tarifs & Matières -->
             <div id="tab-tarifs" class="tab-content">
-                <p class="tab-help">Définissez pour chaque matière le prix par séance et le quota requis avant paiement.</p>
+                <div class="form-group" style="background: #F0F9FF; border: 1.5px solid #BAE6FD; padding: 12px 14px; border-radius: 10px; margin-bottom: 16px;">
+                    <label for="cfg-select-student" style="font-weight: 700; color: var(--sidi-blue-dark); font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                        <span>👤 Configurer les matières et professeurs pour :</span>
+                    </label>
+                    <select id="cfg-select-student" style="font-size: 0.95rem; font-weight: 600; padding: 8px 12px; margin-top: 6px; width: 100%; border: 1.5px solid var(--sidi-blue); border-radius: 8px; background: white; color: var(--sidi-blue-dark);">
+                        <!-- Enfants injectés dynamiquement -->
+                    </select>
+                </div>
+                <p class="tab-help" id="cfg-tab-help-text">Matières et professeurs configurés pour cet élève :</p>
                 <div id="current-matieres-list" class="matieres-config-list"></div>
 
-                <h3 style="margin-top: 15px;">Ajouter / Modifier une matière</h3>
+                <h3 id="cfg-form-title" style="margin-top: 20px;">Ajouter / Modifier une matière</h3>
                 <form id="form-config-matiere">
                     <div class="form-group">
                         <label for="cfg-nom-matiere">Nom de la matière :</label>
@@ -611,14 +620,14 @@
     </div>
 
     <!-- Scripts de l'application -->
-    <script src="license-manager.js?v=16"></script>
-    <script src="firebase-config.js?v=16"></script>
-    <script src="app.js?v=16"></script>
+    <script src="license-manager.js?v=17"></script>
+    <script src="firebase-config.js?v=17"></script>
+    <script src="app.js?v=17"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=16').then(reg => {
-                    console.log('Service Worker v16 enregistré', reg);
+                navigator.serviceWorker.register('sw.js?v=17').then(reg => {
+                    console.log('Service Worker v17 enregistré', reg);
                     reg.update();
                 }).catch(err => {
                     console.log('Échec de l\'enregistrement du Service Worker', err);

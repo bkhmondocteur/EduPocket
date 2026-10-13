@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalPayment = document.getElementById('modal-payment');
     const modalEditSession = document.getElementById('modal-edit-session');
     const modalLicenseActivation = document.getElementById('modal-license-activation');
+    const btnOpenSettings = document.getElementById('btn-open-settings');
+    const btnEleveLogout = document.getElementById('btn-eleve-logout');
 
     // --- GESTION DES LICENCES (PARENT & PROFESSEUR) ---
     function getActiveLicense(role = 'parent') {
@@ -231,6 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnTabCodes) btnTabCodes.style.display = (appState.role === 'parent') ? 'block' : 'none';
 
         if (appState.role === 'parent') {
+            if (btnOpenSettings) btnOpenSettings.style.display = 'inline-flex';
+            if (btnEleveLogout) btnEleveLogout.style.display = 'none';
+
             // VÉRIFICATION STRICTE DE LA LICENCE PARENT
             const parentLicense = getActiveLicense('parent');
             if (!parentLicense) {
@@ -254,18 +259,24 @@ document.addEventListener('DOMContentLoaded', () => {
             loadParentStudentsList();
             showView(viewHome);
         } else if (appState.role === 'eleve') {
+            // L'élève n'a JAMAIS accès aux réglages administratifs de la famille
+            if (btnOpenSettings) btnOpenSettings.style.display = 'none';
             if (btnTabTarifs) btnTabTarifs.style.display = 'none';
 
             // Si l'élève est identifié : ouverture IMMÉDIATE de son tableau de bord personnel
             if (appState.currentStudentId) {
+                if (btnEleveLogout) btnEleveLogout.style.display = 'inline-flex';
                 const student = getStudent(appState.currentStudentId);
                 if (student) {
+                    headerRoleBadge.textContent = '🎓 ' + student.prenom;
                     loadDashboard(student);
                     showView(viewDashboard);
                     return;
                 }
             }
 
+            if (btnEleveLogout) btnEleveLogout.style.display = 'none';
+            headerRoleBadge.textContent = '🎓 Espace Élève';
             bannerFamilyCode.style.display = 'none';
             homeRoleDesc.innerHTML = '<strong>Espace Élève :</strong> Saisissez votre <strong>Code Famille</strong> ainsi que votre <strong>Code Élève</strong> transmis par vos parents pour ouvrir immédiatement votre dossier.';
             sectionParent.style.display = 'none';
@@ -273,6 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
             sectionProf.style.display = 'none';
             showView(viewHome);
         } else if (appState.role === 'professeur') {
+            if (btnOpenSettings) btnOpenSettings.style.display = 'none';
+            if (btnEleveLogout) btnEleveLogout.style.display = 'none';
+
             // VÉRIFICATION STRICTE DE LA LICENCE PROFESSEUR
             const profLicense = getActiveLicense('professeur');
             if (!profLicense) {
@@ -349,6 +363,11 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem('edupocket_prof_code');
             localStorage.removeItem('edupocket_prof_name');
             localStorage.removeItem('edupocket_prof_matiere');
+            if (appState.role === 'eleve') {
+                localStorage.removeItem('edupocket_family_id');
+                appState.familyId = null;
+                appState.data = null;
+            }
             appState.role = null;
             appState.currentStudentId = null;
             appState.profCode = '';
@@ -362,7 +381,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Déconnexion de l'Espace Élève
+    if (btnEleveLogout) {
+        btnEleveLogout.addEventListener('click', () => {
+            if (confirm("Voulez-vous vous déconnecter de votre espace élève ?")) {
+                localStorage.removeItem('edupocket_student_id');
+                localStorage.removeItem('edupocket_family_id');
+                appState.currentStudentId = null;
+                appState.familyId = null;
+                appState.data = null;
+                if (activeFamilyListenerUnsubscribe) {
+                    activeFamilyListenerUnsubscribe();
+                    activeFamilyListenerUnsubscribe = null;
+                }
+                updateRoleUI();
+            }
+        });
+    }
+
     // --- GESTION DES DONNÉES & FIREBASE FIRESTORE ---
+    let activeFamilyListenerUnsubscribe = null;
+
     function getDefaultData() {
         return {
             familyId: appState.familyId,
@@ -372,6 +411,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initDataPersistence() {
+        if (!appState.familyId) return;
+
         const local = localStorage.getItem('edupocket_family_data_' + appState.familyId);
         if (local) {
             try {
@@ -386,12 +427,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // Assurer que chaque élève a un Code Élève unique
         ensureStudentCodes();
 
-        // Écoute temps réel Firebase Firestore
-        if (typeof db !== 'undefined' && db) {
-            btnSyncStatus.textContent = '🟢';
-            btnSyncStatus.title = 'Connecté à Firestore en direct';
+        // Nettoyer l'ancienne écoute Firestore si la famille a changé
+        if (activeFamilyListenerUnsubscribe) {
+            activeFamilyListenerUnsubscribe();
+            activeFamilyListenerUnsubscribe = null;
+        }
 
-            db.collection('edupocket_families').doc(appState.familyId).onSnapshot(doc => {
+        // Écoute temps réel Firebase Firestore
+        if (typeof db !== 'undefined' && db && appState.familyId) {
+            btnSyncStatus.textContent = '🟢';
+            btnSyncStatus.title = 'Connecté à Firestore en direct (' + appState.familyId + ')';
+
+            activeFamilyListenerUnsubscribe = db.collection('edupocket_families').doc(appState.familyId).onSnapshot(doc => {
                 if (doc.exists) {
                     const cloudData = doc.data();
                     if (cloudData && cloudData.students) {
@@ -400,7 +447,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
                         refreshCurrentView();
                     }
-                } else {
+                } else if (appState.role === 'parent') {
+                    // Seulement un parent initialise un nouveau document de famille sur le Cloud
                     saveDataToCloud();
                 }
             }, err => {
@@ -585,6 +633,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getStudent(id) {
         if (!appState.data || !appState.data.students) return null;
+        if (appState.role === 'eleve' && appState.currentStudentId) {
+            // Un élève ne doit JAMAIS voir ou accéder aux données d'un autre élève
+            const self = appState.data.students.find(s => s.id === appState.currentStudentId || s.codeEleve === appState.currentStudentId);
+            return self || null;
+        }
         return appState.data.students.find(s => s.id === id || s.codeEleve === id);
     }
 
@@ -701,6 +754,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         appState.currentStudentId = found.id;
                         localStorage.setItem('edupocket_family_id', targetFam);
                         localStorage.setItem('edupocket_student_id', found.id);
+                        initDataPersistence();
+                        updateRoleUI();
                         loadDashboard(found);
                         showView(viewDashboard);
                         alert(`Bienvenue ${found.prenom} ! Votre espace élève est ouvert.`);
@@ -731,6 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             localStorage.setItem('edupocket_family_data_' + targetFam, JSON.stringify(famData));
 
                             initDataPersistence();
+                            updateRoleUI();
                             loadDashboard(foundStudent);
                             showView(viewDashboard);
                             alert(`Bienvenue ${foundStudent.prenom} !`);
@@ -757,6 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
 
                                 initDataPersistence();
+                                updateRoleUI();
                                 loadDashboard(stData);
                                 showView(viewDashboard);
                                 alert(`Bienvenue ${stData.prenom} !`);
@@ -1454,6 +1511,9 @@ ${profName}`;
             if (btnBack) btnBack.style.display = 'none';
             if (btnSub) btnSub.style.display = 'none';
             if (profBanner) profBanner.style.display = 'none';
+            if (btnOpenSettings) btnOpenSettings.style.display = 'none';
+            if (btnEleveLogout) btnEleveLogout.style.display = 'inline-flex';
+            if (headerRoleBadge) headerRoleBadge.textContent = '🎓 ' + student.prenom;
         } else if (appState.role === 'professeur') {
             if (btnBack) {
                 btnBack.style.display = 'inline-block';
@@ -2032,6 +2092,9 @@ ${profName}`;
 
     // --- MODAL RÉGLAGES ET TARIFS ---
     function openSettingsModal(targetTab = null) {
+        if (appState.role === 'eleve') {
+            return; // Verrou strict : l'élève n'a jamais accès aux réglages administratifs
+        }
         modalSettings.style.display = 'flex';
 
         // Déterminer l'onglet par défaut selon le rôle
@@ -2064,13 +2127,21 @@ ${profName}`;
         }
     }
 
-    document.getElementById('btn-open-settings').addEventListener('click', () => openSettingsModal('tab-codes'));
+    if (btnOpenSettings) {
+        btnOpenSettings.addEventListener('click', () => {
+            if (appState.role === 'eleve') return;
+            openSettingsModal('tab-codes');
+        });
+    }
     const btnSubSettings = document.getElementById('btn-open-settings-sub');
     if (btnSubSettings) btnSubSettings.addEventListener('click', () => openSettingsModal('tab-tarifs'));
 
     const btnQuickOpenCodes = document.getElementById('btn-quick-open-codes');
     if (btnQuickOpenCodes) {
-        btnQuickOpenCodes.addEventListener('click', () => openSettingsModal('tab-codes'));
+        btnQuickOpenCodes.addEventListener('click', () => {
+            if (appState.role === 'eleve') return;
+            openSettingsModal('tab-codes');
+        });
     }
 
     document.getElementById('btn-close-settings').addEventListener('click', () => {
@@ -2095,6 +2166,7 @@ ${profName}`;
 
     // --- GESTION ET AFFICHAGE DES CODES D'ACCÈS DANS LES RÉGLAGES ---
     function renderSettingsStudentsCodes() {
+        if (appState.role === 'eleve') return;
         const container = document.getElementById('settings-students-codes-list');
         if (!container) return;
         container.innerHTML = '';
@@ -2217,6 +2289,11 @@ ${profName}`;
                     </div>
                     <div class="settings-profs-container">
                         ${profsListHtml}
+                        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #E2E8F0;">
+                            <button class="btn-sm btn-goto-config-matiere" data-student-id="${student.id}" style="background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                ⚙️ Configurer matières & tarifs de ${student.prenom} ➔
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -2300,13 +2377,13 @@ ${profName}`;
                 });
             });
 
-            const btnGotoMatiere = card.querySelector('.btn-goto-config-matiere');
-            if (btnGotoMatiere) {
-                btnGotoMatiere.addEventListener('click', () => {
-                    appState.currentStudentId = student.id;
+            card.querySelectorAll('.btn-goto-config-matiere').forEach(b => {
+                b.addEventListener('click', () => {
+                    const sId = b.getAttribute('data-student-id') || student.id;
+                    appState.currentStudentId = sId;
                     openSettingsModal('tab-tarifs');
                 });
-            }
+            });
 
             const btnSharePack = card.querySelector('.btn-share-full-student-pack');
             if (btnSharePack) {
@@ -2341,17 +2418,60 @@ ${profName}`;
         });
     }
 
+    function populateConfigStudentSelect() {
+        const select = document.getElementById('cfg-select-student');
+        if (!select) return;
+        select.innerHTML = '';
+
+        if (!appState.data || !appState.data.students || appState.data.students.length === 0) {
+            select.innerHTML = '<option value="">Aucun enfant enregistré</option>';
+            return;
+        }
+
+        const currentExists = appState.data.students.some(s => s.id === appState.currentStudentId);
+        if (!appState.currentStudentId || !currentExists) {
+            appState.currentStudentId = appState.data.students[0].id;
+        }
+
+        appState.data.students.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.prenom} ${s.nom} (${s.classe || 'Élève'})`;
+            if (s.id === appState.currentStudentId) opt.selected = true;
+            select.appendChild(opt);
+        });
+
+        select.onchange = () => {
+            appState.currentStudentId = select.value;
+            renderMatieresConfigList();
+        };
+    }
+
     function renderMatieresConfigList() {
+        populateConfigStudentSelect();
+
         const container = document.getElementById('current-matieres-list');
+        const formTitle = document.getElementById('cfg-form-title');
+        const helpText = document.getElementById('cfg-tab-help-text');
+        if (!container) return;
         container.innerHTML = '';
+
         if (!appState.currentStudentId) {
             container.innerHTML = '<span style="color: #64748B;">Sélectionnez un élève pour configurer ses matières.</span>';
             return;
         }
 
         const student = getStudent(appState.currentStudentId);
-        if (!student || !student.matieres || student.matieres.length === 0) {
-            container.innerHTML = '<span style="color: #64748B;">Aucune matière configurée pour cet élève.</span>';
+        if (!student) {
+            container.innerHTML = '<span style="color: #64748B;">Élève introuvable.</span>';
+            return;
+        }
+
+        if (formTitle) formTitle.textContent = `Ajouter / Modifier une matière pour ${student.prenom}`;
+        if (helpText) helpText.innerHTML = `Matières et tarifs configurés pour <strong>${student.prenom} ${student.nom}</strong> :`;
+
+        if (!student.matieres || student.matieres.length === 0) {
+            container.innerHTML = `<span style="color: #64748B;">Aucune matière configurée pour ${student.prenom}. Ajoutez-en une ci-dessous !</span>`;
             return;
         }
 
@@ -2673,7 +2793,7 @@ ${profName}`;
             renderMatieresConfigList();
             renderSettingsStudentsCodes();
             populateMatieresSelect(student);
-            alert(`Matière "${nom}" enregistrée (${prix} DT / quota ${quota}) avec codes professeurs générés !`);
+            alert(`Matière "${nom}" enregistrée pour ${student.prenom} (${prix} DT / quota ${quota}) avec codes professeurs générés !`);
         }
     });
 
