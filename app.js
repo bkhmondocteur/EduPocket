@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!appState.familyId) {
         appState.familyId = 'FAM-' + Math.random().toString(36).substring(2, 6).toUpperCase();
         localStorage.setItem('edupocket_family_id', appState.familyId);
+    } else {
+        appState.familyId = appState.familyId.trim().toUpperCase();
+        localStorage.setItem('edupocket_family_id', appState.familyId);
     }
 
     // Éléments du DOM
@@ -426,6 +429,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeStudentDocListenerUnsubscribe();
                 activeStudentDocListenerUnsubscribe = null;
             }
+            if (activeParentStudentListenerUnsubscribe) {
+                activeParentStudentListenerUnsubscribe();
+                activeParentStudentListenerUnsubscribe = null;
+                activeParentStudentListenerCode = null;
+            }
             modalSettings.style.display = 'none';
             tempSelectedRole = null;
             document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
@@ -456,6 +464,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeStudentDocListenerUnsubscribe();
                     activeStudentDocListenerUnsubscribe = null;
                 }
+                if (activeParentStudentListenerUnsubscribe) {
+                    activeParentStudentListenerUnsubscribe();
+                    activeParentStudentListenerUnsubscribe = null;
+                    activeParentStudentListenerCode = null;
+                }
                 updateRoleUI();
             }
         });
@@ -465,6 +478,81 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeFamilyListenerUnsubscribe = null;
     let activeProfStudentListenerUnsubscribe = null;
     let activeStudentDocListenerUnsubscribe = null;
+    let activeParentStudentListenerUnsubscribe = null;
+    let activeParentStudentListenerCode = null;
+
+    function sanitizeStudent(student) {
+        if (!student) return null;
+        const code = student.codeEleve || student.studentCode || '';
+        const id = student.id || ('std_' + Date.now());
+
+        const matieres = Array.isArray(student.matieres) ? student.matieres.map(m => {
+            const profs = Array.isArray(m.professeurs)
+                ? m.professeurs.map(p => typeof p === 'string' ? p : (p.nom || '')).filter(Boolean)
+                : [];
+            const profCodes = Array.isArray(m.profCodes)
+                ? m.profCodes.map(pc => ({
+                    nom: (pc && pc.nom) ? String(pc.nom).trim() : '',
+                    code: (pc && pc.code) ? String(pc.code).trim() : '',
+                    matiere: (pc && pc.matiere) ? String(pc.matiere).trim() : (m.nom || '').trim()
+                }))
+                : [];
+            return {
+                nom: (m && m.nom) ? String(m.nom).trim() : '',
+                prixSeance: Number(m.prixSeance) || 20,
+                quotaPaiement: Number(m.quotaPaiement) || 4,
+                professeurs: profs,
+                profCodes: profCodes
+            };
+        }) : [];
+
+        const sessions = Array.isArray(student.sessions) ? student.sessions.map(s => ({
+            id: (s && s.id) ? String(s.id) : ('ses_' + Date.now()),
+            date: (s && s.date) ? String(s.date).trim() : '',
+            heure: (s && s.heure) ? String(s.heure).trim() : '--:--',
+            sujet: (s && s.sujet) ? String(s.sujet).trim() : '',
+            professeur: (s && s.professeur) ? String(s.professeur).trim() : 'Non spécifié',
+            statut: (s && s.statut) ? String(s.statut).trim() : 'Effectuée',
+            validation: (s && s.validation) ? String(s.validation).trim() : 'Confirmee',
+            creePar: (s && s.creePar) ? String(s.creePar).trim() : 'parent',
+            paye: Boolean(s && s.paye),
+            datePaiement: (s && s.datePaiement) ? String(s.datePaiement).trim() : null,
+            timestamp: Number(s && s.timestamp) || Date.now()
+        })) : [];
+
+        const paiements = Array.isArray(student.paiements) ? student.paiements.map(p => ({
+            id: (p && p.id) ? String(p.id) : ('pay_' + Date.now()),
+            date: (p && p.date) ? String(p.date).trim() : '',
+            matiere: (p && p.matiere) ? String(p.matiere).trim() : '',
+            montant: Number(p && p.montant) || 0,
+            nombreSeances: Number(p && p.nombreSeances) || 0,
+            methode: (p && p.methode) ? String(p.methode).trim() : 'Espèces',
+            timestamp: Number(p && p.timestamp) || Date.now()
+        })) : [];
+
+        const cleanObj = {
+            id: id,
+            studentCode: code,
+            codeEleve: code,
+            familyId: student.familyId || appState.familyId || '',
+            nom: (student.nom || '').trim(),
+            prenom: (student.prenom || '').trim(),
+            classe: (student.classe || '').trim(),
+            telephone: (student.telephone || '').trim(),
+            telephoneParent: (student.telephoneParent || '').trim(),
+            matieres: matieres,
+            sessions: sessions,
+            paiements: paiements,
+            updatedAt: Number(student.updatedAt) || Date.now()
+        };
+
+        if (student.createdAt) {
+            cleanObj.createdAt = Number(student.createdAt) || Date.now();
+        }
+
+        // Nettoyage absolu de toute valeur résiduelle 'undefined'
+        return JSON.parse(JSON.stringify(cleanObj));
+    }
 
     function getDefaultData() {
         return {
@@ -505,11 +593,35 @@ document.addEventListener('DOMContentLoaded', () => {
             activeFamilyListenerUnsubscribe = db.collection('edupocket_families').doc(appState.familyId).onSnapshot(doc => {
                 if (doc.exists) {
                     const cloudData = doc.data();
-                    if (cloudData && cloudData.students) {
-                        appState.data = cloudData;
-                        ensureStudentCodes();
-                        localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
-                        refreshCurrentView();
+                    if (cloudData && Array.isArray(cloudData.students)) {
+                        if (appState.role === 'eleve') {
+                            // Pour un élève : extraction stricte de son propre profil pour isoler ses données
+                            const self = cloudData.students.find(s => 
+                                (s.id && appState.currentStudentId && s.id === appState.currentStudentId) ||
+                                (s.codeEleve && appState.currentStudentId && s.codeEleve === appState.currentStudentId) ||
+                                (s.studentCode && appState.currentStudentId && s.studentCode === appState.currentStudentId)
+                            );
+                            if (self) {
+                                appState.data = {
+                                    familyId: appState.familyId,
+                                    students: [sanitizeStudent(self)],
+                                    updatedAt: cloudData.updatedAt || Date.now()
+                                };
+                                ensureStudentCodes();
+                                localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
+                                refreshCurrentView();
+                            }
+                        } else {
+                            // Pour le parent : toute la fratrie
+                            appState.data = {
+                                familyId: appState.familyId,
+                                students: cloudData.students.map(s => sanitizeStudent(s)).filter(Boolean),
+                                updatedAt: cloudData.updatedAt || Date.now()
+                            };
+                            ensureStudentCodes();
+                            localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
+                            refreshCurrentView();
+                        }
                     }
                 } else if (appState.role === 'parent') {
                     // Seulement un parent initialise un nouveau document de famille vierge sur le Cloud
@@ -532,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     activeStudentDocListenerUnsubscribe = db.collection('edupocket_students').doc(code).onSnapshot(stDoc => {
                         if (stDoc.exists) {
-                            const stData = stDoc.data();
+                            const stData = sanitizeStudent(stDoc.data());
                             if (!appState.data) appState.data = getDefaultData();
                             const idx = (appState.data.students || []).findIndex(s => 
                                 (s.id && stData.id && s.id === stData.id) || 
@@ -677,81 +789,88 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveDataToCloud() {
         if (typeof db === 'undefined' || !db || !appState.data || !appState.familyId) return;
 
+        btnSyncStatus.textContent = '🔄';
+        btnSyncStatus.title = 'Synchronisation Cloud en cours...';
+
         const studentsList = appState.data.students || [];
 
         // 1. Sauvegarde indexée de chaque Élève par son Code Élève unique
-        studentsList.forEach(student => {
+        // Pour un élève : enregistrer STRICTEMENT son propre profil pour ne pas interférer avec ses frères et sœurs
+        const studentsToSave = (appState.role === 'eleve' && appState.currentStudentId)
+            ? [getStudent(appState.currentStudentId)].filter(Boolean)
+            : studentsList;
+
+        const studentPromises = [];
+        studentsToSave.forEach(student => {
             const code = student.codeEleve || student.studentCode;
             if (code) {
-                const studentPayload = {
-                    id: student.id || ('std_' + Date.now()),
-                    studentCode: code,
-                    codeEleve: code,
-                    familyId: appState.familyId,
-                    nom: student.nom,
-                    prenom: student.prenom,
-                    classe: student.classe || '',
-                    telephone: student.telephone || '',
-                    telephoneParent: student.telephoneParent || '',
-                    matieres: student.matieres || [],
-                    sessions: student.sessions || [],
-                    paiements: student.paiements || [],
-                    updatedAt: Date.now()
-                };
-                if (student.createdAt) {
-                    studentPayload.createdAt = student.createdAt;
+                const studentPayload = sanitizeStudent(student);
+                if (studentPayload) {
+                    studentPromises.push(
+                        db.collection('edupocket_students').doc(code).set(studentPayload)
+                    );
                 }
-
-                db.collection('edupocket_students').doc(code).set(studentPayload)
-                    .catch(err => console.warn("Erreur sauvegarde Cloud Élève (" + code + ") :", err));
             }
         });
 
         // 2. Sauvegarde du document Famille sans écraser les frères et sœurs
+        let familyPromise;
         if (appState.role === 'parent') {
-            // Le parent détient la liste complète de la fratrie
+            // Le parent détient la liste complète et assainie de la fratrie
+            const cleanStudents = studentsList.map(s => sanitizeStudent(s)).filter(Boolean);
             const familyPayload = {
                 familyId: appState.familyId,
-                students: studentsList,
+                students: cleanStudents,
                 updatedAt: Date.now()
             };
-            db.collection('edupocket_families').doc(appState.familyId).set(familyPayload)
-                .catch(err => console.warn("Erreur sauvegarde Cloud Famille (Parent) :", err));
+            familyPromise = db.collection('edupocket_families').doc(appState.familyId).set(familyPayload);
         } else {
             // Élève ou Professeur : fusion non-destructive dans le document Famille
             const currentStudent = getStudent(appState.currentStudentId) || studentsList[0];
-            if (!currentStudent) return;
-
-            db.collection('edupocket_families').doc(appState.familyId).get().then(famDoc => {
-                let existingStudents = [];
-                if (famDoc.exists) {
-                    const famData = famDoc.data();
-                    if (famData && Array.isArray(famData.students)) {
-                        existingStudents = famData.students;
+            if (!currentStudent) {
+                familyPromise = Promise.resolve();
+            } else {
+                const cleanCurrent = sanitizeStudent(currentStudent);
+                familyPromise = db.collection('edupocket_families').doc(appState.familyId).get().then(famDoc => {
+                    let existingStudents = [];
+                    if (famDoc.exists) {
+                        const famData = famDoc.data();
+                        if (famData && Array.isArray(famData.students)) {
+                            existingStudents = famData.students.map(s => sanitizeStudent(s)).filter(Boolean);
+                        }
                     }
-                }
 
-                const currentCode = currentStudent.codeEleve || currentStudent.studentCode;
-                const idx = existingStudents.findIndex(s => 
-                    (s.id && currentStudent.id && s.id === currentStudent.id) ||
-                    (currentCode && (s.codeEleve === currentCode || s.studentCode === currentCode))
-                );
+                    const currentCode = cleanCurrent.codeEleve || cleanCurrent.studentCode;
+                    const idx = existingStudents.findIndex(s => 
+                        (s.id && cleanCurrent.id && s.id === cleanCurrent.id) ||
+                        (currentCode && (s.codeEleve === currentCode || s.studentCode === currentCode))
+                    );
 
-                if (idx >= 0) {
-                    existingStudents[idx] = currentStudent;
-                } else {
-                    existingStudents.push(currentStudent);
-                }
+                    if (idx >= 0) {
+                        existingStudents[idx] = cleanCurrent;
+                    } else {
+                        existingStudents.push(cleanCurrent);
+                    }
 
-                return db.collection('edupocket_families').doc(appState.familyId).set({
-                    familyId: appState.familyId,
-                    students: existingStudents,
-                    updatedAt: Date.now()
+                    return db.collection('edupocket_families').doc(appState.familyId).set({
+                        familyId: appState.familyId,
+                        students: existingStudents,
+                        updatedAt: Date.now()
+                    });
                 });
-            }).catch(err => {
-                console.warn("Erreur fusion Cloud Famille (Élève/Prof) :", err);
-            });
+            }
         }
+
+        Promise.all([...studentPromises, familyPromise])
+            .then(() => {
+                btnSyncStatus.textContent = '🟢';
+                btnSyncStatus.title = 'Connecté & synchronisé en direct (' + appState.familyId + ')';
+            })
+            .catch(err => {
+                console.warn("Erreur synchronisation Cloud :", err);
+                btnSyncStatus.textContent = '🔴';
+                btnSyncStatus.title = 'Erreur synchro : ' + (err.message || 'problème réseau ou permissions');
+            });
     }
 
     function refreshCurrentView() {
@@ -787,10 +906,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!appState.data || !appState.data.students) return null;
         if (appState.role === 'eleve' && appState.currentStudentId) {
             // Un élève ne doit JAMAIS voir ou accéder aux données d'un autre élève
-            const self = appState.data.students.find(s => s.id === appState.currentStudentId || s.codeEleve === appState.currentStudentId);
+            const self = appState.data.students.find(s => 
+                (s.id && s.id === appState.currentStudentId) || 
+                (s.codeEleve && s.codeEleve === appState.currentStudentId) ||
+                (s.studentCode && s.studentCode === appState.currentStudentId)
+            );
             return self || null;
         }
-        return appState.data.students.find(s => s.id === id || s.codeEleve === id);
+        return appState.data.students.find(s => 
+            (s.id && s.id === id) || 
+            (s.codeEleve && s.codeEleve === id) ||
+            (s.studentCode && s.studentCode === id)
+        );
     }
 
     // --- ACCÈS PARENT : LISTE DES ENFANTS AVEC CODES ÉLÈVE ET PROFESSEUR ---
@@ -815,7 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <strong style="font-size: 1.15rem; color: var(--sidi-blue-dark);">${student.prenom} ${student.nom}</strong>
                         <span class="class-badge" style="font-size: 0.8rem; padding: 2px 10px;">${student.classe || 'Élève'}</span>
                     </div>
-                    <div style="font-size: 0.85rem; color: #64748B; margin-top: 5px;">
+                    <div class="session-count-text" style="font-size: 0.85rem; color: #64748B; margin-top: 5px;">
                         ${(student.sessions || []).length} séance(s) effectuée(s) • ${(student.matieres || []).length} matière(s)
                     </div>
                     ${(student.telephone || student.telephoneParent) ? `
@@ -857,6 +984,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             list.appendChild(li);
         });
+
+        // Synchronisation directe en arrière-plan de chaque document élève pour garantir l'actualisation immédiate des séances
+        if (typeof db !== 'undefined' && db && appState.data && Array.isArray(appState.data.students)) {
+            appState.data.students.forEach((st, idx) => {
+                const code = st.codeEleve || st.studentCode;
+                if (!code) return;
+                db.collection('edupocket_students').doc(code).get().then(doc => {
+                    if (doc.exists) {
+                        const cloudSt = sanitizeStudent(doc.data());
+                        const localCount = (st.sessions || []).length;
+                        const cloudCount = (cloudSt.sessions || []).length;
+                        if (cloudCount !== localCount || (cloudSt.updatedAt || 0) > (st.updatedAt || 0)) {
+                            appState.data.students[idx] = cloudSt;
+                            localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
+                            const countEl = list.children[idx]?.querySelector('.session-count-text');
+                            if (countEl) {
+                                countEl.textContent = `${cloudCount} séance(s) effectuée(s) • ${(cloudSt.matieres || []).length} matière(s)`;
+                            }
+                        }
+                    }
+                }).catch(e => console.warn("Sync background élève parent :", e));
+            });
+        }
     }
 
     // Ajout d'enfant par le parent
@@ -937,17 +1087,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (appState.familyId === targetFam || appState.familyId === rawFam) {
                     const found = appState.data.students.find(s => s.codeEleve === targetElv || s.codeEleve === rawElv || s.studentCode === targetElv || s.studentCode === rawElv);
                     if (found) {
+                        const cleanFound = sanitizeStudent(found);
                         appState.role = 'eleve';
                         localStorage.setItem('edupocket_role', 'eleve');
                         appState.familyId = targetFam;
-                        appState.currentStudentId = found.id;
+                        appState.currentStudentId = cleanFound.id;
+                        appState.data = {
+                            familyId: targetFam,
+                            students: [cleanFound],
+                            updatedAt: appState.data.updatedAt || Date.now()
+                        };
                         localStorage.setItem('edupocket_family_id', targetFam);
-                        localStorage.setItem('edupocket_student_id', found.id);
+                        localStorage.setItem('edupocket_student_id', cleanFound.id);
+                        localStorage.setItem('edupocket_family_data_' + targetFam, JSON.stringify(appState.data));
                         initDataPersistence();
                         updateRoleUI();
-                        loadDashboard(found);
+                        loadDashboard(cleanFound);
                         showView(viewDashboard);
-                        alert(`Bienvenue ${found.prenom} ! Votre espace élève est ouvert.`);
+                        alert(`Bienvenue ${cleanFound.prenom} ! Votre espace élève est ouvert.`);
                         return;
                     }
                 }
@@ -967,20 +1124,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (foundStudent) {
                             btnEleveLogin.disabled = false;
                             btnEleveLogin.textContent = 'Accéder à mon tableau de bord';
+                            const cleanFound = sanitizeStudent(foundStudent);
                             appState.role = 'eleve';
                             localStorage.setItem('edupocket_role', 'eleve');
                             appState.familyId = targetFam;
-                            appState.currentStudentId = foundStudent.id;
-                            appState.data = famData;
+                            appState.currentStudentId = cleanFound.id;
+                            appState.data = {
+                                familyId: targetFam,
+                                students: [cleanFound],
+                                updatedAt: famData.updatedAt || Date.now()
+                            };
                             localStorage.setItem('edupocket_family_id', targetFam);
-                            localStorage.setItem('edupocket_student_id', foundStudent.id);
-                            localStorage.setItem('edupocket_family_data_' + targetFam, JSON.stringify(famData));
+                            localStorage.setItem('edupocket_student_id', cleanFound.id);
+                            localStorage.setItem('edupocket_family_data_' + targetFam, JSON.stringify(appState.data));
 
                             initDataPersistence();
                             updateRoleUI();
-                            loadDashboard(foundStudent);
+                            loadDashboard(cleanFound);
                             showView(viewDashboard);
-                            alert(`Bienvenue ${foundStudent.prenom} !`);
+                            alert(`Bienvenue ${cleanFound.prenom} !`);
                             return;
                         }
                     }
@@ -991,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         btnEleveLogin.textContent = 'Accéder à mon tableau de bord';
 
                         if (stDoc.exists) {
-                            const stData = stDoc.data();
+                            const stData = sanitizeStudent(stDoc.data());
                             if (stData.familyId === targetFam || stData.familyId === rawFam) {
                                 appState.role = 'eleve';
                                 localStorage.setItem('edupocket_role', 'eleve');
@@ -999,7 +1161,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 appState.currentStudentId = stData.id;
                                 appState.data = {
                                     familyId: stData.familyId,
-                                    students: [stData]
+                                    students: [stData],
+                                    updatedAt: stData.updatedAt || Date.now()
                                 };
                                 localStorage.setItem('edupocket_family_id', appState.familyId);
                                 localStorage.setItem('edupocket_student_id', stData.id);
@@ -1777,6 +1940,11 @@ ${profName}`;
             showView(viewHome);
             updateRoleUI();
         } else {
+            if (activeParentStudentListenerUnsubscribe) {
+                activeParentStudentListenerUnsubscribe();
+                activeParentStudentListenerUnsubscribe = null;
+                activeParentStudentListenerCode = null;
+            }
             appState.currentStudentId = null;
             showView(viewHome);
             loadParentStudentsList();
@@ -1828,6 +1996,38 @@ ${profName}`;
             }
             if (btnSub) btnSub.style.display = 'inline-block';
             if (profBanner) profBanner.style.display = 'none';
+
+            // Écoute directe en temps réel pour le Parent sur le document de l'enfant consulté
+            const studentCode = student.codeEleve || student.studentCode;
+            if (studentCode && typeof db !== 'undefined' && db) {
+                if (activeParentStudentListenerCode !== studentCode) {
+                    if (activeParentStudentListenerUnsubscribe) {
+                        activeParentStudentListenerUnsubscribe();
+                        activeParentStudentListenerUnsubscribe = null;
+                    }
+                    activeParentStudentListenerCode = studentCode;
+                    activeParentStudentListenerUnsubscribe = db.collection('edupocket_students').doc(studentCode).onSnapshot(stDoc => {
+                        if (stDoc.exists) {
+                            const stData = sanitizeStudent(stDoc.data());
+                            if (!appState.data) appState.data = getDefaultData();
+                            const idx = (appState.data.students || []).findIndex(s => 
+                                (s.id && stData.id && s.id === stData.id) || 
+                                (s.codeEleve && s.codeEleve === studentCode) || 
+                                (s.studentCode && s.studentCode === studentCode)
+                            );
+                            if (idx >= 0) {
+                                appState.data.students[idx] = stData;
+                            } else {
+                                appState.data.students.push(stData);
+                            }
+                            localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
+                            if (viewDashboard.classList.contains('active') && currentDashboardStudentId === stData.id) {
+                                loadDashboard(stData);
+                            }
+                        }
+                    }, err => console.warn("Écoute directe doc élève (Parent) :", err));
+                }
+            }
         }
 
         const isSameStudent = (currentDashboardStudentId === student.id);
