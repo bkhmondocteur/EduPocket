@@ -687,9 +687,6 @@ h2, h3 {
         flex-direction: column;
         gap: 0;
     }
-    .filters-container {
-        flex-direction: column;
-    }
     .session-actions-row {
         flex-direction: column;
         align-items: stretch;
@@ -1053,15 +1050,15 @@ body.role-eleve .dashboard-header-bar {
     background: #E2E8F0;
     padding: 5px;
     border-radius: 12px;
-    margin: 16px 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    margin: 14px 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .btn-dash-tab {
-    flex: 1;
-    min-width: 110px;
-    padding: 10px 12px;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 8px;
     border: none;
     border-radius: 9px;
     background: transparent;
@@ -1074,7 +1071,16 @@ body.role-eleve .dashboard-header-bar {
     justify-content: center;
     gap: 6px;
     transition: all 0.2s ease;
+    text-align: center;
     white-space: nowrap;
+}
+
+.tab-txt-short {
+    display: none;
+}
+
+.tab-txt-full {
+    display: inline;
 }
 
 .btn-dash-tab:hover {
@@ -1110,11 +1116,13 @@ body.role-eleve .dashboard-header-bar {
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .section-subbar h3 {
     margin: 0;
+    padding: 0;
+    border: none;
     font-size: 1.15rem;
     color: var(--sidi-blue-dark);
     display: flex;
@@ -1466,4 +1474,336 @@ body.role-eleve .dashboard-header-bar {
     background: #FEE2E2;
     color: #B91C1C;
     border-color: #FCA5A5;
+}
+
+/* ==========================================================================
+   OPTIMISATIONS RESPONSIVES MOBILES ET SMARTPHONES (EduPocket)
+   ========================================================================== */
+
+@media screen and (max-width: 600px) {
+    /* Conteneur et espacements généraux */
+    #app-container {
+        padding: 12px 10px;
+    }
+
+    .app-header {
+        padding: 0.7rem 1rem;
+    }
+
+    .logo {
+        width: 40px;
+        height: 40px;
+        margin-right: 10px;
+    }
+
+    .app-header h1 {
+        font-size: 1.18rem;
+    }
+
+    /* En-tête du tableau de bord & infos élève */
+    .dashboard-header-bar {
+        margin-bottom: 10px;
+        gap: 8px;
+    }
+
+    .dashboard-header-bar .btn-secondary {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        border-radius: 8px;
+    }
+
+    .student-info {
+        padding: 12px 14px;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        border-top-left-radius: 20px;
+        border-bottom-right-radius: 20px;
+    }
+
+    .student-info h2 {
+        font-size: 1.25rem;
+        margin-bottom: 4px;
+    }
+
+    .class-badge {
+        font-size: 0.78rem;
+        padding: 3px 9px;
+    }
+
+    /* Barre d'onglets du tableau de bord (Séances, Emploi, Examens) */
+    .dash-tabs-bar {
+        gap: 4px;
+        padding: 4px;
+        margin: 12px 0;
+        border-radius: 10px;
+    }
+
+    .btn-dash-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 8px 4px;
+        font-size: 0.82rem;
+        gap: 4px;
+        border-radius: 8px;
+    }
+
+    /* Remplacement des libellés longs par les versions compactes sur smartphone */
+    .tab-txt-full {
+        display: none !important;
+    }
+
+    .tab-txt-short {
+        display: inline !important;
+    }
+
+    /* Sous-barres de titres et actions (+ Ajouter) */
+    .section-subbar {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .section-subbar h3 {
+        font-size: 1.05rem;
+        white-space: nowrap;
+    }
+
+    .section-subbar .btn-primary {
+        padding: 7px 12px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        width: auto;
+        border-radius: 8px;
+    }
+
+    /* Commutateur Emploi du Temps Journalier / Hebdo sur mobile */
+    #dash-panel-emploi .section-subbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    #dash-panel-emploi .section-subbar > div {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .emploi-mode-toggle {
+        flex: 1;
+        display: flex;
+        padding: 2px;
+    }
+
+    .btn-emploi-mode {
+        flex: 1;
+        text-align: center;
+        padding: 6px 4px;
+        font-size: 0.78rem;
+    }
+
+    /* Sélecteur de jours de la semaine (Chips) */
+    .days-chips-scroll {
+        gap: 5px;
+        padding-bottom: 6px;
+        margin-bottom: 10px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .days-chips-scroll::-webkit-scrollbar {
+        display: none;
+    }
+
+    .day-chip {
+        flex: 0 0 calc(14.28% - 5px);
+        min-width: 44px;
+        padding: 6px 2px;
+        border-radius: 8px;
+    }
+
+    .day-chip .day-short {
+        font-size: 0.68rem;
+        font-weight: 700;
+    }
+
+    .day-chip .day-number {
+        font-size: 0.78rem;
+    }
+
+    /* Filtres déroulants en grille 2 colonnes ergonomique (gain d'espace vertical) */
+    .filters-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .filters-container select {
+        width: 100%;
+        min-width: 0;
+        padding: 7px 8px;
+        font-size: 0.8rem;
+        height: 38px;
+        border-radius: 8px;
+        background-color: #FFFFFF;
+        border: 1px solid #CBD5E1;
+    }
+
+    /* Le 3ème filtre impair (ex: timing examens) s'étend sur toute la largeur */
+    .filters-container select:nth-child(3):last-child {
+        grid-column: 1 / -1;
+    }
+
+    /* Cartes d'examens */
+    .exam-card {
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        border-radius: 10px;
+    }
+
+    .exam-header-row {
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+
+    .exam-type-badge {
+        font-size: 0.72rem;
+        padding: 2px 7px;
+    }
+
+    .exam-countdown-badge {
+        font-size: 0.74rem;
+        padding: 2px 7px;
+    }
+
+    .exam-subject-title {
+        font-size: 1.1rem;
+        margin: 2px 0 4px 0;
+    }
+
+    .exam-meta-row {
+        gap: 6px 12px;
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+    }
+
+    .exam-grade-box {
+        padding: 8px 10px;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .exam-grade-val {
+        font-size: 1.05rem;
+    }
+
+    .exam-grade-box .btn-card-action {
+        padding: 6px 10px;
+        font-size: 0.78rem;
+        border-radius: 6px;
+    }
+
+    .exam-actions-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .exam-actions-row .btn-card-action {
+        justify-content: center;
+        padding: 7px 10px;
+        font-size: 0.8rem;
+        border-radius: 7px;
+    }
+
+    /* Cartes de créneaux de cours (Emploi du temps) */
+    .course-card {
+        padding: 10px 12px;
+        gap: 8px;
+        border-radius: 10px;
+    }
+
+    .course-time-badge {
+        font-size: 0.78rem;
+        padding: 4px 7px;
+    }
+
+    .course-subject-title {
+        font-size: 0.96rem;
+    }
+
+    .course-details-text {
+        font-size: 0.78rem;
+    }
+
+    /* Grille hebdomadaire */
+    .weekly-day-group {
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+
+    .weekly-day-header {
+        padding: 8px 12px;
+    }
+
+    .weekly-day-title {
+        font-size: 0.88rem;
+    }
+
+    .weekly-day-slots {
+        padding: 8px 10px;
+    }
+
+    /* Fenêtres modales sur smartphone */
+    .modal-overlay {
+        padding: 10px;
+        align-items: flex-end;
+    }
+
+    .modal-card {
+        padding: 16px 14px;
+        max-height: 92vh;
+        border-radius: 14px 14px 8px 8px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.05rem;
+    }
+
+    .form-group {
+        margin-bottom: 10px;
+    }
+
+    .form-group label {
+        font-size: 0.82rem;
+        margin-bottom: 3px;
+    }
+
+    .form-group input, .form-group select, .form-group textarea {
+        padding: 8px 10px;
+        font-size: 0.9rem;
+    }
+}
+
+@media screen and (max-width: 380px) {
+    /* Pour les smartphones très étroits (< 380px) */
+    .btn-dash-tab {
+        font-size: 0.76rem;
+        padding: 7px 2px;
+    }
+    
+    .day-chip {
+        min-width: 38px;
+    }
+
+    .section-subbar h3 {
+        font-size: 0.95rem;
+    }
 }

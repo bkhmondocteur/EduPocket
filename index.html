@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="EduPocket">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="styles.css?v=22">
+    <link rel="stylesheet" href="styles.css?v=23">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -305,13 +305,13 @@
             <!-- Onglets de navigation dans le dossier élève -->
             <div class="dash-tabs-bar">
                 <button type="button" class="btn-dash-tab active" data-tab="tab-seances">
-                    <span>📚</span> Séances
+                    <span>📚</span> <span class="tab-txt-full">Séances</span><span class="tab-txt-short">Séances</span>
                 </button>
                 <button type="button" class="btn-dash-tab" data-tab="tab-emploi">
-                    <span>📅</span> Emploi du Temps
+                    <span>📅</span> <span class="tab-txt-full">Emploi du Temps</span><span class="tab-txt-short">Emploi</span>
                 </button>
                 <button type="button" class="btn-dash-tab" data-tab="tab-examens">
-                    <span>📝</span> Examens
+                    <span>📝</span> <span class="tab-txt-full">Examens</span><span class="tab-txt-short">Examens</span>
                 </button>
             </div>
 
@@ -407,8 +407,12 @@
                     <h3>📅 Emploi du Temps</h3>
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <div class="emploi-mode-toggle">
-                            <button type="button" class="btn-emploi-mode active" id="btn-mode-journalier">📆 Journalier</button>
-                            <button type="button" class="btn-emploi-mode" id="btn-mode-hebdomadaire">🗓️ Hebdomadaire</button>
+                            <button type="button" class="btn-emploi-mode active" id="btn-mode-journalier">
+                                <span class="tab-txt-full">📆 Journalier</span><span class="tab-txt-short">📆 Jour</span>
+                            </button>
+                            <button type="button" class="btn-emploi-mode" id="btn-mode-hebdomadaire">
+                                <span class="tab-txt-full">🗓️ Hebdomadaire</span><span class="tab-txt-short">🗓️ Semaine</span>
+                            </button>
                         </div>
                         <button type="button" id="btn-open-add-course" class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.85rem;">
                             + Ajouter un cours
@@ -953,14 +957,14 @@
     </div>
 
     <!-- Scripts de l'application -->
-    <script src="license-manager.js?v=22"></script>
-    <script src="firebase-config.js?v=22"></script>
-    <script src="app.js?v=22"></script>
+    <script src="license-manager.js?v=23"></script>
+    <script src="firebase-config.js?v=23"></script>
+    <script src="app.js?v=23"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=22').then(reg => {
-                    console.log('Service Worker v22 enregistré', reg);
+                navigator.serviceWorker.register('sw.js?v=23').then(reg => {
+                    console.log('Service Worker v23 enregistré', reg);
                     reg.update();
                 }).catch(err => {
                     console.log('Échec de l\'enregistrement du Service Worker', err);
