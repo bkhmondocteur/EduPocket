@@ -350,8 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (appState.currentStudentId && appState.profMatiere) {
                 const student = getStudent(appState.currentStudentId);
                 if (student) {
-                    loadDashboard(student);
-                    showView(viewDashboard);
+                    openProfStudentDashboard(student);
                     return;
                 }
             }
@@ -414,6 +413,18 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.profCode = '';
             appState.profName = '';
             appState.profMatiere = '';
+            if (activeFamilyListenerUnsubscribe) {
+                activeFamilyListenerUnsubscribe();
+                activeFamilyListenerUnsubscribe = null;
+            }
+            if (activeProfStudentListenerUnsubscribe) {
+                activeProfStudentListenerUnsubscribe();
+                activeProfStudentListenerUnsubscribe = null;
+            }
+            if (activeStudentDocListenerUnsubscribe) {
+                activeStudentDocListenerUnsubscribe();
+                activeStudentDocListenerUnsubscribe = null;
+            }
             modalSettings.style.display = 'none';
             tempSelectedRole = null;
             document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
@@ -435,6 +446,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeFamilyListenerUnsubscribe();
                     activeFamilyListenerUnsubscribe = null;
                 }
+                if (activeProfStudentListenerUnsubscribe) {
+                    activeProfStudentListenerUnsubscribe();
+                    activeProfStudentListenerUnsubscribe = null;
+                }
+                if (activeStudentDocListenerUnsubscribe) {
+                    activeStudentDocListenerUnsubscribe();
+                    activeStudentDocListenerUnsubscribe = null;
+                }
                 updateRoleUI();
             }
         });
@@ -442,6 +461,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- GESTION DES DONNÉES & FIREBASE FIRESTORE ---
     let activeFamilyListenerUnsubscribe = null;
+    let activeProfStudentListenerUnsubscribe = null;
+    let activeStudentDocListenerUnsubscribe = null;
 
     function getDefaultData() {
         return {
@@ -474,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
             activeFamilyListenerUnsubscribe = null;
         }
 
-        // Écoute temps réel Firebase Firestore
+        // Écoute temps réel Firebase Firestore sur le document Famille
         if (typeof db !== 'undefined' && db && appState.familyId) {
             btnSyncStatus.textContent = '🟢';
             btnSyncStatus.title = 'Connecté à Firestore en direct (' + appState.familyId + ')';
@@ -489,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         refreshCurrentView();
                     }
                 } else if (appState.role === 'parent') {
-                    // Seulement un parent initialise un nouveau document de famille sur le Cloud
+                    // Seulement un parent initialise un nouveau document de famille vierge sur le Cloud
                     saveDataToCloud();
                 }
             }, err => {
@@ -498,9 +519,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnSyncStatus.title = 'Mode local (Hors-ligne)';
             });
 
-            // Si parent, s'assurer que les documents des codes élèves sont bien synchronisés dans Firestore
-            if (appState.role === 'parent' && appState.data && appState.data.students && appState.data.students.length > 0) {
-                saveDataToCloud();
+            // Écoute directe en temps réel pour l'élève sur son propre document indexé
+            if (appState.role === 'eleve' && appState.currentStudentId) {
+                const currentStudent = getStudent(appState.currentStudentId);
+                const code = currentStudent ? (currentStudent.codeEleve || currentStudent.studentCode) : null;
+                if (code) {
+                    if (activeStudentDocListenerUnsubscribe) {
+                        activeStudentDocListenerUnsubscribe();
+                        activeStudentDocListenerUnsubscribe = null;
+                    }
+                    activeStudentDocListenerUnsubscribe = db.collection('edupocket_students').doc(code).onSnapshot(stDoc => {
+                        if (stDoc.exists) {
+                            const stData = stDoc.data();
+                            if (!appState.data) appState.data = getDefaultData();
+                            const idx = (appState.data.students || []).findIndex(s => 
+                                (s.id && stData.id && s.id === stData.id) || 
+                                (s.codeEleve && s.codeEleve === code) || 
+                                (s.studentCode && s.studentCode === code)
+                            );
+                            if (idx >= 0) {
+                                appState.data.students[idx] = stData;
+                            } else {
+                                appState.data.students = appState.data.students || [];
+                                appState.data.students.push(stData);
+                            }
+                            localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
+                            refreshCurrentView();
+                        }
+                    }, err => console.warn("Écoute directe doc élève :", err));
+                }
             }
         } else {
             btnSyncStatus.textContent = '🟡';
@@ -591,8 +638,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         appState.data.students.forEach(s => {
+            if (!s.codeEleve && s.studentCode) {
+                s.codeEleve = s.studentCode;
+                modified = true;
+            }
+            if (!s.studentCode && s.codeEleve) {
+                s.studentCode = s.codeEleve;
+                modified = true;
+            }
             if (!s.codeEleve) {
                 s.codeEleve = 'ELV-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+                s.studentCode = s.codeEleve;
                 modified = true;
             }
             if (ensureProfCodes(s)) {
@@ -615,34 +671,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveDataToCloud() {
-        if (typeof db !== 'undefined' && db && appState.data) {
-            // 1. Sauvegarde du document Famille
+        if (typeof db === 'undefined' || !db || !appState.data || !appState.familyId) return;
+
+        const studentsList = appState.data.students || [];
+
+        // 1. Sauvegarde indexée de chaque Élève par son Code Élève unique
+        studentsList.forEach(student => {
+            const code = student.codeEleve || student.studentCode;
+            if (code) {
+                const studentPayload = {
+                    id: student.id || ('std_' + Date.now()),
+                    studentCode: code,
+                    codeEleve: code,
+                    familyId: appState.familyId,
+                    nom: student.nom,
+                    prenom: student.prenom,
+                    classe: student.classe || '',
+                    telephone: student.telephone || '',
+                    telephoneParent: student.telephoneParent || '',
+                    matieres: student.matieres || [],
+                    sessions: student.sessions || [],
+                    paiements: student.paiements || [],
+                    updatedAt: Date.now()
+                };
+                if (student.createdAt) {
+                    studentPayload.createdAt = student.createdAt;
+                }
+
+                db.collection('edupocket_students').doc(code).set(studentPayload)
+                    .catch(err => console.warn("Erreur sauvegarde Cloud Élève (" + code + ") :", err));
+            }
+        });
+
+        // 2. Sauvegarde du document Famille sans écraser les frères et sœurs
+        if (appState.role === 'parent') {
+            // Le parent détient la liste complète de la fratrie
             const familyPayload = {
                 familyId: appState.familyId,
-                students: appState.data.students || [],
+                students: studentsList,
                 updatedAt: Date.now()
             };
             db.collection('edupocket_families').doc(appState.familyId).set(familyPayload)
-                .catch(err => console.warn("Erreur sauvegarde Cloud Famille :", err));
+                .catch(err => console.warn("Erreur sauvegarde Cloud Famille (Parent) :", err));
+        } else {
+            // Élève ou Professeur : fusion non-destructive dans le document Famille
+            const currentStudent = getStudent(appState.currentStudentId) || studentsList[0];
+            if (!currentStudent) return;
 
-            // 2. Sauvegarde indexée de chaque Élève par son Code Élève unique
-            (appState.data.students || []).forEach(student => {
-                if (student.codeEleve) {
-                    const studentPayload = {
-                        id: student.id,
-                        studentCode: student.codeEleve,
-                        familyId: appState.familyId,
-                        nom: student.nom,
-                        prenom: student.prenom,
-                        classe: student.classe || '',
-                        matieres: student.matieres || [],
-                        sessions: student.sessions || [],
-                        paiements: student.paiements || [],
-                        updatedAt: Date.now()
-                    };
-                    db.collection('edupocket_students').doc(student.codeEleve).set(studentPayload)
-                        .catch(err => console.warn("Erreur sauvegarde Cloud Élève :", err));
+            db.collection('edupocket_families').doc(appState.familyId).get().then(famDoc => {
+                let existingStudents = [];
+                if (famDoc.exists) {
+                    const famData = famDoc.data();
+                    if (famData && Array.isArray(famData.students)) {
+                        existingStudents = famData.students;
+                    }
                 }
+
+                const currentCode = currentStudent.codeEleve || currentStudent.studentCode;
+                const idx = existingStudents.findIndex(s => 
+                    (s.id && currentStudent.id && s.id === currentStudent.id) ||
+                    (currentCode && (s.codeEleve === currentCode || s.studentCode === currentCode))
+                );
+
+                if (idx >= 0) {
+                    existingStudents[idx] = currentStudent;
+                } else {
+                    existingStudents.push(currentStudent);
+                }
+
+                return db.collection('edupocket_families').doc(appState.familyId).set({
+                    familyId: appState.familyId,
+                    students: existingStudents,
+                    updatedAt: Date.now()
+                });
+            }).catch(err => {
+                console.warn("Erreur fusion Cloud Famille (Élève/Prof) :", err);
             });
         }
     }
@@ -766,6 +869,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const newStudent = {
                 id: 'std_' + Date.now(),
+                familyId: appState.familyId,
+                studentCode: uniqueCode,
                 codeEleve: uniqueCode,
                 nom,
                 prenom,
@@ -777,7 +882,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     { nom: 'Mathématiques', prixSeance: 25, quotaPaiement: 4, professeurs: [], profCodes: [] }
                 ],
                 sessions: [],
-                paiements: []
+                paiements: [],
+                createdAt: Date.now()
             };
 
             ensureProfCodes(newStudent);
@@ -821,8 +927,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. Vérification dans le cache local
             if (appState.data && appState.data.students) {
                 if (appState.familyId === targetFam || appState.familyId === rawFam) {
-                    const found = appState.data.students.find(s => s.codeEleve === targetElv || s.codeEleve === rawElv);
+                    const found = appState.data.students.find(s => s.codeEleve === targetElv || s.codeEleve === rawElv || s.studentCode === targetElv || s.studentCode === rawElv);
                     if (found) {
+                        appState.role = 'eleve';
+                        localStorage.setItem('edupocket_role', 'eleve');
                         appState.familyId = targetFam;
                         appState.currentStudentId = found.id;
                         localStorage.setItem('edupocket_family_id', targetFam);
@@ -846,11 +954,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (famDoc.exists) {
                         const famData = famDoc.data();
                         const students = famData.students || [];
-                        const foundStudent = students.find(s => s.codeEleve === targetElv || s.codeEleve === rawElv);
+                        const foundStudent = students.find(s => s.codeEleve === targetElv || s.codeEleve === rawElv || s.studentCode === targetElv || s.studentCode === rawElv);
 
                         if (foundStudent) {
                             btnEleveLogin.disabled = false;
                             btnEleveLogin.textContent = 'Accéder à mon tableau de bord';
+                            appState.role = 'eleve';
+                            localStorage.setItem('edupocket_role', 'eleve');
                             appState.familyId = targetFam;
                             appState.currentStudentId = foundStudent.id;
                             appState.data = famData;
@@ -875,6 +985,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (stDoc.exists) {
                             const stData = stDoc.data();
                             if (stData.familyId === targetFam || stData.familyId === rawFam) {
+                                appState.role = 'eleve';
+                                localStorage.setItem('edupocket_role', 'eleve');
                                 appState.familyId = stData.familyId;
                                 appState.currentStudentId = stData.id;
                                 appState.data = {
@@ -932,6 +1044,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const uniqueCode = 'ELV-' + Math.random().toString(36).substring(2, 6).toUpperCase();
             const newStudent = {
                 id: 'std_' + Date.now(),
+                familyId: appState.familyId,
+                studentCode: uniqueCode,
                 codeEleve: uniqueCode,
                 nom,
                 prenom,
@@ -943,10 +1057,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     { nom: 'Mathématiques', prixSeance: 25, quotaPaiement: 4, professeurs: [], profCodes: [] }
                 ],
                 sessions: [],
-                paiements: []
+                paiements: [],
+                createdAt: Date.now()
             };
 
             ensureProfCodes(newStudent);
+
+            appState.role = 'eleve';
+            localStorage.setItem('edupocket_role', 'eleve');
 
             appState.data = {
                 familyId: appState.familyId,
@@ -1179,19 +1297,34 @@ ${profName}`;
         localStorage.setItem('edupocket_prof_code', appState.profCode);
         localStorage.setItem('edupocket_family_id', appState.familyId);
 
-        // Récupérer les données à jour
-        if (typeof db !== 'undefined' && db && st.studentCode) {
-            db.collection('edupocket_students').doc(st.studentCode).get().then(doc => {
+        if (activeProfStudentListenerUnsubscribe) {
+            activeProfStudentListenerUnsubscribe();
+            activeProfStudentListenerUnsubscribe = null;
+        }
+
+        const studentCode = st.studentCode || st.codeEleve;
+
+        // Écoute temps réel Firebase Firestore du document Élève pour le Professeur
+        if (typeof db !== 'undefined' && db && studentCode) {
+            btnSyncStatus.textContent = '🟢';
+            btnSyncStatus.title = 'Connecté en direct au dossier élève (' + studentCode + ')';
+
+            activeProfStudentListenerUnsubscribe = db.collection('edupocket_students').doc(studentCode).onSnapshot(doc => {
                 if (doc.exists) {
                     const stData = doc.data();
                     if (!appState.data) appState.data = getDefaultData();
-                    const existingIdx = (appState.data.students || []).findIndex(s => s.id === stData.id);
+                    const existingIdx = (appState.data.students || []).findIndex(s => 
+                        (s.id && stData.id && s.id === stData.id) || 
+                        (s.codeEleve && s.codeEleve === studentCode) || 
+                        (s.studentCode && s.studentCode === studentCode)
+                    );
                     if (existingIdx >= 0) {
                         appState.data.students[existingIdx] = stData;
                     } else {
                         appState.data.students = appState.data.students || [];
                         appState.data.students.push(stData);
                     }
+                    localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
                     loadDashboard(stData);
                     showView(viewDashboard);
                 } else {
@@ -1199,7 +1332,8 @@ ${profName}`;
                     loadDashboard(fallback);
                     showView(viewDashboard);
                 }
-            }).catch(() => {
+            }, err => {
+                console.warn("Écoute Firestore élève (Prof) :", err);
                 const fallback = getStudent(st.id) || st;
                 loadDashboard(fallback);
                 showView(viewDashboard);
@@ -1242,6 +1376,7 @@ ${profName}`;
             const newStudent = {
                 id: 'std_' + Date.now(),
                 familyId: uniqueFamilyCode,
+                studentCode: uniqueStudentCode,
                 codeEleve: uniqueStudentCode,
                 nom,
                 prenom,
@@ -1271,6 +1406,7 @@ ${profName}`;
                 db.collection('edupocket_families').doc(uniqueFamilyCode).set({
                     familyId: uniqueFamilyCode,
                     students: [newStudent],
+                    createdAt: Date.now(),
                     updatedAt: Date.now()
                 }).catch(err => console.warn(err));
             }
@@ -1624,6 +1760,10 @@ ${profName}`;
             }
         } else if (appState.role === 'professeur') {
             // Retour fluide au tableau de bord des élèves du professeur sur l'accueil
+            if (activeProfStudentListenerUnsubscribe) {
+                activeProfStudentListenerUnsubscribe();
+                activeProfStudentListenerUnsubscribe = null;
+            }
             appState.currentStudentId = null;
             showView(viewHome);
             updateRoleUI();
@@ -1662,7 +1802,7 @@ ${profName}`;
         } else if (appState.role === 'professeur') {
             if (btnBack) {
                 btnBack.style.display = 'inline-block';
-                btnBack.textContent = '← Déconnexion Professeur';
+                btnBack.textContent = '← Retour à mes élèves';
             }
             if (btnSub) btnSub.style.display = 'none';
             if (profBanner) {

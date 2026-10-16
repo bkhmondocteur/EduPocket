@@ -23,10 +23,13 @@ service cloud.firestore {
     // Fields:
     //   - id: string (optional, immutable) - Unique student ID
     //   - studentCode: string (optional, immutable) - Access code
+    //   - codeEleve: string (optional, immutable) - Access code alias (matches studentCode)
     //   - familyId: string (optional, max 64 chars) - Associated family code
     //   - nom: string (required, 1 to 100 chars) - Student last name
     //   - prenom: string (required, 1 to 100 chars) - Student first name
     //   - classe: string (optional, max 100 chars) - School grade/class
+    //   - telephone: string (optional, max 30 chars) - Student phone number
+    //   - telephoneParent: string (optional, max 30 chars) - Parent phone number
     //   - matieres: list of maps (optional, max 50 entries) - Subjects and rates
     //   - sessions: list of maps (optional, max 500 entries) - Tutoring sessions
     //   - paiements: list of maps (optional, max 500 entries) - Payment logs
@@ -96,8 +99,9 @@ service cloud.firestore {
     // Validate edupocket_students document structure
     function isValidStudentData(studentCode) {
       return hasOnlyAllowedFields([
-               'id', 'studentCode', 'familyId', 'nom', 'prenom',
-               'classe', 'matieres', 'sessions', 'paiements',
+               'id', 'studentCode', 'codeEleve', 'familyId', 'nom', 'prenom',
+               'classe', 'telephone', 'telephoneParent',
+               'matieres', 'sessions', 'paiements',
                'createdAt', 'updatedAt'
              ]) &&
              hasRequiredFields(['nom', 'prenom']) &&
@@ -109,12 +113,20 @@ service cloud.firestore {
              request.resource.data.prenom.size() <= 100 &&
              (!('classe' in request.resource.data) ||
                (request.resource.data.classe is string && request.resource.data.classe.size() <= 100)) &&
+             (!('telephone' in request.resource.data) ||
+               (request.resource.data.telephone is string && request.resource.data.telephone.size() <= 30)) &&
+             (!('telephoneParent' in request.resource.data) ||
+               (request.resource.data.telephoneParent is string && request.resource.data.telephoneParent.size() <= 30)) &&
              (!('id' in request.resource.data) ||
                (request.resource.data.id is string && request.resource.data.id.size() <= 64)) &&
              (!('studentCode' in request.resource.data) ||
                (request.resource.data.studentCode is string &&
                 request.resource.data.studentCode == studentCode &&
                 request.resource.data.studentCode.size() <= 64)) &&
+             (!('codeEleve' in request.resource.data) ||
+               (request.resource.data.codeEleve is string &&
+                request.resource.data.codeEleve == studentCode &&
+                request.resource.data.codeEleve.size() <= 64)) &&
              (!('familyId' in request.resource.data) ||
                (request.resource.data.familyId is string && request.resource.data.familyId.size() <= 64)) &&
              (!('matieres' in request.resource.data) ||
@@ -138,6 +150,9 @@ service cloud.firestore {
              (!('studentCode' in resource.data) ||
                !('studentCode' in request.resource.data) ||
                request.resource.data.studentCode == resource.data.studentCode) &&
+             (!('codeEleve' in resource.data) ||
+               !('codeEleve' in request.resource.data) ||
+               request.resource.data.codeEleve == resource.data.codeEleve) &&
              (!('createdAt' in resource.data) ||
                !('createdAt' in request.resource.data) ||
                request.resource.data.createdAt == resource.data.createdAt);
