@@ -410,6 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             appState.role = null;
             appState.currentStudentId = null;
+            currentDashboardStudentId = null;
             appState.profCode = '';
             appState.profName = '';
             appState.profMatiere = '';
@@ -440,6 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.removeItem('edupocket_student_id');
                 localStorage.removeItem('edupocket_family_id');
                 appState.currentStudentId = null;
+                currentDashboardStudentId = null;
                 appState.familyId = null;
                 appState.data = null;
                 if (activeFamilyListenerUnsubscribe) {
@@ -629,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return modified;
     }
 
-    function ensureStudentCodes() {
+    function ensureStudentCodes(autoSave = false) {
         if (!appState.data || !appState.data.students) return;
         let modified = false;
 
@@ -657,7 +659,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (modified) {
             localStorage.setItem('edupocket_family_data_' + appState.familyId, JSON.stringify(appState.data));
-            saveDataToCloud();
+            if (autoSave) {
+                saveDataToCloud();
+            }
         }
     }
 
@@ -755,7 +759,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const student = getStudent(appState.currentStudentId);
             if (student) {
                 loadDashboard(student);
-                showView(viewDashboard);
+                if (!viewDashboard.classList.contains('active')) {
+                    showView(viewDashboard);
+                }
                 return;
             }
         }
@@ -763,7 +769,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const student = getStudent(appState.currentStudentId);
             if (student) {
                 loadDashboard(student);
-                showView(viewDashboard);
+                if (!viewDashboard.classList.contains('active')) {
+                    showView(viewDashboard);
+                }
                 return;
             }
         }
@@ -1752,6 +1760,7 @@ ${profName}`;
 
     // Bouton Retour du Tableau de bord
     document.getElementById('btn-back').addEventListener('click', () => {
+        currentDashboardStudentId = null;
         if (appState.role === 'eleve') {
             if (confirm("Voulez-vous vous déconnecter de votre espace élève ?")) {
                 localStorage.removeItem('edupocket_student_id');
@@ -1782,6 +1791,8 @@ ${profName}`;
     });
 
     // --- TABLEAU DE BORD ÉLÈVE & SÉANCES ---
+    let currentDashboardStudentId = null;
+
     function loadDashboard(student) {
         document.getElementById('student-fullname').textContent = `${student.prenom} ${student.nom}`;
         document.getElementById('student-class').textContent = student.classe;
@@ -1819,15 +1830,33 @@ ${profName}`;
             if (profBanner) profBanner.style.display = 'none';
         }
 
-        populateMatieresSelect(student);
+        const isSameStudent = (currentDashboardStudentId === student.id);
+        currentDashboardStudentId = student.id;
+
+        // Si on change d'élève, réinitialiser le formulaire d'ajout
+        if (!isSameStudent) {
+            const addForm = document.getElementById('form-add-session');
+            if (addForm) addForm.reset();
+            populateMatieresSelect(student, false);
+        } else {
+            // Même élève (mise à jour en temps réel Firestore) : préserver absolument la matière et le professeur en cours de sélection !
+            populateMatieresSelect(student, true);
+        }
+
         checkAndDisplayPaymentAlerts(student);
         renderFilteredSessions();
     }
 
-    function populateMatieresSelect(student) {
+    function populateMatieresSelect(student, preserveSelection = true) {
         const selectSujet = document.getElementById('sujet-seance');
         const selectProf = document.getElementById('prof-seance');
         const filterMatiere = document.getElementById('filter-matiere');
+
+        if (!selectSujet || !selectProf || !filterMatiere) return;
+
+        const currentSujet = preserveSelection ? selectSujet.value : '';
+        const currentProf = preserveSelection ? selectProf.value : '';
+        const currentFilter = filterMatiere.value || 'Toutes';
 
         selectSujet.innerHTML = '<option value="">-- Choisir une matière --</option>';
         filterMatiere.innerHTML = '<option value="Toutes">Toutes les matières</option>';
@@ -1865,27 +1894,49 @@ ${profName}`;
             const opt = document.createElement('option');
             opt.value = m.nom;
             opt.textContent = `${m.nom} (${m.prixSeance || 20} DT/séance)`;
+            if (currentSujet && m.nom === currentSujet) {
+                opt.selected = true;
+            }
             selectSujet.appendChild(opt);
 
             const filterOpt = document.createElement('option');
             filterOpt.value = m.nom;
             filterOpt.textContent = m.nom;
+            if (currentFilter && m.nom === currentFilter) {
+                filterOpt.selected = true;
+            }
             filterMatiere.appendChild(filterOpt);
         });
 
-        selectSujet.onchange = () => {
-            const chosenName = selectSujet.value;
+        function updateProfSelect(selectedSubjectName, preferredProf) {
             selectProf.innerHTML = '<option value="Non spécifié">Non spécifié</option>';
-            const targetMatiere = matieres.find(m => m.nom === chosenName);
+            const targetMatiere = matieres.find(m => m.nom === selectedSubjectName);
             if (targetMatiere && targetMatiere.professeurs) {
                 targetMatiere.professeurs.forEach(prof => {
                     const profOpt = document.createElement('option');
                     profOpt.value = prof;
                     profOpt.textContent = prof;
+                    if (preferredProf && prof === preferredProf) {
+                        profOpt.selected = true;
+                    }
                     selectProf.appendChild(profOpt);
                 });
             }
+            if (preferredProf) {
+                selectProf.value = preferredProf;
+            }
+        }
+
+        selectSujet.onchange = () => {
+            updateProfSelect(selectSujet.value, null);
         };
+
+        if (currentSujet) {
+            selectSujet.value = currentSujet;
+            updateProfSelect(currentSujet, currentProf);
+        } else {
+            selectProf.innerHTML = '<option value="Non spécifié">Non spécifié</option>';
+        }
     }
 
     // --- GESTION DU CALCUL ET DES ALERTES DE PAIEMENT ---
