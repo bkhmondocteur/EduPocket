@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="EduPocket">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="styles.css?v=17">
+    <link rel="stylesheet" href="styles.css?v=22">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -302,87 +302,201 @@
                 <span id="student-class" class="class-badge"></span>
             </div>
 
-            <!-- Bannières d'alertes de paiement (dynamiques) -->
-            <div id="payment-alerts-container"></div>
+            <!-- Onglets de navigation dans le dossier élève -->
+            <div class="dash-tabs-bar">
+                <button type="button" class="btn-dash-tab active" data-tab="tab-seances">
+                    <span>📚</span> Séances
+                </button>
+                <button type="button" class="btn-dash-tab" data-tab="tab-emploi">
+                    <span>📅</span> Emploi du Temps
+                </button>
+                <button type="button" class="btn-dash-tab" data-tab="tab-examens">
+                    <span>📝</span> Examens
+                </button>
+            </div>
 
-            <!-- Formulaire d'ajout de séance -->
-            <div class="add-session-card">
-                <h3>Ajouter une séance de rattrapage</h3>
-                <form id="form-add-session">
-                    <div class="form-row">
-                        <div class="form-group form-col">
-                            <label for="date-seance">Date (JJ/MM/AAAA) :</label>
-                            <input type="text" id="date-seance" placeholder="JJ/MM/AAAA" required maxlength="10">
-                        </div>
-                        <div class="form-group form-col">
-                            <label for="heure-seance">Heure de début (Optionnel) :</label>
-                            <input type="text" id="heure-seance" placeholder="HH:MM (Ex: 17:30)" maxlength="5">
-                        </div>
-                    </div>
+            <!-- ONGLET 1 : SÉANCES -->
+            <div id="dash-panel-seances" class="dash-tab-panel active">
+                <!-- Bannières d'alertes de paiement (dynamiques) -->
+                <div id="payment-alerts-container"></div>
 
-                    <div class="form-row">
-                        <div class="form-group form-col">
-                            <label for="sujet-seance">Matière :</label>
-                            <select id="sujet-seance" required>
-                                <option value="">-- Choisir une matière --</option>
+                <!-- Formulaire d'ajout de séance -->
+                <div class="add-session-card">
+                    <h3>Ajouter une séance de cours ou de rattrapage</h3>
+                    <form id="form-add-session">
+                        <div class="form-row">
+                            <div class="form-group form-col">
+                                <label for="date-seance">Date (JJ/MM/AAAA) :</label>
+                                <input type="text" id="date-seance" placeholder="JJ/MM/AAAA" required maxlength="10">
+                            </div>
+                            <div class="form-group form-col">
+                                <label for="heure-seance">Heure de début (Optionnel) :</label>
+                                <input type="text" id="heure-seance" placeholder="HH:MM (Ex: 17:30)" maxlength="5">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group form-col">
+                                <label for="sujet-seance">Matière :</label>
+                                <select id="sujet-seance" required>
+                                    <option value="">-- Choisir une matière --</option>
+                                </select>
+                            </div>
+                            <div class="form-group form-col">
+                                <label for="prof-seance">Professeur :</label>
+                                <select id="prof-seance">
+                                    <option value="Non spécifié">Non spécifié</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="statut-seance">Statut de réalisation :</label>
+                            <select id="statut-seance">
+                                <option value="Planifiée">Planifiée</option>
+                                <option value="Effectuée">Effectuée</option>
+                                <option value="Annulée">Annulée</option>
                             </select>
                         </div>
-                        <div class="form-group form-col">
-                            <label for="prof-seance">Professeur :</label>
-                            <select id="prof-seance">
-                                <option value="Non spécifié">Non spécifié</option>
-                            </select>
-                        </div>
-                    </div>
+                        <button type="submit" class="btn-primary">Planifier la séance</button>
+                    </form>
+                </div>
 
-                    <div class="form-group">
-                        <label for="statut-seance">Statut de réalisation :</label>
-                        <select id="statut-seance">
+                <!-- Historique des séances -->
+                <div class="sessions-list-container">
+                    <h3>Historique des séances</h3>
+                    
+                    <div class="filters-container">
+                        <select id="filter-status">
+                            <option value="Tous">Tous les statuts</option>
                             <option value="Planifiée">Planifiée</option>
                             <option value="Effectuée">Effectuée</option>
                             <option value="Annulée">Annulée</option>
                         </select>
+
+                        <select id="filter-validation">
+                            <option value="Tous">Toutes validations</option>
+                            <option value="Confirmee">Confirmée</option>
+                            <option value="En attente">En attente</option>
+                            <option value="Modifiee">Modifiée par élève</option>
+                            <option value="Suppression">Demande suppression</option>
+                            <option value="Refusee">Refusée</option>
+                        </select>
+                        
+                        <select id="filter-matiere">
+                            <option value="Toutes">Toutes les matières</option>
+                        </select>
+                        
+                        <select id="sort-by">
+                            <option value="date-desc">Date (Récente d'abord)</option>
+                            <option value="date-asc">Date (Ancienne d'abord)</option>
+                            <option value="matiere-asc">Matière (A-Z)</option>
+                            <option value="matiere-desc">Matière (Z-A)</option>
+                        </select>
                     </div>
-                    <button type="submit" class="btn-primary">Planifier la séance</button>
-                </form>
+
+                    <ul id="sessions-list">
+                        <!-- Séances injectées ici -->
+                    </ul>
+                </div>
             </div>
 
-            <!-- Historique des séances -->
-            <div class="sessions-list-container">
-                <h3>Historique des séances</h3>
-                
-                <div class="filters-container">
-                    <select id="filter-status">
-                        <option value="Tous">Tous les statuts</option>
-                        <option value="Planifiée">Planifiée</option>
-                        <option value="Effectuée">Effectuée</option>
-                        <option value="Annulée">Annulée</option>
+            <!-- ONGLET 2 : EMPLOI DU TEMPS (JOURNALIER & HEBDOMADAIRE) -->
+            <div id="dash-panel-emploi" class="dash-tab-panel">
+                <div class="section-subbar">
+                    <h3>📅 Emploi du Temps</h3>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <div class="emploi-mode-toggle">
+                            <button type="button" class="btn-emploi-mode active" id="btn-mode-journalier">📆 Journalier</button>
+                            <button type="button" class="btn-emploi-mode" id="btn-mode-hebdomadaire">🗓️ Hebdomadaire</button>
+                        </div>
+                        <button type="button" id="btn-open-add-course" class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.85rem;">
+                            + Ajouter un cours
+                        </button>
+                    </div>
+                </div>
+
+                <!-- VUE JOURNALIÈRE -->
+                <div id="container-emploi-journalier">
+                    <div class="days-chips-scroll" id="emploi-days-chips">
+                        <button type="button" class="day-chip active" data-day="Lundi">
+                            <span class="day-short">LUN</span>
+                            <span class="day-number">Lundi</span>
+                        </button>
+                        <button type="button" class="day-chip" data-day="Mardi">
+                            <span class="day-short">MAR</span>
+                            <span class="day-number">Mardi</span>
+                        </button>
+                        <button type="button" class="day-chip" data-day="Mercredi">
+                            <span class="day-short">MER</span>
+                            <span class="day-number">Mercredi</span>
+                        </button>
+                        <button type="button" class="day-chip" data-day="Jeudi">
+                            <span class="day-short">JEU</span>
+                            <span class="day-number">Jeudi</span>
+                        </button>
+                        <button type="button" class="day-chip" data-day="Vendredi">
+                            <span class="day-short">VEN</span>
+                            <span class="day-number">Vendredi</span>
+                        </button>
+                        <button type="button" class="day-chip" data-day="Samedi">
+                            <span class="day-short">SAM</span>
+                            <span class="day-number">Samedi</span>
+                        </button>
+                        <button type="button" class="day-chip" data-day="Dimanche">
+                            <span class="day-short">DIM</span>
+                            <span class="day-number">Dimanche</span>
+                        </button>
+                    </div>
+
+                    <div id="emploi-journalier-list">
+                        <!-- Cours du jour injectés ici -->
+                    </div>
+                </div>
+
+                <!-- VUE HEBDOMADAIRE -->
+                <div id="container-emploi-hebdomadaire" style="display: none;">
+                    <div id="emploi-hebdo-grid">
+                        <!-- Groupes par jour injectés ici -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ONGLET 3 : DATES DES EXAMENS (CONTRÔLE & SYNTHÈSE) -->
+            <div id="dash-panel-examens" class="dash-tab-panel">
+                <div class="section-subbar">
+                    <h3>📝 Dates des Examens</h3>
+                    <button type="button" id="btn-open-add-exam" class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.85rem;">
+                        + Ajouter un examen
+                    </button>
+                </div>
+
+                <!-- Filtres examens -->
+                <div class="filters-container" style="margin-bottom: 14px;">
+                    <select id="filter-exam-type">
+                        <option value="Tous">Tous les types d'examens</option>
+                        <option value="Contrôle">Devoirs de Contrôle (DC)</option>
+                        <option value="Synthèse">Devoirs de Synthèse (DS)</option>
+                        <option value="Test">Tests & Travaux Pratiques</option>
                     </select>
 
-                    <select id="filter-validation">
-                        <option value="Tous">Toutes validations</option>
-                        <option value="Confirmee">Confirmée</option>
-                        <option value="En attente">En attente</option>
-                        <option value="Modifiee">Modifiée par élève</option>
-                        <option value="Suppression">Demande suppression</option>
-                        <option value="Refusee">Refusée</option>
+                    <select id="filter-exam-trimestre">
+                        <option value="Tous">Tous les trimestres</option>
+                        <option value="Trimestre 1">Trimestre 1</option>
+                        <option value="Trimestre 2">Trimestre 2</option>
+                        <option value="Trimestre 3">Trimestre 3</option>
                     </select>
-                    
-                    <select id="filter-matiere">
-                        <option value="Toutes">Toutes les matières</option>
-                    </select>
-                    
-                    <select id="sort-by">
-                        <option value="date-desc">Date (Récente d'abord)</option>
-                        <option value="date-asc">Date (Ancienne d'abord)</option>
-                        <option value="matiere-asc">Matière (A-Z)</option>
-                        <option value="matiere-desc">Matière (Z-A)</option>
+
+                    <select id="filter-exam-timing">
+                        <option value="Tous">Tous (À venir et passés)</option>
+                        <option value="A_venir">Examens à venir</option>
+                        <option value="Passes">Examens passés</option>
                     </select>
                 </div>
 
-                <ul id="sessions-list">
-                    <!-- Séances injectées ici -->
-                </ul>
+                <div id="examens-list">
+                    <!-- Cartes d'examens injectées ici -->
+                </div>
             </div>
         </section>
     </main>
@@ -708,15 +822,145 @@
         </div>
     </div>
 
+    <!-- MODAL CRÉNEAU DE COURS (EMPLOI DU TEMPS) -->
+    <div id="modal-course" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="modal-course-title">📅 Ajouter un cours à l'emploi du temps</h2>
+                <button type="button" id="btn-close-course-modal" class="btn-close">&times;</button>
+            </div>
+            <form id="form-course">
+                <input type="hidden" id="course-id">
+                <div class="form-group">
+                    <label for="course-jour">Jour de la semaine :</label>
+                    <select id="course-jour" required>
+                        <option value="Lundi">Lundi</option>
+                        <option value="Mardi">Mardi</option>
+                        <option value="Mercredi">Mercredi</option>
+                        <option value="Jeudi">Jeudi</option>
+                        <option value="Vendredi">Vendredi</option>
+                        <option value="Samedi">Samedi</option>
+                        <option value="Dimanche">Dimanche</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group form-col">
+                        <label for="course-heure-debut">Heure de début :</label>
+                        <input type="text" id="course-heure-debut" placeholder="HH:MM (Ex: 08:00)" required maxlength="5">
+                    </div>
+                    <div class="form-group form-col">
+                        <label for="course-heure-fin">Heure de fin :</label>
+                        <input type="text" id="course-heure-fin" placeholder="HH:MM (Ex: 10:00)" required maxlength="5">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="course-matiere">Matière :</label>
+                    <input type="text" id="course-matiere" list="datalist-course-matieres" required placeholder="Ex: Mathématiques, Physique, Français...">
+                    <datalist id="datalist-course-matieres"></datalist>
+                </div>
+                <div class="form-row">
+                    <div class="form-group form-col">
+                        <label for="course-prof">Enseignant (Optionnel) :</label>
+                        <input type="text" id="course-prof" placeholder="Ex: M. Dubois">
+                    </div>
+                    <div class="form-group form-col">
+                        <label for="course-salle">Salle (Optionnel) :</label>
+                        <input type="text" id="course-salle" placeholder="Ex: Salle 14, Labo 2">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 18px;">
+                    <button type="button" id="btn-cancel-course" class="btn-secondary" style="flex: 1;">Annuler</button>
+                    <button type="submit" class="btn-primary" style="flex: 2;">Enregistrer le cours</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EXAMEN (CONTRÔLE & SYNTHÈSE) -->
+    <div id="modal-exam" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="modal-exam-title">📝 Programmer un examen</h2>
+                <button type="button" id="btn-close-exam-modal" class="btn-close">&times;</button>
+            </div>
+            <form id="form-exam">
+                <input type="hidden" id="exam-id">
+                <div class="form-row">
+                    <div class="form-group form-col">
+                        <label for="exam-type">Type d'examen :</label>
+                        <select id="exam-type" required>
+                            <option value="Contrôle">Devoir de Contrôle (DC)</option>
+                            <option value="Synthèse">Devoir de Synthèse (DS)</option>
+                            <option value="Test">Test / TP / Interrogation</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-col">
+                        <label for="exam-intitule">Intitulé / Numéro :</label>
+                        <input type="text" id="exam-intitule" placeholder="Ex: DC 1, DS 1, Test 2" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="exam-matiere">Matière :</label>
+                    <input type="text" id="exam-matiere" list="datalist-exam-matieres" required placeholder="Ex: Mathématiques, SVT, Arabe...">
+                    <datalist id="datalist-exam-matieres"></datalist>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-col">
+                        <label for="exam-date">Date de l'examen (JJ/MM/AAAA) :</label>
+                        <input type="text" id="exam-date" placeholder="JJ/MM/AAAA" required maxlength="10">
+                    </div>
+                    <div class="form-group form-col">
+                        <label for="exam-heure">Horaire (Optionnel) :</label>
+                        <input type="text" id="exam-heure" placeholder="Ex: 08:30 - 10:30" maxlength="15">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-col">
+                        <label for="exam-trimestre">Période :</label>
+                        <select id="exam-trimestre">
+                            <option value="Trimestre 1">Trimestre 1</option>
+                            <option value="Trimestre 2">Trimestre 2</option>
+                            <option value="Trimestre 3">Trimestre 3</option>
+                            <option value="Semestre 1">Semestre 1</option>
+                            <option value="Semestre 2">Semestre 2</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-col">
+                        <label for="exam-coef">Coefficient (Optionnel) :</label>
+                        <input type="number" id="exam-coef" min="0.5" max="10" step="0.5" placeholder="Ex: 2">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="exam-note">Note obtenue /20 (Optionnel, modifiable plus tard) :</label>
+                    <input type="number" id="exam-note" min="0" max="20" step="0.25" placeholder="Ex: 16.5">
+                </div>
+
+                <div class="form-group">
+                    <label for="exam-remarques">Chapitres au programme / Consignes (Optionnel) :</label>
+                    <textarea id="exam-remarques" rows="2" placeholder="Ex: Chapitres 1 à 3, géométrie dans l'espace, calcul intégral..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 18px;">
+                    <button type="button" id="btn-cancel-exam" class="btn-secondary" style="flex: 1;">Annuler</button>
+                    <button type="submit" class="btn-primary" style="flex: 2;">Enregistrer l'examen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts de l'application -->
-    <script src="license-manager.js?v=21"></script>
-    <script src="firebase-config.js?v=21"></script>
-    <script src="app.js?v=21"></script>
+    <script src="license-manager.js?v=22"></script>
+    <script src="firebase-config.js?v=22"></script>
+    <script src="app.js?v=22"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=21').then(reg => {
-                    console.log('Service Worker v21 enregistré', reg);
+                navigator.serviceWorker.register('sw.js?v=22').then(reg => {
+                    console.log('Service Worker v22 enregistré', reg);
                     reg.update();
                 }).catch(err => {
                     console.log('Échec de l\'enregistrement du Service Worker', err);

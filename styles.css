@@ -1042,5 +1042,428 @@ body.role-eleve .dashboard-header-bar {
     font-family: monospace;
 }
 
+/* ==========================================================================
+   RUBRIQUES DU DOSSIER ÉLÈVE : ONGLETS, EMPLOI DU TEMPS & EXAMENS
+   ========================================================================== */
 
+/* Barre de navigation par onglets du tableau de bord */
+.dash-tabs-bar {
+    display: flex;
+    gap: 6px;
+    background: #E2E8F0;
+    padding: 5px;
+    border-radius: 12px;
+    margin: 16px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
 
+.btn-dash-tab {
+    flex: 1;
+    min-width: 110px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: #475569;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-dash-tab:hover {
+    color: var(--sidi-blue-dark);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.btn-dash-tab.active {
+    background: #FFFFFF;
+    color: var(--sidi-blue);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    font-weight: 700;
+}
+
+.dash-tab-panel {
+    display: none;
+    animation: fadeInTab 0.22s ease-in-out;
+}
+
+.dash-tab-panel.active {
+    display: block;
+}
+
+@keyframes fadeInTab {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* En-tête des rubriques (Emploi du temps & Examens) */
+.section-subbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.section-subbar h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: var(--sidi-blue-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Commutateur Journalier / Hebdomadaire */
+.emploi-mode-toggle {
+    display: inline-flex;
+    background: #F1F5F9;
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid #CBD5E1;
+}
+
+.btn-emploi-mode {
+    border: none;
+    background: transparent;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748B;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-emploi-mode.active {
+    background: #FFFFFF;
+    color: var(--sidi-blue);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-weight: 700;
+}
+
+/* Sélecteur de jour (Chips) pour la vue journalière */
+.days-chips-scroll {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.day-chip {
+    flex: 1;
+    min-width: 60px;
+    text-align: center;
+    padding: 8px 6px;
+    border-radius: 10px;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    color: #475569;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.day-chip:hover {
+    border-color: var(--sidi-blue);
+    color: var(--sidi-blue);
+}
+
+.day-chip.active {
+    background: var(--sidi-blue);
+    color: #FFFFFF;
+    border-color: var(--sidi-blue);
+    box-shadow: 0 2px 6px rgba(0, 90, 156, 0.25);
+}
+
+.day-chip .day-short {
+    font-size: 0.75rem;
+    opacity: 0.85;
+    display: block;
+}
+
+.day-chip .day-number {
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+/* Cartes de créneaux de cours (Emploi du temps) */
+.course-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    transition: all 0.2s;
+}
+
+.course-card:hover {
+    border-color: #CBD5E1;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+}
+
+.course-time-badge {
+    background: var(--sidi-blue-light);
+    color: var(--sidi-blue);
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.course-subject-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--sidi-blue-dark);
+    margin: 0 0 4px 0;
+}
+
+.course-details-text {
+    font-size: 0.82rem;
+    color: #64748B;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Grille hebdomadaire */
+.weekly-day-group {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+
+.weekly-day-header {
+    background: #F8FAFC;
+    padding: 10px 14px;
+    border-bottom: 1px solid #E2E8F0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.weekly-day-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--sidi-blue-dark);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.weekly-day-slots {
+    padding: 10px 14px;
+}
+
+.weekly-empty-day {
+    color: #94A3B8;
+    font-size: 0.85rem;
+    font-style: italic;
+    padding: 8px 0;
+}
+
+/* Cartes d'examens */
+.exam-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-left: 5px solid var(--sidi-blue);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.exam-card:hover {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.07);
+}
+
+.exam-card.type-controle {
+    border-left-color: #2563EB; /* Bleu vif pour DC */
+}
+
+.exam-card.type-synthese {
+    border-left-color: #7C3AED; /* Violet pour DS */
+}
+
+.exam-card.type-test {
+    border-left-color: #059669; /* Émeraude pour tests */
+}
+
+.exam-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.exam-type-badge {
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-dc {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.badge-ds {
+    background: #EDE9FE;
+    color: #5B21B6;
+}
+
+.badge-test {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.exam-countdown-badge {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.countdown-urgent {
+    background: #FEE2E2;
+    color: #991B1B;
+    animation: pulseBadge 1.8s infinite;
+}
+
+.countdown-soon {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.countdown-future {
+    background: #E0E7FF;
+    color: #3730A3;
+}
+
+.countdown-passed {
+    background: #F1F5F9;
+    color: #64748B;
+}
+
+@keyframes pulseBadge {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.75; }
+}
+
+.exam-subject-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--sidi-blue-dark);
+    margin: 0 0 6px 0;
+}
+
+.exam-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+.exam-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.exam-grade-box {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #F8FAFC;
+    border: 1px dashed #CBD5E1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.exam-grade-val {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #0F172A;
+}
+
+.exam-grade-val.good {
+    color: #059669;
+}
+
+.exam-grade-val.average {
+    color: #D97706;
+}
+
+.exam-grade-val.low {
+    color: #DC2626;
+}
+
+.exam-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.btn-card-action {
+    background: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    color: #475569;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+}
+
+.btn-card-action:hover {
+    background: #E2E8F0;
+    color: #1E293B;
+}
+
+.btn-card-action.danger:hover {
+    background: #FEE2E2;
+    color: #B91C1C;
+    border-color: #FCA5A5;
+}

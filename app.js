@@ -530,6 +530,30 @@ document.addEventListener('DOMContentLoaded', () => {
             timestamp: Number(p && p.timestamp) || Date.now()
         })) : [];
 
+        const emploiDuTemps = Array.isArray(student.emploiDuTemps) ? student.emploiDuTemps.map(c => ({
+            id: (c && c.id) ? String(c.id) : ('crs_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6)),
+            jour: (c && c.jour) ? String(c.jour).trim() : 'Lundi',
+            heureDebut: (c && c.heureDebut) ? String(c.heureDebut).trim() : '08:00',
+            heureFin: (c && c.heureFin) ? String(c.heureFin).trim() : '10:00',
+            matiere: (c && c.matiere) ? String(c.matiere).trim() : '',
+            prof: (c && c.prof) ? String(c.prof).trim() : '',
+            salle: (c && c.salle) ? String(c.salle).trim() : ''
+        })) : [];
+
+        const examens = Array.isArray(student.examens) ? student.examens.map(ex => ({
+            id: (ex && ex.id) ? String(ex.id) : ('exm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6)),
+            type: (ex && ex.type) ? String(ex.type).trim() : 'Contrôle',
+            intitule: (ex && ex.intitule) ? String(ex.intitule).trim() : 'DC 1',
+            matiere: (ex && ex.matiere) ? String(ex.matiere).trim() : '',
+            date: (ex && ex.date) ? String(ex.date).trim() : '',
+            heure: (ex && ex.heure) ? String(ex.heure).trim() : '',
+            trimestre: (ex && ex.trimestre) ? String(ex.trimestre).trim() : 'Trimestre 1',
+            coef: (ex && ex.coef !== null && ex.coef !== undefined && ex.coef !== '') ? Number(ex.coef) : null,
+            note: (ex && ex.note !== null && ex.note !== undefined && ex.note !== '') ? Number(ex.note) : null,
+            remarques: (ex && ex.remarques) ? String(ex.remarques).trim() : '',
+            timestamp: Number(ex && ex.timestamp) || Date.now()
+        })) : [];
+
         const cleanObj = {
             id: id,
             studentCode: code,
@@ -543,6 +567,8 @@ document.addEventListener('DOMContentLoaded', () => {
             matieres: matieres,
             sessions: sessions,
             paiements: paiements,
+            emploiDuTemps: emploiDuTemps,
+            examens: examens,
             updatedAt: Number(student.updatedAt) || Date.now()
         };
 
@@ -752,6 +778,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         appState.data.students.forEach(s => {
+            if (!Array.isArray(s.emploiDuTemps)) s.emploiDuTemps = [];
+            if (!Array.isArray(s.examens)) s.examens = [];
             if (!s.codeEleve && s.studentCode) {
                 s.codeEleve = s.studentCode;
                 modified = true;
@@ -1041,6 +1069,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 ],
                 sessions: [],
                 paiements: [],
+                emploiDuTemps: [],
+                examens: [],
                 createdAt: Date.now()
             };
 
@@ -1960,6 +1990,7 @@ ${profName}`;
 
     // --- TABLEAU DE BORD ÉLÈVE & SÉANCES ---
     let currentDashboardStudentId = null;
+    let currentDashboardActiveTab = 'tab-seances';
 
     function loadDashboard(student) {
         document.getElementById('student-fullname').textContent = `${student.prenom} ${student.nom}`;
@@ -2043,8 +2074,11 @@ ${profName}`;
             populateMatieresSelect(student, true);
         }
 
+        switchDashboardTab(currentDashboardActiveTab);
         checkAndDisplayPaymentAlerts(student);
         renderFilteredSessions();
+        renderEmploiDuTemps(student);
+        renderExamens(student);
     }
 
     function populateMatieresSelect(student, preserveSelection = true) {
@@ -3629,6 +3663,797 @@ ${profName}`;
                 }
             };
             reader.readAsText(file);
+        });
+    }
+
+    // --- UTILITAIRES POUR L'EMPLOI DU TEMPS ET LES EXAMENS ---
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function parseDateJJMMYYYY(str) {
+        if (!str || typeof str !== 'string') return null;
+        const parts = str.trim().split('/');
+        if (parts.length !== 3) return null;
+        const d = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const y = parseInt(parts[2], 10);
+        if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+        const dt = new Date(y, m, d);
+        dt.setHours(0, 0, 0, 0);
+        return dt;
+    }
+
+    function getTodayDayName() {
+        const dayIndex = new Date().getDay();
+        const mapping = {
+            0: 'Dimanche',
+            1: 'Lundi',
+            2: 'Mardi',
+            3: 'Mercredi',
+            4: 'Jeudi',
+            5: 'Vendredi',
+            6: 'Samedi'
+        };
+        return mapping[dayIndex] || 'Lundi';
+    }
+
+    const DAYS_OF_WEEK = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    let currentEmploiSelectedDay = getTodayDayName();
+    let currentEmploiMode = 'journalier';
+
+    // --- GESTION DES ONGLETS DU DOSSIER ÉLÈVE (SÉANCES, EMPLOI DU TEMPS, EXAMENS) ---
+    function switchDashboardTab(tabId) {
+        currentDashboardActiveTab = tabId || 'tab-seances';
+        document.querySelectorAll('.dash-tabs-bar .btn-dash-tab').forEach(btn => {
+            if (btn.getAttribute('data-tab') === currentDashboardActiveTab) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        const panels = {
+            'tab-seances': document.getElementById('dash-panel-seances'),
+            'tab-emploi': document.getElementById('dash-panel-emploi'),
+            'tab-examens': document.getElementById('dash-panel-examens')
+        };
+
+        Object.keys(panels).forEach(key => {
+            const panel = panels[key];
+            if (panel) {
+                if (key === currentDashboardActiveTab) {
+                    panel.classList.add('active');
+                } else {
+                    panel.classList.remove('active');
+                }
+            }
+        });
+    }
+
+    document.querySelectorAll('.dash-tabs-bar .btn-dash-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-tab');
+            switchDashboardTab(tab);
+        });
+    });
+
+    // --- EMPLOI DU TEMPS (JOURNALIER ET HEBDOMADAIRE) ---
+    const modalCourse = document.getElementById('modal-course');
+    const formCourse = document.getElementById('form-course');
+    const btnCloseCourseModal = document.getElementById('btn-close-course-modal');
+    const btnCancelCourse = document.getElementById('btn-cancel-course');
+    const btnOpenAddCourse = document.getElementById('btn-open-add-course');
+    const btnModeJournalier = document.getElementById('btn-mode-journalier');
+    const btnModeHebdo = document.getElementById('btn-mode-hebdomadaire');
+    const containerJournalier = document.getElementById('container-emploi-journalier');
+    const containerHebdo = document.getElementById('container-emploi-hebdomadaire');
+
+    const courseStartInput = document.getElementById('course-heure-debut');
+    const courseEndInput = document.getElementById('course-heure-fin');
+    if (courseStartInput) applyTimeMask(courseStartInput);
+    if (courseEndInput) applyTimeMask(courseEndInput);
+
+    if (btnModeJournalier && btnModeHebdo) {
+        btnModeJournalier.addEventListener('click', () => {
+            currentEmploiMode = 'journalier';
+            btnModeJournalier.classList.add('active');
+            btnModeHebdo.classList.remove('active');
+            if (containerJournalier) containerJournalier.style.display = 'block';
+            if (containerHebdo) containerHebdo.style.display = 'none';
+        });
+
+        btnModeHebdo.addEventListener('click', () => {
+            currentEmploiMode = 'hebdo';
+            btnModeHebdo.classList.add('active');
+            btnModeJournalier.classList.remove('active');
+            if (containerJournalier) containerJournalier.style.display = 'none';
+            if (containerHebdo) containerHebdo.style.display = 'block';
+        });
+    }
+
+    // Sélecteur de jours (chips) pour la vue journalière
+    document.querySelectorAll('#emploi-days-chips .day-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const day = chip.getAttribute('data-day');
+            if (day) {
+                currentEmploiSelectedDay = day;
+                const student = getStudent(appState.currentStudentId);
+                if (student) renderEmploiDuTemps(student);
+            }
+        });
+    });
+
+    function openCourseModal(course = null, defaultDay = null) {
+        if (!modalCourse) return;
+        const student = getStudent(appState.currentStudentId);
+        const titleEl = document.getElementById('modal-course-title');
+        const idInput = document.getElementById('course-id');
+        const jourSelect = document.getElementById('course-jour');
+        const startInput = document.getElementById('course-heure-debut');
+        const endInput = document.getElementById('course-heure-fin');
+        const matiereInput = document.getElementById('course-matiere');
+        const profInput = document.getElementById('course-prof');
+        const salleInput = document.getElementById('course-salle');
+        const datalist = document.getElementById('datalist-course-matieres');
+
+        // Pré-remplissage du datalist des matières de l'élève
+        if (datalist && student && Array.isArray(student.matieres)) {
+            datalist.innerHTML = student.matieres.map(m => `<option value="${escapeHtml(m.nom)}"></option>`).join('');
+        }
+
+        if (course) {
+            if (titleEl) titleEl.textContent = '✏️ Modifier le cours';
+            if (idInput) idInput.value = course.id;
+            if (jourSelect) jourSelect.value = course.jour || 'Lundi';
+            if (startInput) startInput.value = course.heureDebut || '';
+            if (endInput) endInput.value = course.heureFin || '';
+            if (matiereInput) matiereInput.value = course.matiere || '';
+            if (profInput) profInput.value = course.prof || '';
+            if (salleInput) salleInput.value = course.salle || '';
+        } else {
+            if (titleEl) titleEl.textContent = "📅 Ajouter un cours à l'emploi du temps";
+            if (idInput) idInput.value = '';
+            if (jourSelect) jourSelect.value = defaultDay || currentEmploiSelectedDay || 'Lundi';
+            if (startInput) startInput.value = '08:00';
+            if (endInput) endInput.value = '10:00';
+            if (matiereInput) matiereInput.value = '';
+            if (profInput) profInput.value = '';
+            if (salleInput) salleInput.value = '';
+        }
+
+        modalCourse.style.display = 'flex';
+    }
+
+    function closeCourseModal() {
+        if (modalCourse) modalCourse.style.display = 'none';
+    }
+
+    if (btnOpenAddCourse) {
+        btnOpenAddCourse.addEventListener('click', () => openCourseModal(null, currentEmploiSelectedDay));
+    }
+    if (btnCloseCourseModal) btnCloseCourseModal.addEventListener('click', closeCourseModal);
+    if (btnCancelCourse) btnCancelCourse.addEventListener('click', closeCourseModal);
+
+    if (modalCourse) {
+        modalCourse.addEventListener('click', (e) => {
+            if (e.target === modalCourse) closeCourseModal();
+        });
+    }
+
+    if (formCourse) {
+        formCourse.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const student = getStudent(appState.currentStudentId);
+            if (!student) return;
+
+            const courseId = document.getElementById('course-id').value.trim();
+            const jour = document.getElementById('course-jour').value.trim();
+            const heureDebut = document.getElementById('course-heure-debut').value.trim();
+            const heureFin = document.getElementById('course-heure-fin').value.trim();
+            const matiere = document.getElementById('course-matiere').value.trim();
+            const prof = document.getElementById('course-prof').value.trim();
+            const salle = document.getElementById('course-salle').value.trim();
+
+            if (!jour || !heureDebut || !heureFin || !matiere) {
+                alert('Veuillez renseigner le jour, les heures de début/fin et la matière.');
+                return;
+            }
+
+            if (!student.emploiDuTemps) student.emploiDuTemps = [];
+
+            if (courseId) {
+                const idx = student.emploiDuTemps.findIndex(c => c.id === courseId);
+                if (idx >= 0) {
+                    student.emploiDuTemps[idx] = {
+                        ...student.emploiDuTemps[idx],
+                        jour,
+                        heureDebut,
+                        heureFin,
+                        matiere,
+                        prof,
+                        salle
+                    };
+                }
+            } else {
+                student.emploiDuTemps.push({
+                    id: 'crs_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                    jour,
+                    heureDebut,
+                    heureFin,
+                    matiere,
+                    prof,
+                    salle
+                });
+            }
+
+            saveData();
+            closeCourseModal();
+            renderEmploiDuTemps(student);
+        });
+    }
+
+    function renderEmploiDuTemps(student) {
+        if (!student) return;
+        const allCourses = Array.isArray(student.emploiDuTemps) ? student.emploiDuTemps : [];
+
+        // 1. Mettre à jour les chips des jours
+        document.querySelectorAll('#emploi-days-chips .day-chip').forEach(chip => {
+            if (chip.getAttribute('data-day') === currentEmploiSelectedDay) {
+                chip.classList.add('active');
+            } else {
+                chip.classList.remove('active');
+            }
+        });
+
+        // 2. Vue journalière
+        const listJournalier = document.getElementById('emploi-journalier-list');
+        if (listJournalier) {
+            const dayCourses = allCourses.filter(c => c.jour === currentEmploiSelectedDay);
+            dayCourses.sort((a, b) => (a.heureDebut || '00:00').localeCompare(b.heureDebut || '00:00'));
+
+            if (dayCourses.length === 0) {
+                listJournalier.innerHTML = `
+                    <div style="text-align: center; padding: 32px 16px; background: #FFFFFF; border-radius: 12px; border: 1.5px dashed #CBD5E1; margin-top: 8px;">
+                        <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">🛋️</span>
+                        <p style="color: #64748B; font-size: 0.95rem; margin-bottom: 12px;">Aucun cours programmé le <strong>${escapeHtml(currentEmploiSelectedDay)}</strong>.</p>
+                        <button type="button" class="btn-primary btn-add-day-slot" data-day="${escapeHtml(currentEmploiSelectedDay)}" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
+                            + Ajouter un cours le ${escapeHtml(currentEmploiSelectedDay)}
+                        </button>
+                    </div>
+                `;
+                const btnAdd = listJournalier.querySelector('.btn-add-day-slot');
+                if (btnAdd) {
+                    btnAdd.addEventListener('click', () => openCourseModal(null, currentEmploiSelectedDay));
+                }
+            } else {
+                listJournalier.innerHTML = dayCourses.map(course => `
+                    <div class="course-card" data-course-id="${escapeHtml(course.id)}">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                                <span class="course-time-badge">🕒 ${escapeHtml(course.heureDebut)} - ${escapeHtml(course.heureFin)}</span>
+                                ${course.salle ? `<span style="font-size: 0.78rem; background: #F1F5F9; color: #475569; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📍 ${escapeHtml(course.salle)}</span>` : ''}
+                            </div>
+                            <h4 class="course-subject-title">${escapeHtml(course.matiere)}</h4>
+                            ${course.prof ? `<div class="course-details-text"><span>👨‍🏫 ${escapeHtml(course.prof)}</span></div>` : ''}
+                        </div>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <button type="button" class="btn-card-action btn-edit-course" data-id="${escapeHtml(course.id)}" title="Modifier">
+                                ✏️
+                            </button>
+                            <button type="button" class="btn-card-action danger btn-delete-course" data-id="${escapeHtml(course.id)}" title="Supprimer">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                listJournalier.querySelectorAll('.btn-edit-course').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const cid = btn.getAttribute('data-id');
+                        const crs = allCourses.find(c => c.id === cid);
+                        if (crs) openCourseModal(crs);
+                    });
+                });
+
+                listJournalier.querySelectorAll('.btn-delete-course').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const cid = btn.getAttribute('data-id');
+                        if (confirm("Supprimer ce créneau de cours de l'emploi du temps ?")) {
+                            student.emploiDuTemps = (student.emploiDuTemps || []).filter(c => c.id !== cid);
+                            saveData();
+                            renderEmploiDuTemps(student);
+                        }
+                    });
+                });
+            }
+        }
+
+        // 3. Vue hebdomadaire
+        const gridHebdo = document.getElementById('emploi-hebdo-grid');
+        if (gridHebdo) {
+            gridHebdo.innerHTML = DAYS_OF_WEEK.map(day => {
+                const dayCourses = allCourses.filter(c => c.jour === day);
+                dayCourses.sort((a, b) => (a.heureDebut || '00:00').localeCompare(b.heureDebut || '00:00'));
+
+                return `
+                    <div class="weekly-day-group">
+                        <div class="weekly-day-header">
+                            <span class="weekly-day-title">
+                                <span>📅</span> ${day}
+                                <span style="font-size: 0.8rem; font-weight: 600; color: #64748B; background: #E2E8F0; padding: 2px 7px; border-radius: 10px;">
+                                    ${dayCourses.length} cours
+                                </span>
+                            </span>
+                            <button type="button" class="btn-card-action btn-hebdo-add" data-day="${day}" style="font-size: 0.78rem;">
+                                + Ajouter
+                            </button>
+                        </div>
+                        <div class="weekly-day-slots">
+                            ${dayCourses.length === 0 ? `
+                                <div class="weekly-empty-day">Aucun cours programmé ce jour.</div>
+                            ` : dayCourses.map(course => `
+                                <div class="course-card" style="margin-bottom: 8px; padding: 10px 12px;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap;">
+                                            <span class="course-time-badge" style="font-size: 0.8rem; padding: 4px 8px;">🕒 ${escapeHtml(course.heureDebut)} - ${escapeHtml(course.heureFin)}</span>
+                                            ${course.salle ? `<span style="font-size: 0.75rem; background: #F1F5F9; color: #475569; padding: 2px 6px; border-radius: 4px;">📍 ${escapeHtml(course.salle)}</span>` : ''}
+                                        </div>
+                                        <div style="font-weight: 700; color: var(--sidi-blue-dark); font-size: 0.95rem;">${escapeHtml(course.matiere)}</div>
+                                        ${course.prof ? `<div style="font-size: 0.8rem; color: #64748B;">👨‍🏫 ${escapeHtml(course.prof)}</div>` : ''}
+                                    </div>
+                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                        <button type="button" class="btn-card-action btn-edit-course" data-id="${escapeHtml(course.id)}" title="Modifier">
+                                            ✏️
+                                        </button>
+                                        <button type="button" class="btn-card-action danger btn-delete-course" data-id="${escapeHtml(course.id)}" title="Supprimer">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            gridHebdo.querySelectorAll('.btn-hebdo-add').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const day = btn.getAttribute('data-day');
+                    openCourseModal(null, day);
+                });
+            });
+
+            gridHebdo.querySelectorAll('.btn-edit-course').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cid = btn.getAttribute('data-id');
+                    const crs = allCourses.find(c => c.id === cid);
+                    if (crs) openCourseModal(crs);
+                });
+            });
+
+            gridHebdo.querySelectorAll('.btn-delete-course').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cid = btn.getAttribute('data-id');
+                    if (confirm("Supprimer ce créneau de cours de l'emploi du temps ?")) {
+                        student.emploiDuTemps = (student.emploiDuTemps || []).filter(c => c.id !== cid);
+                        saveData();
+                        renderEmploiDuTemps(student);
+                    }
+                });
+            });
+        }
+    }
+
+    // --- DATES DES EXAMENS (CONTRÔLE & SYNTHÈSE) ---
+    const modalExam = document.getElementById('modal-exam');
+    const formExam = document.getElementById('form-exam');
+    const btnCloseExamModal = document.getElementById('btn-close-exam-modal');
+    const btnCancelExam = document.getElementById('btn-cancel-exam');
+    const btnOpenAddExam = document.getElementById('btn-open-add-exam');
+    const examDateInput = document.getElementById('exam-date');
+    if (examDateInput) applyDateMask(examDateInput);
+
+    const filterExamType = document.getElementById('filter-exam-type');
+    const filterExamTrimestre = document.getElementById('filter-exam-trimestre');
+    const filterExamTiming = document.getElementById('filter-exam-timing');
+
+    if (filterExamType) filterExamType.addEventListener('change', () => {
+        const student = getStudent(appState.currentStudentId);
+        if (student) renderExamens(student);
+    });
+    if (filterExamTrimestre) filterExamTrimestre.addEventListener('change', () => {
+        const student = getStudent(appState.currentStudentId);
+        if (student) renderExamens(student);
+    });
+    if (filterExamTiming) filterExamTiming.addEventListener('change', () => {
+        const student = getStudent(appState.currentStudentId);
+        if (student) renderExamens(student);
+    });
+
+    function getExamCountdownInfo(dateStr) {
+        const dt = parseDateJJMMYYYY(dateStr);
+        if (!dt) return { label: 'Date à préciser', badgeClass: 'countdown-passed', diffDays: 0, isPast: false };
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffMs = dt.getTime() - today.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) {
+            return { label: "🚨 Aujourd'hui !", badgeClass: 'countdown-urgent', diffDays, isPast: false, isToday: true };
+        } else if (diffDays === 1) {
+            return { label: "⏳ Demain !", badgeClass: 'countdown-urgent', diffDays, isPast: false, isTomorrow: true };
+        } else if (diffDays > 1 && diffDays <= 7) {
+            return { label: `Dans ${diffDays} jours`, badgeClass: 'countdown-soon', diffDays, isPast: false };
+        } else if (diffDays > 7) {
+            return { label: `Dans ${diffDays} jours`, badgeClass: 'countdown-future', diffDays, isPast: false };
+        } else {
+            const absDays = Math.abs(diffDays);
+            return { label: `Passé (${absDays} j)`, badgeClass: 'countdown-passed', diffDays, isPast: true };
+        }
+    }
+
+    function openExamModal(exam = null) {
+        if (!modalExam) return;
+        const student = getStudent(appState.currentStudentId);
+        const titleEl = document.getElementById('modal-exam-title');
+        const idInput = document.getElementById('exam-id');
+        const typeSelect = document.getElementById('exam-type');
+        const intituleInput = document.getElementById('exam-intitule');
+        const matiereInput = document.getElementById('exam-matiere');
+        const dateInputEl = document.getElementById('exam-date');
+        const heureInputEl = document.getElementById('exam-heure');
+        const trimestreSelect = document.getElementById('exam-trimestre');
+        const coefInput = document.getElementById('exam-coef');
+        const noteInput = document.getElementById('exam-note');
+        const remarquesInput = document.getElementById('exam-remarques');
+        const datalist = document.getElementById('datalist-exam-matieres');
+
+        if (datalist && student && Array.isArray(student.matieres)) {
+            datalist.innerHTML = student.matieres.map(m => `<option value="${escapeHtml(m.nom)}"></option>`).join('');
+        }
+
+        if (exam) {
+            if (titleEl) titleEl.textContent = "✏️ Modifier l'examen";
+            if (idInput) idInput.value = exam.id;
+            if (typeSelect) typeSelect.value = exam.type || 'Contrôle';
+            if (intituleInput) intituleInput.value = exam.intitule || '';
+            if (matiereInput) matiereInput.value = exam.matiere || '';
+            if (dateInputEl) dateInputEl.value = exam.date || '';
+            if (heureInputEl) heureInputEl.value = exam.heure || '';
+            if (trimestreSelect) trimestreSelect.value = exam.trimestre || 'Trimestre 1';
+            if (coefInput) coefInput.value = (exam.coef !== null && exam.coef !== undefined) ? exam.coef : '';
+            if (noteInput) noteInput.value = (exam.note !== null && exam.note !== undefined) ? exam.note : '';
+            if (remarquesInput) remarquesInput.value = exam.remarques || '';
+        } else {
+            if (titleEl) titleEl.textContent = '📝 Programmer un examen';
+            if (idInput) idInput.value = '';
+            if (typeSelect) typeSelect.value = 'Contrôle';
+            if (intituleInput) intituleInput.value = 'DC 1';
+            if (matiereInput) matiereInput.value = '';
+            if (dateInputEl) dateInputEl.value = '';
+            if (heureInputEl) heureInputEl.value = '';
+            if (trimestreSelect) trimestreSelect.value = 'Trimestre 1';
+            if (coefInput) coefInput.value = '';
+            if (noteInput) noteInput.value = '';
+            if (remarquesInput) remarquesInput.value = '';
+        }
+
+        modalExam.style.display = 'flex';
+    }
+
+    function closeExamModal() {
+        if (modalExam) modalExam.style.display = 'none';
+    }
+
+    if (btnOpenAddExam) btnOpenAddExam.addEventListener('click', () => openExamModal(null));
+    if (btnCloseExamModal) btnCloseExamModal.addEventListener('click', closeExamModal);
+    if (btnCancelExam) btnCancelExam.addEventListener('click', closeExamModal);
+
+    if (modalExam) {
+        modalExam.addEventListener('click', (e) => {
+            if (e.target === modalExam) closeExamModal();
+        });
+    }
+
+    if (formExam) {
+        formExam.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const student = getStudent(appState.currentStudentId);
+            if (!student) return;
+
+            const examId = document.getElementById('exam-id').value.trim();
+            const type = document.getElementById('exam-type').value.trim();
+            const intitule = document.getElementById('exam-intitule').value.trim();
+            const matiere = document.getElementById('exam-matiere').value.trim();
+            const date = document.getElementById('exam-date').value.trim();
+            const heure = document.getElementById('exam-heure').value.trim();
+            const trimestre = document.getElementById('exam-trimestre').value.trim();
+            const coefRaw = document.getElementById('exam-coef').value.trim();
+            const noteRaw = document.getElementById('exam-note').value.trim();
+            const remarques = document.getElementById('exam-remarques').value.trim();
+
+            if (date.length !== 10) {
+                alert('Veuillez entrer une date complète au format JJ/MM/AAAA.');
+                return;
+            }
+            if (!matiere || !intitule) {
+                alert('Veuillez renseigner la matière et l\'intitulé de l\'examen.');
+                return;
+            }
+
+            let coef = null;
+            if (coefRaw !== '') {
+                const num = parseFloat(coefRaw.replace(',', '.'));
+                if (!isNaN(num) && num > 0) coef = num;
+            }
+
+            let note = null;
+            if (noteRaw !== '') {
+                const numNote = parseFloat(noteRaw.replace(',', '.'));
+                if (!isNaN(numNote) && numNote >= 0 && numNote <= 20) {
+                    note = numNote;
+                } else {
+                    alert('La note doit être comprise entre 0 et 20.');
+                    return;
+                }
+            }
+
+            if (!student.examens) student.examens = [];
+
+            if (examId) {
+                const idx = student.examens.findIndex(ex => ex.id === examId);
+                if (idx >= 0) {
+                    student.examens[idx] = {
+                        ...student.examens[idx],
+                        type,
+                        intitule,
+                        matiere,
+                        date,
+                        heure,
+                        trimestre,
+                        coef,
+                        note,
+                        remarques,
+                        updatedAt: Date.now()
+                    };
+                }
+            } else {
+                student.examens.push({
+                    id: 'exm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                    type,
+                    intitule,
+                    matiere,
+                    date,
+                    heure,
+                    trimestre,
+                    coef,
+                    note,
+                    remarques,
+                    timestamp: Date.now()
+                });
+            }
+
+            saveData();
+            closeExamModal();
+            renderExamens(student);
+        });
+    }
+
+    function renderExamens(student) {
+        if (!student) return;
+        const examListEl = document.getElementById('examens-list');
+        if (!examListEl) return;
+
+        let exams = Array.isArray(student.examens) ? [...student.examens] : [];
+
+        // Filtre par Type
+        const selType = filterExamType ? filterExamType.value : 'Tous';
+        if (selType !== 'Tous') {
+            exams = exams.filter(ex => ex.type === selType);
+        }
+
+        // Filtre par Trimestre
+        const selTrimestre = filterExamTrimestre ? filterExamTrimestre.value : 'Tous';
+        if (selTrimestre !== 'Tous') {
+            exams = exams.filter(ex => ex.trimestre === selTrimestre);
+        }
+
+        // Filtre par Timing (À venir / Passés)
+        const selTiming = filterExamTiming ? filterExamTiming.value : 'Tous';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTime = today.getTime();
+
+        if (selTiming === 'A_venir') {
+            exams = exams.filter(ex => {
+                const dt = parseDateJJMMYYYY(ex.date);
+                return dt ? dt.getTime() >= todayTime : true;
+            });
+        } else if (selTiming === 'Passes') {
+            exams = exams.filter(ex => {
+                const dt = parseDateJJMMYYYY(ex.date);
+                return dt ? dt.getTime() < todayTime : false;
+            });
+        }
+
+        // Tri : examens futurs les plus proches d'abord, puis examens passés récents
+        exams.sort((a, b) => {
+            const dtA = parseDateJJMMYYYY(a.date);
+            const dtB = parseDateJJMMYYYY(b.date);
+            const timeA = dtA ? dtA.getTime() : 0;
+            const timeB = dtB ? dtB.getTime() : 0;
+
+            const isFutureA = timeA >= todayTime;
+            const isFutureB = timeB >= todayTime;
+
+            if (isFutureA && isFutureB) {
+                return timeA - timeB;
+            } else if (!isFutureA && !isFutureB) {
+                return timeB - timeA;
+            } else {
+                return isFutureA ? -1 : 1;
+            }
+        });
+
+        if (exams.length === 0) {
+            examListEl.innerHTML = `
+                <div style="text-align: center; padding: 36px 16px; background: #FFFFFF; border-radius: 12px; border: 1.5px dashed #CBD5E1;">
+                    <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">📝</span>
+                    <p style="color: #64748B; font-size: 0.95rem; margin-bottom: 12px;">Aucun examen programmé pour ces critères.</p>
+                    <button type="button" id="btn-empty-add-exam" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
+                        + Programmer un examen
+                    </button>
+                </div>
+            `;
+            const btnAdd = document.getElementById('btn-empty-add-exam');
+            if (btnAdd) btnAdd.addEventListener('click', () => openExamModal(null));
+            return;
+        }
+
+        examListEl.innerHTML = exams.map(ex => {
+            const countdown = getExamCountdownInfo(ex.date);
+            
+            // Badge type
+            let badgeTypeHtml = '';
+            let cardTypeClass = '';
+            if (ex.type === 'Contrôle') {
+                cardTypeClass = 'type-controle';
+                badgeTypeHtml = `<span class="exam-type-badge badge-dc">📌 Devoir de Contrôle</span>`;
+            } else if (ex.type === 'Synthèse') {
+                cardTypeClass = 'type-synthese';
+                badgeTypeHtml = `<span class="exam-type-badge badge-ds">🏆 Devoir de Synthèse</span>`;
+            } else {
+                cardTypeClass = 'type-test';
+                badgeTypeHtml = `<span class="exam-type-badge badge-test">🧪 Test / TP</span>`;
+            }
+
+            // Note /20
+            let gradeHtml = '';
+            if (ex.note !== null && ex.note !== undefined && ex.note !== '') {
+                const noteVal = Number(ex.note);
+                let gradeClass = 'average';
+                if (noteVal >= 14) gradeClass = 'good';
+                else if (noteVal < 10) gradeClass = 'low';
+
+                gradeHtml = `
+                    <div class="exam-grade-box">
+                        <div>
+                            <span style="font-size: 0.78rem; color: #64748B; font-weight: 600; display: block;">Note obtenue :</span>
+                            <span class="exam-grade-val ${gradeClass}">${noteVal} / 20</span>
+                        </div>
+                        <button type="button" class="btn-card-action btn-quick-grade" data-id="${escapeHtml(ex.id)}">
+                            ✏️ Modifier la note
+                        </button>
+                    </div>
+                `;
+            } else {
+                gradeHtml = `
+                    <div class="exam-grade-box" style="background: #FAFAFA;">
+                        <div>
+                            <span style="font-size: 0.78rem; color: #64748B; font-weight: 600; display: block;">Note d'épreuve :</span>
+                            <span style="font-size: 0.84rem; color: #94A3B8; font-style: italic;">Non encore renseignée</span>
+                        </div>
+                        <button type="button" class="btn-card-action btn-quick-grade" data-id="${escapeHtml(ex.id)}">
+                            + Saisir la note (/20)
+                        </button>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="exam-card ${cardTypeClass}" data-exam-id="${escapeHtml(ex.id)}">
+                    <div class="exam-header-row">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            ${badgeTypeHtml}
+                            <strong style="color: var(--sidi-blue-dark); font-size: 0.95rem;">${escapeHtml(ex.intitule)}</strong>
+                        </div>
+                        <span class="exam-countdown-badge ${countdown.badgeClass}">${countdown.label}</span>
+                    </div>
+
+                    <h4 class="exam-subject-title">${escapeHtml(ex.matiere)}</h4>
+
+                    <div class="exam-meta-row">
+                        <span class="exam-meta-item">📅 <strong>${escapeHtml(ex.date)}</strong></span>
+                        ${ex.heure ? `<span class="exam-meta-item">⏰ ${escapeHtml(ex.heure)}</span>` : ''}
+                        <span class="exam-meta-item">🎓 ${escapeHtml(ex.trimestre || 'Trimestre 1')}</span>
+                        ${(ex.coef !== null && ex.coef !== undefined && ex.coef !== '') ? `<span class="exam-meta-item">⚖️ Coef <strong>${ex.coef}</strong></span>` : ''}
+                    </div>
+
+                    ${ex.remarques ? `
+                        <div style="font-size: 0.82rem; color: #475569; background: #F8FAFC; padding: 6px 10px; border-radius: 6px; margin: 8px 0; border: 1px solid #E2E8F0;">
+                            <strong>Programme / Consignes :</strong> ${escapeHtml(ex.remarques)}
+                        </div>
+                    ` : ''}
+
+                    ${gradeHtml}
+
+                    <div class="exam-actions-row">
+                        <button type="button" class="btn-card-action btn-edit-exam" data-id="${escapeHtml(ex.id)}">
+                            ✏️ Modifier
+                        </button>
+                        <button type="button" class="btn-card-action danger btn-delete-exam" data-id="${escapeHtml(ex.id)}">
+                            🗑️ Supprimer
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Saisie rapide de note
+        examListEl.querySelectorAll('.btn-quick-grade').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const exId = btn.getAttribute('data-id');
+                const exam = (student.examens || []).find(e => e.id === exId);
+                if (!exam) return;
+
+                const currentVal = (exam.note !== null && exam.note !== undefined) ? exam.note : '';
+                const promptVal = prompt(`Saisissez la note obtenue (/20) pour l'examen de ${exam.matiere} (${exam.intitule}) :`, currentVal);
+                if (promptVal !== null) {
+                    const cleanPrompt = promptVal.trim().replace(',', '.');
+                    if (cleanPrompt === '') {
+                        exam.note = null;
+                        saveData();
+                        renderExamens(student);
+                    } else {
+                        const num = parseFloat(cleanPrompt);
+                        if (!isNaN(num) && num >= 0 && num <= 20) {
+                            exam.note = num;
+                            saveData();
+                            renderExamens(student);
+                        } else {
+                            alert('Veuillez entrer une note valide entre 0 et 20.');
+                        }
+                    }
+                }
+            });
+        });
+
+        // Modifier l'examen complet
+        examListEl.querySelectorAll('.btn-edit-exam').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const exId = btn.getAttribute('data-id');
+                const exam = (student.examens || []).find(e => e.id === exId);
+                if (exam) openExamModal(exam);
+            });
+        });
+
+        // Supprimer l'examen
+        examListEl.querySelectorAll('.btn-delete-exam').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const exId = btn.getAttribute('data-id');
+                if (confirm("Supprimer cet examen de la liste ?")) {
+                    student.examens = (student.examens || []).filter(e => e.id !== exId);
+                    saveData();
+                    renderExamens(student);
+                }
+            });
         });
     }
 

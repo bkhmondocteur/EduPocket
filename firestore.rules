@@ -33,6 +33,8 @@ service cloud.firestore {
     //   - matieres: list of maps (optional, max 50 entries) - Subjects and rates
     //   - sessions: list of maps (optional, max 500 entries) - Tutoring sessions
     //   - paiements: list of maps (optional, max 500 entries) - Payment logs
+    //   - emploiDuTemps: list of maps (optional, max 200 entries) - Weekly timetable slots
+    //   - examens: list of maps (optional, max 200 entries) - Scheduled exams and tests
     //   - updatedAt: timestamp or number (optional) - Last update time
     //   - createdAt: timestamp or number (optional, immutable) - Creation time
     //
@@ -102,6 +104,7 @@ service cloud.firestore {
                'id', 'studentCode', 'codeEleve', 'familyId', 'nom', 'prenom',
                'classe', 'telephone', 'telephoneParent',
                'matieres', 'sessions', 'paiements',
+               'emploiDuTemps', 'examens',
                'createdAt', 'updatedAt'
              ]) &&
              hasRequiredFields(['nom', 'prenom']) &&
@@ -135,6 +138,10 @@ service cloud.firestore {
                (request.resource.data.sessions is list && request.resource.data.sessions.size() <= 500)) &&
              (!('paiements' in request.resource.data) ||
                (request.resource.data.paiements is list && request.resource.data.paiements.size() <= 500)) &&
+             (!('emploiDuTemps' in request.resource.data) ||
+               (request.resource.data.emploiDuTemps is list && request.resource.data.emploiDuTemps.size() <= 200)) &&
+             (!('examens' in request.resource.data) ||
+               (request.resource.data.examens is list && request.resource.data.examens.size() <= 200)) &&
              (!('createdAt' in request.resource.data) ||
                (request.resource.data.createdAt is timestamp || request.resource.data.createdAt is number)) &&
              (!('updatedAt' in request.resource.data) ||
