@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="EduPocket">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="styles.css?v=23">
+    <link rel="stylesheet" href="styles.css?v=24">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -423,34 +423,13 @@
                 <!-- VUE JOURNALIÈRE -->
                 <div id="container-emploi-journalier">
                     <div class="days-chips-scroll" id="emploi-days-chips">
-                        <button type="button" class="day-chip active" data-day="Lundi">
-                            <span class="day-short">LUN</span>
-                            <span class="day-number">Lundi</span>
-                        </button>
-                        <button type="button" class="day-chip" data-day="Mardi">
-                            <span class="day-short">MAR</span>
-                            <span class="day-number">Mardi</span>
-                        </button>
-                        <button type="button" class="day-chip" data-day="Mercredi">
-                            <span class="day-short">MER</span>
-                            <span class="day-number">Mercredi</span>
-                        </button>
-                        <button type="button" class="day-chip" data-day="Jeudi">
-                            <span class="day-short">JEU</span>
-                            <span class="day-number">Jeudi</span>
-                        </button>
-                        <button type="button" class="day-chip" data-day="Vendredi">
-                            <span class="day-short">VEN</span>
-                            <span class="day-number">Vendredi</span>
-                        </button>
-                        <button type="button" class="day-chip" data-day="Samedi">
-                            <span class="day-short">SAM</span>
-                            <span class="day-number">Samedi</span>
-                        </button>
-                        <button type="button" class="day-chip" data-day="Dimanche">
-                            <span class="day-short">DIM</span>
-                            <span class="day-number">Dimanche</span>
-                        </button>
+                        <button type="button" class="day-chip active" data-day="Lundi">LUN</button>
+                        <button type="button" class="day-chip" data-day="Mardi">MAR</button>
+                        <button type="button" class="day-chip" data-day="Mercredi">MER</button>
+                        <button type="button" class="day-chip" data-day="Jeudi">JEU</button>
+                        <button type="button" class="day-chip" data-day="Vendredi">VEN</button>
+                        <button type="button" class="day-chip" data-day="Samedi">SAM</button>
+                        <button type="button" class="day-chip" data-day="Dimanche">DIM</button>
                     </div>
 
                     <div id="emploi-journalier-list">
@@ -957,14 +936,14 @@
     </div>
 
     <!-- Scripts de l'application -->
-    <script src="license-manager.js?v=23"></script>
-    <script src="firebase-config.js?v=23"></script>
-    <script src="app.js?v=23"></script>
+    <script src="license-manager.js?v=24"></script>
+    <script src="firebase-config.js?v=24"></script>
+    <script src="app.js?v=24"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=23').then(reg => {
-                    console.log('Service Worker v23 enregistré', reg);
+                navigator.serviceWorker.register('sw.js?v=24').then(reg => {
+                    console.log('Service Worker v24 enregistré', reg);
                     reg.update();
                 }).catch(err => {
                     console.log('Échec de l\'enregistrement du Service Worker', err);
