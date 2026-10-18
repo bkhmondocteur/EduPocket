@@ -39,6 +39,123 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnOpenSettings = document.getElementById('btn-open-settings');
     const btnEleveLogout = document.getElementById('btn-eleve-logout');
 
+    // --- GESTION DU MULTILINGUE (FR / EN / AR) & RTL ---
+    window.EduPocketLang = {
+        current: localStorage.getItem('edupocket_lang') || 'fr'
+    };
+
+    function applyStaticTranslations() {
+        const lang = window.EduPocketLang.current;
+        const isRtl = (lang === 'ar');
+        document.documentElement.setAttribute('lang', lang);
+        document.documentElement.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
+        if (isRtl) {
+            document.body.classList.add('lang-ar');
+        } else {
+            document.body.classList.remove('lang-ar');
+        }
+
+        // Traduire les éléments avec data-i18n
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (key && typeof window.t === 'function') {
+                const text = window.t(key);
+                if (el.tagName === 'INPUT' && (el.type === 'submit' || el.type === 'button')) {
+                    el.value = text;
+                } else if (el.tagName === 'OPTION') {
+                    el.textContent = text;
+                } else {
+                    el.textContent = text;
+                }
+            }
+        });
+
+        // Traduire les éléments avec data-i18n-html
+        document.querySelectorAll('[data-i18n-html]').forEach(el => {
+            const key = el.getAttribute('data-i18n-html');
+            if (key && typeof window.t === 'function') {
+                el.innerHTML = window.t(key);
+            }
+        });
+
+        // Synchroniser le sélecteur du header
+        const selectAppLang = document.getElementById('select-app-language');
+        if (selectAppLang && selectAppLang.value !== lang) {
+            selectAppLang.value = lang;
+        }
+
+        // Synchroniser les boutons du profil
+        document.querySelectorAll('.btn-lang-choice').forEach(btn => {
+            if (btn.getAttribute('data-lang') === lang) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    function setAppLanguage(newLang, triggerRerender = true) {
+        if (!['fr', 'en', 'ar'].includes(newLang)) newLang = 'fr';
+        window.EduPocketLang.current = newLang;
+        localStorage.setItem('edupocket_lang', newLang);
+
+        applyStaticTranslations();
+
+        if (triggerRerender) {
+            updateRoleUI();
+
+            if (viewHome && viewHome.classList.contains('active')) {
+                if (appState.role === 'parent') {
+                    loadParentStudentsList();
+                } else if (appState.role === 'professeur') {
+                    renderProfStudentsList();
+                }
+            }
+
+            if (viewDashboard && viewDashboard.classList.contains('active') && appState.currentStudentId) {
+                const student = getStudent(appState.currentStudentId);
+                if (student) {
+                    populateMatieresSelect(student);
+                    filterSessions();
+                    if (typeof renderEmploiDuTemps === 'function') renderEmploiDuTemps(student);
+                    if (typeof renderExamens === 'function') renderExamens(student);
+                }
+            }
+
+            if (modalSettings && modalSettings.style.display !== 'none') {
+                renderSettingsStudentsCodes();
+                if (typeof renderCurrentMatieresConfig === 'function') renderCurrentMatieresConfig();
+            }
+        }
+    }
+
+    function getDayDisplayName(dayKey, short = false) {
+        const lang = window.EduPocketLang.current || 'fr';
+        const dict = (window.EduPocketTranslations && window.EduPocketTranslations[lang]) || (window.EduPocketTranslations && window.EduPocketTranslations.fr);
+        if (dict && dict.days && dict.days[dayKey]) {
+            return short ? dict.days[dayKey].short : dict.days[dayKey].name;
+        }
+        return dayKey;
+    }
+
+    // Écouteur sur le sélecteur d'en-tête
+    const selectAppLangEl = document.getElementById('select-app-language');
+    if (selectAppLangEl) {
+        selectAppLangEl.addEventListener('change', (e) => {
+            setAppLanguage(e.target.value, true);
+        });
+    }
+
+    // Écouteur sur les boutons de sélection de langue du profil
+    document.querySelectorAll('.btn-lang-choice').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const chosenLang = btn.getAttribute('data-lang');
+            if (chosenLang) {
+                setAppLanguage(chosenLang, true);
+            }
+        });
+    });
+
     // --- GESTION DES LICENCES (PARENT & PROFESSEUR) ---
     function getActiveLicense(role = 'parent') {
         const storageKey = role === 'professeur' ? 'edupocket_prof_license' : 'edupocket_license';
@@ -219,18 +336,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateRoleUI() {
         if (!appState.role) {
-            headerRoleBadge.textContent = 'Sélection de rôle';
+            headerRoleBadge.textContent = window.t('welcome_title');
             showView(viewRoleSelection);
             return;
         }
 
         const roleLabels = {
-            'parent': '👨‍👩‍👧 Parent',
-            'eleve': '🎓 Élève',
-            'professeur': '👨‍🏫 Professeur'
+            'parent': '👨‍👩‍👧 ' + window.t('role_parent'),
+            'eleve': '🎓 ' + window.t('role_eleve'),
+            'professeur': '👨‍🏫 ' + window.t('role_professeur')
         };
         headerRoleBadge.textContent = roleLabels[appState.role] || appState.role;
-        document.getElementById('settings-current-role').textContent = roleLabels[appState.role] || appState.role;
+        const currentRoleEl = document.getElementById('settings-current-role');
+        if (currentRoleEl) currentRoleEl.textContent = roleLabels[appState.role] || appState.role;
 
         const homeRoleDesc = document.getElementById('home-role-description');
         const sectionParent = document.getElementById('section-parent-management');
@@ -250,15 +368,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (licNameEl) licNameEl.textContent = `${currentRoleLic.civilite} ${currentRoleLic.prenom} ${currentRoleLic.nom}`;
             if (licKeyEl) licKeyEl.textContent = currentRoleLic.key;
             if (licBadgeEl) {
-                licBadgeEl.textContent = '🟢 Active';
+                licBadgeEl.textContent = (appState.role === 'professeur') ? window.t('license_prof_active') : window.t('license_active');
                 licBadgeEl.style.background = '#D1FAE5';
                 licBadgeEl.style.color = '#065F46';
             }
         } else {
-            if (licNameEl) licNameEl.textContent = 'Non activée';
+            if (licNameEl) licNameEl.textContent = (window.EduPocketLang.current === 'ar' ? 'غير مفعلة' : window.EduPocketLang.current === 'en' ? 'Not activated' : 'Non activée');
             if (licKeyEl) licKeyEl.textContent = '---';
             if (licBadgeEl) {
-                licBadgeEl.textContent = '🔴 Inactive';
+                licBadgeEl.textContent = (window.EduPocketLang.current === 'ar' ? '🔴 غير مفعلة' : window.EduPocketLang.current === 'en' ? '🔴 Inactive' : '🔴 Inactive');
                 licBadgeEl.style.background = '#FEE2E2';
                 licBadgeEl.style.color = '#991B1B';
             }
@@ -295,7 +413,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             bannerFamilyCode.style.display = 'none';
-            homeRoleDesc.innerHTML = '<strong>Espace Parents :</strong> Cliquez sur un enfant pour ouvrir son dossier. Retrouvez tous les codes d\'accès dans les <strong>Réglages ⚙️</strong>.';
+            if (homeRoleDesc) {
+                homeRoleDesc.innerHTML = window.EduPocketLang.current === 'ar'
+                    ? '<strong>فضاء الأولياء :</strong> اضغط على تلميذ لفتح ملفه. تجدون جميع رموز الدخول في <strong>الإعدادات ⚙️</strong>.'
+                    : window.EduPocketLang.current === 'en'
+                    ? '<strong>Parents Space:</strong> Click a student to open their file. Find all access codes in <strong>Settings ⚙️</strong>.'
+                    : '<strong>Espace Parents :</strong> Cliquez sur un enfant pour ouvrir son dossier. Retrouvez tous les codes d\'accès dans les <strong>Réglages ⚙️</strong>.';
+            }
             sectionParent.style.display = 'block';
             sectionStudent.style.display = 'none';
             sectionProf.style.display = 'none';
@@ -320,9 +444,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (btnEleveLogout) btnEleveLogout.style.display = 'none';
-            headerRoleBadge.textContent = '🎓 Espace Élève';
+            headerRoleBadge.textContent = '🎓 ' + window.t('role_eleve_space');
             bannerFamilyCode.style.display = 'none';
-            homeRoleDesc.innerHTML = '<strong>Espace Élève :</strong> Saisissez votre <strong>Code Famille</strong> ainsi que votre <strong>Code Élève</strong> transmis par vos parents pour ouvrir immédiatement votre dossier.';
+            if (homeRoleDesc) {
+                homeRoleDesc.innerHTML = window.EduPocketLang.current === 'ar'
+                    ? '<strong>فضاء التلميذ :</strong> أدخل <strong>رمز العائلة</strong> و<strong>رمز التلميذ</strong> المقدمين من أوليائك لفتح ملفك فوراً.'
+                    : window.EduPocketLang.current === 'en'
+                    ? '<strong>Student Space:</strong> Enter your <strong>Family Code</strong> and <strong>Student Code</strong> given by your parents to open your file immediately.'
+                    : '<strong>Espace Élève :</strong> Saisissez votre <strong>Code Famille</strong> ainsi que votre <strong>Code Élève</strong> transmis par vos parents pour ouvrir immédiatement votre dossier.';
+            }
             sectionParent.style.display = 'none';
             sectionStudent.style.display = 'block';
             sectionProf.style.display = 'none';
@@ -359,7 +489,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             bannerFamilyCode.style.display = 'none';
-            homeRoleDesc.innerHTML = '<strong>Espace Professeur :</strong> Liez des élèves existants ou créez de nouveaux élèves pour générer leurs codes de liaison à transmettre aux parents.';
+            if (homeRoleDesc) {
+                homeRoleDesc.innerHTML = window.EduPocketLang.current === 'ar'
+                    ? '<strong>فضاء الأستاذ :</strong> اربط التلاميذ الحاليين أو أنشئ تلاميذ جدد لتوليد رموز الربط وإرسالها للأولياء.'
+                    : window.EduPocketLang.current === 'en'
+                    ? '<strong>Teacher Space:</strong> Link existing students or create new students to generate link codes for parents.'
+                    : '<strong>Espace Professeur :</strong> Liez des élèves existants ou créez de nouveaux élèves pour générer leurs codes de liaison à transmettre aux parents.';
+            }
             sectionParent.style.display = 'none';
             sectionStudent.style.display = 'none';
             sectionProf.style.display = 'block';
@@ -975,12 +1111,22 @@ document.addEventListener('DOMContentLoaded', () => {
         list.innerHTML = '';
 
         if (!appState.data || !appState.data.students || appState.data.students.length === 0) {
-            list.innerHTML = '<li><span style="color: #94A3B8;">Aucun enfant enregistré. Ajoutez-en un ci-dessous !</span></li>';
+            list.innerHTML = `<li><span style="color: #94A3B8;">${window.t('no_children_yet')}</span></li>`;
             return;
         }
 
+        const isAr = (window.EduPocketLang.current === 'ar');
+        const isEn = (window.EduPocketLang.current === 'en');
+        const openText = isAr ? 'فتح' : (isEn ? 'Open' : 'Ouvrir');
+        const arrowChar = isAr ? '←' : '→';
+
         appState.data.students.forEach(student => {
             ensureProfCodes(student);
+
+            const sessionsCount = (student.sessions || []).length;
+            const matieresCount = (student.matieres || []).length;
+            const sessionsUnit = isAr ? 'حصة' : (isEn ? 'session(s)' : 'séance(s)');
+            const matieresUnit = isAr ? 'مادة' : (isEn ? 'subject(s)' : 'matière(s)');
 
             const li = document.createElement('li');
             li.style.cursor = 'pointer';
@@ -988,27 +1134,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="flex: 1;">
                     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                         <strong style="font-size: 1.15rem; color: var(--sidi-blue-dark);">${student.prenom} ${student.nom}</strong>
-                        <span class="class-badge" style="font-size: 0.8rem; padding: 2px 10px;">${student.classe || 'Élève'}</span>
+                        <span class="class-badge" style="font-size: 0.8rem; padding: 2px 10px;">${student.classe || window.t('role_eleve')}</span>
                     </div>
                     <div class="session-count-text" style="font-size: 0.85rem; color: #64748B; margin-top: 5px;">
-                        ${(student.sessions || []).length} séance(s) effectuée(s) • ${(student.matieres || []).length} matière(s)
+                        ${sessionsCount} ${sessionsUnit} • ${matieresCount} ${matieresUnit}
                     </div>
                     ${(student.telephone || student.telephoneParent) ? `
                         <div style="margin-top: 6px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                            ${student.telephone ? `<span class="phone-tag">📱 Élève : ${student.telephone}</span>` : ''}
-                            ${student.telephoneParent ? `<span class="phone-tag">📞 Parent : ${student.telephoneParent}</span>` : ''}
+                            ${student.telephone ? `<span class="phone-tag">📱 ${window.t('role_eleve')} : ${student.telephone}</span>` : ''}
+                            ${student.telephoneParent ? `<span class="phone-tag">📞 ${window.t('role_parent')} : ${student.telephoneParent}</span>` : ''}
                         </div>
                     ` : ''}
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     ${student.telephone ? `
-                        <button class="btn-whatsapp-sm btn-parent-whatsapp-student" title="Envoyer un message WhatsApp à l'élève">
-                            💬 WhatsApp
+                        <button class="btn-whatsapp-sm btn-parent-whatsapp-student" title="WhatsApp">
+                            ${window.t('btn_whatsapp')}
                         </button>
                     ` : ''}
                     <div style="display: flex; align-items: center; gap: 4px; color: var(--sidi-blue); font-weight: 700; font-size: 0.92rem;">
-                        <span>Ouvrir</span>
-                        <span style="font-size: 1.25rem; line-height: 1;">→</span>
+                        <span>${openText}</span>
+                        <span style="font-size: 1.25rem; line-height: 1;">${arrowChar}</span>
                     </div>
                 </div>
             `;
@@ -2249,10 +2395,10 @@ ${profName}`;
                     const profTitle = (pName && pName.toLowerCase() !== 'non spécifié') ? ` • ${pName}` : '';
                     alertCard.innerHTML = `
                         <div class="payment-alert-content">
-                            <div class="payment-alert-title">🚨 Quota de paiement atteint : ${m.nom}${profTitle}</div>
-                            <div class="payment-alert-sub">${count} séance(s) effectuée(s) à régler • Montant total : <strong>${totalDT} DT</strong> <span style="font-size: 0.78rem; opacity: 0.9;">(${prix} DT/séance • Quota : ${quota} séances)</span></div>
+                            <div class="payment-alert-title">${window.t('payment_alert_title', { subject: m.nom + profTitle })}</div>
+                            <div class="payment-alert-sub">${window.t('payment_alert_sub', { count, total: totalDT })} <span style="font-size: 0.78rem; opacity: 0.9;">${window.t('payment_alert_details', { price: prix, quota })}</span></div>
                         </div>
-                        <button class="btn-pay-now">Payer (${totalDT} DT)</button>
+                        <button class="btn-pay-now">${window.t('btn_pay_now', { total: totalDT })}</button>
                     `;
 
                     alertCard.querySelector('.btn-pay-now').addEventListener('click', () => {
@@ -2268,7 +2414,12 @@ ${profName}`;
     function openPaymentModal(student, matiere, sessionsToPay, totalDT, profName = '') {
         const modalDesc = document.getElementById('payment-modal-desc');
         const profDisplay = (profName && profName.toLowerCase() !== 'non spécifié') ? ` • <strong>${profName}</strong>` : '';
-        modalDesc.innerHTML = `Règlement pour <strong>${matiere.nom}</strong>${profDisplay} (${sessionsToPay.length} séances) : <strong>${totalDT} DT</strong>`;
+        modalDesc.innerHTML = window.t('modal_payment_desc', {
+            subject: matiere.nom,
+            prof: profDisplay,
+            count: sessionsToPay.length,
+            total: totalDT
+        });
         
         const today = new Date();
         const dd = String(today.getDate()).padStart(2, '0');
@@ -2283,7 +2434,7 @@ ${profName}`;
             const note = document.getElementById('pay-note').value.trim();
 
             if (datePaiement.length !== 10) {
-                alert('Veuillez entrer une date valide (JJ/MM/AAAA).');
+                alert(window.t('alert_invalid_date'));
                 return;
             }
 
@@ -2305,7 +2456,10 @@ ${profName}`;
 
             saveData();
             modalPayment.style.display = 'none';
-            alert(`Paiement de ${totalDT} DT validé avec succès pour ${matiere.nom}${profName && profName !== 'Non spécifié' ? ' (' + profName + ')' : ''} !`);
+            alert(window.t('alert_payment_success', {
+                total: totalDT,
+                subject: matiere.nom + (profName && profName !== 'Non spécifié' ? ' (' + profName + ')' : '')
+            }));
         };
     }
 
@@ -2428,7 +2582,7 @@ ${profName}`;
         list.innerHTML = '';
 
         if (sessions.length === 0) {
-            list.innerHTML = '<li><span style="color: #94A3B8;">Aucune séance trouvée pour ces critères.</span></li>';
+            list.innerHTML = `<li><span style="color: #94A3B8;">${window.t('no_sessions_found')}</span></li>`;
             return;
         }
 
@@ -2450,22 +2604,24 @@ ${profName}`;
             }
 
             let tagValidationClass = 'tag-val-confirmee';
-            let validationLabel = session.validation || 'Confirmee';
+            let validationLabel = window.t('val_confirmee');
 
             if (session.validation === 'En attente') {
                 tagValidationClass = 'tag-val-attente';
+                validationLabel = window.t('val_attente');
             } else if (session.validation === 'Modifiee par eleve') {
                 tagValidationClass = 'tag-val-modifiee';
-                validationLabel = '⚠️ Modifiée par élève';
+                validationLabel = window.t('val_modifiee');
             } else if (session.validation === 'Demande suppression') {
                 tagValidationClass = 'tag-val-suppression';
-                validationLabel = '⚠️ Demande suppression';
+                validationLabel = window.t('val_suppression');
             } else if (session.validation === 'Refusee') {
                 tagValidationClass = 'tag-val-refusee';
+                validationLabel = window.t('val_refusee');
             }
 
             const tagPaiementClass = session.paye ? 'tag-paye' : 'tag-non-paye';
-            const textPaiement = session.paye ? `💰 Payé le ${session.datePaiement}` : '⏳ Non payé';
+            const textPaiement = session.paye ? window.t('tag_paid', { date: session.datePaiement }) : window.t('tag_unpaid');
 
             // Boutons d'arbitrage parental
             let parentReviewHtml = '';
@@ -2473,20 +2629,20 @@ ${profName}`;
                 if (session.validation === 'Modifiee par eleve') {
                     parentReviewHtml = `
                         <div class="parent-review-box">
-                            <span class="parent-review-text">⚠️ L'élève a modifié cette séance</span>
+                            <span class="parent-review-text">${window.t('student_modified_notice')}</span>
                             <div class="validation-buttons">
-                                <button class="btn-action-sm btn-confirm btn-parent-accept-mod" data-id="${session.id}">Valider</button>
-                                <button class="btn-action-sm btn-reject btn-parent-reject-mod" data-id="${session.id}">Refuser</button>
+                                <button class="btn-action-sm btn-confirm btn-parent-accept-mod" data-id="${session.id}">${window.t('btn_parent_validate')}</button>
+                                <button class="btn-action-sm btn-reject btn-parent-reject-mod" data-id="${session.id}">${window.t('btn_parent_refuse')}</button>
                             </div>
                         </div>
                     `;
                 } else if (session.validation === 'Demande suppression') {
                     parentReviewHtml = `
                         <div class="parent-review-box" style="background: #FEE2E2; border-color: #EF4444;">
-                            <span class="parent-review-text" style="color: #991B1B;">⚠️ L'élève demande la suppression</span>
+                            <span class="parent-review-text" style="color: #991B1B;">${window.t('student_del_notice')}</span>
                             <div class="validation-buttons">
-                                <button class="btn-action-sm btn-reject btn-parent-accept-del" data-id="${session.id}">Confirmer suppression</button>
-                                <button class="btn-action-sm btn-confirm btn-parent-keep" data-id="${session.id}">Conserver</button>
+                                <button class="btn-action-sm btn-reject btn-parent-accept-del" data-id="${session.id}">${window.t('btn_parent_confirm_del')}</button>
+                                <button class="btn-action-sm btn-confirm btn-parent-keep" data-id="${session.id}">${window.t('btn_parent_keep')}</button>
                             </div>
                         </div>
                     `;
@@ -2499,16 +2655,18 @@ ${profName}`;
                 showProfConfirmButtons = true;
             }
 
+            const currentStatutLabel = window.t(session.statut === 'Planifiée' ? 'status_planifiee' : (session.statut === 'Effectuée' ? 'status_effectuee' : 'status_annulee'));
+
             li.innerHTML = `
                 <div class="session-main-row">
                     <div>
                         <span class="session-subject-title">${session.sujet}</span>
                         <div style="font-size: 0.85rem; color: #64748B; margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                            <span>Prof : <strong>${session.professeur || 'Non spécifié'}</strong></span>
+                            <span>${window.t('form_session_prof')} <strong>${session.professeur || window.t('select_prof_non_specifie')}</strong></span>
                             ${profPhone ? `<span class="phone-tag">📱 ${profPhone}</span>` : ''}
                             ${(session.professeur && session.professeur !== 'Non spécifié') ? `
-                                <button class="btn-whatsapp-sm btn-session-whatsapp-prof" data-prof="${session.professeur}" data-matiere="${session.sujet}" data-date="${session.date}" data-heure="${session.heure || ''}" data-phone="${profPhone}" title="Discuter avec le professeur sur WhatsApp">
-                                    💬 WhatsApp
+                                <button class="btn-whatsapp-sm btn-session-whatsapp-prof" data-prof="${session.professeur}" data-matiere="${session.sujet}" data-date="${session.date}" data-heure="${session.heure || ''}" data-phone="${profPhone}" title="WhatsApp">
+                                    ${window.t('btn_whatsapp')}
                                 </button>
                             ` : ''}
                         </div>
@@ -2522,29 +2680,29 @@ ${profName}`;
                 <div class="session-meta-row">
                     <span class="tag-badge ${tagValidationClass}">${validationLabel}</span>
                     <span class="tag-badge ${tagPaiementClass}">${textPaiement}</span>
-                    <span style="font-size: 0.8rem; color: #64748B; margin-left: auto;">Statut : <strong>${session.statut}</strong></span>
+                    <span style="font-size: 0.8rem; color: #64748B; margin-left: auto;">${window.t('form_session_statut')} <strong>${currentStatutLabel}</strong></span>
                 </div>
 
                 ${parentReviewHtml}
 
                 <div class="session-actions-row">
                     <div class="session-control-buttons">
-                        <button class="btn-icon-action btn-edit-session" data-id="${session.id}" title="Modifier">✏️ Modifier</button>
-                        <button class="btn-icon-action delete btn-delete-session" data-id="${session.id}" title="Supprimer">🗑️ Effacer</button>
+                        <button class="btn-icon-action btn-edit-session" data-id="${session.id}" title="${window.t('btn_edit')}">✏️ ${window.t('btn_edit')}</button>
+                        <button class="btn-icon-action delete btn-delete-session" data-id="${session.id}" title="${window.t('btn_delete')}">🗑️ ${window.t('btn_delete')}</button>
                     </div>
 
                     <div style="display: flex; gap: 8px; align-items: center;">
                         ${showProfConfirmButtons ? `
                             <div class="validation-buttons">
-                                <button class="btn-action-sm btn-confirm btn-prof-confirm" data-id="${session.id}">Confirmer</button>
-                                <button class="btn-action-sm btn-reject btn-prof-reject" data-id="${session.id}">Refuser</button>
+                                <button class="btn-action-sm btn-confirm btn-prof-confirm" data-id="${session.id}">${window.t('btn_prof_confirm')}</button>
+                                <button class="btn-action-sm btn-reject btn-prof-reject" data-id="${session.id}">${window.t('btn_prof_reject')}</button>
                             </div>
                         ` : ''}
 
                         <select class="select-change-status" data-id="${session.id}" style="padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">
-                            <option value="Planifiée" ${session.statut === 'Planifiée' ? 'selected' : ''}>Planifiée</option>
-                            <option value="Effectuée" ${session.statut === 'Effectuée' ? 'selected' : ''}>Effectuée</option>
-                            <option value="Annulée" ${session.statut === 'Annulée' ? 'selected' : ''}>Annulée</option>
+                            <option value="Planifiée" ${session.statut === 'Planifiée' ? 'selected' : ''}>${window.t('status_planifiee')}</option>
+                            <option value="Effectuée" ${session.statut === 'Effectuée' ? 'selected' : ''}>${window.t('status_effectuee')}</option>
+                            <option value="Annulée" ${session.statut === 'Annulée' ? 'selected' : ''}>${window.t('status_annulee')}</option>
                         </select>
                     </div>
                 </div>
@@ -4058,9 +4216,11 @@ ${profName}`;
         if (!student) return;
         const allCourses = Array.isArray(student.emploiDuTemps) ? student.emploiDuTemps : [];
 
-        // 1. Mettre à jour les chips des jours
+        // 1. Mettre à jour les chips des jours (traduction court)
         document.querySelectorAll('#emploi-days-chips .day-chip').forEach(chip => {
-            if (chip.getAttribute('data-day') === currentEmploiSelectedDay) {
+            const dayKey = chip.getAttribute('data-day');
+            chip.textContent = getDayDisplayName(dayKey, true);
+            if (dayKey === currentEmploiSelectedDay) {
                 chip.classList.add('active');
             } else {
                 chip.classList.remove('active');
@@ -4074,12 +4234,24 @@ ${profName}`;
             dayCourses.sort((a, b) => (a.heureDebut || '00:00').localeCompare(b.heureDebut || '00:00'));
 
             if (dayCourses.length === 0) {
+                const dayDisplayName = getDayDisplayName(currentEmploiSelectedDay, false);
+                const emptyMsg = window.EduPocketLang.current === 'ar'
+                    ? `لا توجد حصص مبرمجة ليوم <strong>${escapeHtml(dayDisplayName)}</strong>.`
+                    : (window.EduPocketLang.current === 'en'
+                    ? `No classes scheduled for <strong>${escapeHtml(dayDisplayName)}</strong>.`
+                    : `Aucun cours programmé le <strong>${escapeHtml(dayDisplayName)}</strong>.`);
+                const addBtnText = window.EduPocketLang.current === 'ar'
+                    ? `+ إضافة حصة ليوم ${escapeHtml(dayDisplayName)}`
+                    : (window.EduPocketLang.current === 'en'
+                    ? `+ Add class on ${escapeHtml(dayDisplayName)}`
+                    : `+ Ajouter un cours le ${escapeHtml(dayDisplayName)}`);
+
                 listJournalier.innerHTML = `
                     <div style="text-align: center; padding: 32px 16px; background: #FFFFFF; border-radius: 12px; border: 1.5px dashed #CBD5E1; margin-top: 8px;">
                         <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">🛋️</span>
-                        <p style="color: #64748B; font-size: 0.95rem; margin-bottom: 12px;">Aucun cours programmé le <strong>${escapeHtml(currentEmploiSelectedDay)}</strong>.</p>
+                        <p style="color: #64748B; font-size: 0.95rem; margin-bottom: 12px;">${emptyMsg}</p>
                         <button type="button" class="btn-primary btn-add-day-slot" data-day="${escapeHtml(currentEmploiSelectedDay)}" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
-                            + Ajouter un cours le ${escapeHtml(currentEmploiSelectedDay)}
+                            ${addBtnText}
                         </button>
                     </div>
                 `;
@@ -4099,10 +4271,10 @@ ${profName}`;
                             ${course.prof ? `<div class="course-details-text"><span>👨‍🏫 ${escapeHtml(course.prof)}</span></div>` : ''}
                         </div>
                         <div style="display: flex; gap: 6px; align-items: center;">
-                            <button type="button" class="btn-card-action btn-edit-course" data-id="${escapeHtml(course.id)}" title="Modifier">
+                            <button type="button" class="btn-card-action btn-edit-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_edit')}">
                                 ✏️
                             </button>
-                            <button type="button" class="btn-card-action danger btn-delete-course" data-id="${escapeHtml(course.id)}" title="Supprimer">
+                            <button type="button" class="btn-card-action danger btn-delete-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_delete')}">
                                 🗑️
                             </button>
                         </div>
@@ -4120,7 +4292,8 @@ ${profName}`;
                 listJournalier.querySelectorAll('.btn-delete-course').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const cid = btn.getAttribute('data-id');
-                        if (confirm("Supprimer ce créneau de cours de l'emploi du temps ?")) {
+                        const crs = allCourses.find(c => c.id === cid);
+                        if (confirm(window.t('confirm_delete_course', { matiere: crs ? crs.matiere : '' }))) {
                             student.emploiDuTemps = (student.emploiDuTemps || []).filter(c => c.id !== cid);
                             saveData();
                             renderEmploiDuTemps(student);
@@ -4133,26 +4306,32 @@ ${profName}`;
         // 3. Vue hebdomadaire
         const gridHebdo = document.getElementById('emploi-hebdo-grid');
         if (gridHebdo) {
+            const isAr = (window.EduPocketLang.current === 'ar');
+            const isEn = (window.EduPocketLang.current === 'en');
+            const coursUnit = isAr ? 'حصص' : (isEn ? 'classes' : 'cours');
+            const addText = isAr ? '+ إضافة' : (isEn ? '+ Add' : '+ Ajouter');
+
             gridHebdo.innerHTML = DAYS_OF_WEEK.map(day => {
                 const dayCourses = allCourses.filter(c => c.jour === day);
                 dayCourses.sort((a, b) => (a.heureDebut || '00:00').localeCompare(b.heureDebut || '00:00'));
+                const dayName = getDayDisplayName(day, false);
 
                 return `
                     <div class="weekly-day-group">
                         <div class="weekly-day-header">
                             <span class="weekly-day-title">
-                                <span>📅</span> ${day}
+                                <span>📅</span> ${dayName}
                                 <span style="font-size: 0.8rem; font-weight: 600; color: #64748B; background: #E2E8F0; padding: 2px 7px; border-radius: 10px;">
-                                    ${dayCourses.length} cours
+                                    ${dayCourses.length} ${coursUnit}
                                 </span>
                             </span>
                             <button type="button" class="btn-card-action btn-hebdo-add" data-day="${day}" style="font-size: 0.78rem;">
-                                + Ajouter
+                                ${addText}
                             </button>
                         </div>
                         <div class="weekly-day-slots">
                             ${dayCourses.length === 0 ? `
-                                <div class="weekly-empty-day">Aucun cours programmé ce jour.</div>
+                                <div class="weekly-empty-day">${window.t('no_course_day')}</div>
                             ` : dayCourses.map(course => `
                                 <div class="course-card" style="margin-bottom: 8px; padding: 10px 12px;">
                                     <div style="flex: 1;">
@@ -4164,10 +4343,10 @@ ${profName}`;
                                         ${course.prof ? `<div style="font-size: 0.8rem; color: #64748B;">👨‍🏫 ${escapeHtml(course.prof)}</div>` : ''}
                                     </div>
                                     <div style="display: flex; gap: 4px; align-items: center;">
-                                        <button type="button" class="btn-card-action btn-edit-course" data-id="${escapeHtml(course.id)}" title="Modifier">
+                                        <button type="button" class="btn-card-action btn-edit-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_edit')}">
                                             ✏️
                                         </button>
-                                        <button type="button" class="btn-card-action danger btn-delete-course" data-id="${escapeHtml(course.id)}" title="Supprimer">
+                                        <button type="button" class="btn-card-action danger btn-delete-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_delete')}">
                                             🗑️
                                         </button>
                                     </div>
@@ -4234,23 +4413,29 @@ ${profName}`;
 
     function getExamCountdownInfo(dateStr) {
         const dt = parseDateJJMMYYYY(dateStr);
-        if (!dt) return { label: 'Date à préciser', badgeClass: 'countdown-passed', diffDays: 0, isPast: false };
+        const lang = (window.EduPocketLang && window.EduPocketLang.current) || 'fr';
+        if (!dt) return { label: (lang === 'ar' ? 'تاريخ غير محدد' : (lang === 'en' ? 'To be set' : 'Date à préciser')), badgeClass: 'countdown-passed', diffDays: 0, isPast: false };
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const diffMs = dt.getTime() - today.getTime();
         const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
         if (diffDays === 0) {
-            return { label: "🚨 Aujourd'hui !", badgeClass: 'countdown-urgent', diffDays, isPast: false, isToday: true };
+            const lbl = lang === 'ar' ? '🚨 اليوم !' : (lang === 'en' ? '🚨 Today!' : "🚨 Aujourd'hui !");
+            return { label: lbl, badgeClass: 'countdown-urgent', diffDays, isPast: false, isToday: true };
         } else if (diffDays === 1) {
-            return { label: "⏳ Demain !", badgeClass: 'countdown-urgent', diffDays, isPast: false, isTomorrow: true };
+            const lbl = lang === 'ar' ? '⏳ غداً !' : (lang === 'en' ? '⏳ Tomorrow!' : "⏳ Demain !");
+            return { label: lbl, badgeClass: 'countdown-urgent', diffDays, isPast: false, isTomorrow: true };
         } else if (diffDays > 1 && diffDays <= 7) {
-            return { label: `Dans ${diffDays} jours`, badgeClass: 'countdown-soon', diffDays, isPast: false };
+            const lbl = lang === 'ar' ? `خلال ${diffDays} أيام` : (lang === 'en' ? `In ${diffDays} days` : `Dans ${diffDays} jours`);
+            return { label: lbl, badgeClass: 'countdown-soon', diffDays, isPast: false };
         } else if (diffDays > 7) {
-            return { label: `Dans ${diffDays} jours`, badgeClass: 'countdown-future', diffDays, isPast: false };
+            const lbl = lang === 'ar' ? `خلال ${diffDays} يوماً` : (lang === 'en' ? `In ${diffDays} days` : `Dans ${diffDays} jours`);
+            return { label: lbl, badgeClass: 'countdown-future', diffDays, isPast: false };
         } else {
             const absDays = Math.abs(diffDays);
-            return { label: `Passé (${absDays} j)`, badgeClass: 'countdown-passed', diffDays, isPast: true };
+            const lbl = lang === 'ar' ? `مضى (${absDays} يوم)` : (lang === 'en' ? `Passed (${absDays} d)` : `Passé (${absDays} j)`);
+            return { label: lbl, badgeClass: 'countdown-passed', diffDays, isPast: true };
         }
     }
 
@@ -4461,9 +4646,9 @@ ${profName}`;
             examListEl.innerHTML = `
                 <div style="text-align: center; padding: 36px 16px; background: #FFFFFF; border-radius: 12px; border: 1.5px dashed #CBD5E1;">
                     <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">📝</span>
-                    <p style="color: #64748B; font-size: 0.95rem; margin-bottom: 12px;">Aucun examen programmé pour ces critères.</p>
+                    <p style="color: #64748B; font-size: 0.95rem; margin-bottom: 12px;">${window.t('no_exams_found')}</p>
                     <button type="button" id="btn-empty-add-exam" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
-                        + Programmer un examen
+                        ${window.t('btn_add_exam')}
                     </button>
                 </div>
             `;
@@ -4471,6 +4656,9 @@ ${profName}`;
             if (btnAdd) btnAdd.addEventListener('click', () => openExamModal(null));
             return;
         }
+
+        const isAr = (window.EduPocketLang.current === 'ar');
+        const isEn = (window.EduPocketLang.current === 'en');
 
         examListEl.innerHTML = exams.map(ex => {
             const countdown = getExamCountdownInfo(ex.date);
@@ -4480,13 +4668,13 @@ ${profName}`;
             let cardTypeClass = '';
             if (ex.type === 'Contrôle') {
                 cardTypeClass = 'type-controle';
-                badgeTypeHtml = `<span class="exam-type-badge badge-dc">📌 Devoir de Contrôle</span>`;
+                badgeTypeHtml = `<span class="exam-type-badge badge-dc">📌 ${window.t('filter_exam_dc')}</span>`;
             } else if (ex.type === 'Synthèse') {
                 cardTypeClass = 'type-synthese';
-                badgeTypeHtml = `<span class="exam-type-badge badge-ds">🏆 Devoir de Synthèse</span>`;
+                badgeTypeHtml = `<span class="exam-type-badge badge-ds">🏆 ${window.t('filter_exam_ds')}</span>`;
             } else {
                 cardTypeClass = 'type-test';
-                badgeTypeHtml = `<span class="exam-type-badge badge-test">🧪 Test / TP</span>`;
+                badgeTypeHtml = `<span class="exam-type-badge badge-test">🧪 ${window.t('filter_exam_tp')}</span>`;
             }
 
             // Note /20
@@ -4497,30 +4685,39 @@ ${profName}`;
                 if (noteVal >= 14) gradeClass = 'good';
                 else if (noteVal < 10) gradeClass = 'low';
 
+                const gradeLabel = isAr ? 'العدد المتحصل عليه :' : (isEn ? 'Grade obtained:' : 'Note obtenue :');
+                const editGradeBtn = isAr ? '✏️ تعديل العدد' : (isEn ? '✏️ Edit grade' : '✏️ Modifier la note');
+
                 gradeHtml = `
                     <div class="exam-grade-box">
                         <div>
-                            <span style="font-size: 0.78rem; color: #64748B; font-weight: 600; display: block;">Note obtenue :</span>
+                            <span style="font-size: 0.78rem; color: #64748B; font-weight: 600; display: block;">${gradeLabel}</span>
                             <span class="exam-grade-val ${gradeClass}">${noteVal} / 20</span>
                         </div>
                         <button type="button" class="btn-card-action btn-quick-grade" data-id="${escapeHtml(ex.id)}">
-                            ✏️ Modifier la note
+                            ${editGradeBtn}
                         </button>
                     </div>
                 `;
             } else {
+                const noGradeLabel = isAr ? 'عدد الامتحان :' : (isEn ? 'Exam grade:' : "Note d'épreuve :");
+                const notRecorded = isAr ? 'لم يسجل بعد' : (isEn ? 'Not recorded yet' : 'Non encore renseignée');
+                const addGradeBtn = isAr ? '+ تسجيل العدد (/20)' : (isEn ? '+ Enter grade (/20)' : '+ Saisir la note (/20)');
+
                 gradeHtml = `
                     <div class="exam-grade-box" style="background: #FAFAFA;">
                         <div>
-                            <span style="font-size: 0.78rem; color: #64748B; font-weight: 600; display: block;">Note d'épreuve :</span>
-                            <span style="font-size: 0.84rem; color: #94A3B8; font-style: italic;">Non encore renseignée</span>
+                            <span style="font-size: 0.78rem; color: #64748B; font-weight: 600; display: block;">${noGradeLabel}</span>
+                            <span style="font-size: 0.84rem; color: #94A3B8; font-style: italic;">${notRecorded}</span>
                         </div>
                         <button type="button" class="btn-card-action btn-quick-grade" data-id="${escapeHtml(ex.id)}">
-                            + Saisir la note (/20)
+                            ${addGradeBtn}
                         </button>
                     </div>
                 `;
             }
+
+            const syllabusLabel = isAr ? 'البرنامج / ملاحظات :' : (isEn ? 'Syllabus / Notes:' : 'Programme / Consignes :');
 
             return `
                 <div class="exam-card ${cardTypeClass}" data-exam-id="${escapeHtml(ex.id)}">
@@ -4543,7 +4740,7 @@ ${profName}`;
 
                     ${ex.remarques ? `
                         <div style="font-size: 0.82rem; color: #475569; background: #F8FAFC; padding: 6px 10px; border-radius: 6px; margin: 8px 0; border: 1px solid #E2E8F0;">
-                            <strong>Programme / Consignes :</strong> ${escapeHtml(ex.remarques)}
+                            <strong>${syllabusLabel}</strong> ${escapeHtml(ex.remarques)}
                         </div>
                     ` : ''}
 
@@ -4551,10 +4748,10 @@ ${profName}`;
 
                     <div class="exam-actions-row">
                         <button type="button" class="btn-card-action btn-edit-exam" data-id="${escapeHtml(ex.id)}">
-                            ✏️ Modifier
+                            ✏️ ${window.t('btn_edit')}
                         </button>
                         <button type="button" class="btn-card-action danger btn-delete-exam" data-id="${escapeHtml(ex.id)}">
-                            🗑️ Supprimer
+                            🗑️ ${window.t('btn_delete')}
                         </button>
                     </div>
                 </div>
@@ -4569,7 +4766,12 @@ ${profName}`;
                 if (!exam) return;
 
                 const currentVal = (exam.note !== null && exam.note !== undefined) ? exam.note : '';
-                const promptVal = prompt(`Saisissez la note obtenue (/20) pour l'examen de ${exam.matiere} (${exam.intitule}) :`, currentVal);
+                const promptMsg = isAr
+                    ? `أدخل العدد (/20) لامتحان ${exam.matiere} (${exam.intitule}) :`
+                    : (isEn
+                    ? `Enter grade (/20) for ${exam.matiere} (${exam.intitule}):`
+                    : `Saisissez la note obtenue (/20) pour l'examen de ${exam.matiere} (${exam.intitule}) :`);
+                const promptVal = prompt(promptMsg, currentVal);
                 if (promptVal !== null) {
                     const cleanPrompt = promptVal.trim().replace(',', '.');
                     if (cleanPrompt === '') {
@@ -4583,7 +4785,7 @@ ${profName}`;
                             saveData();
                             renderExamens(student);
                         } else {
-                            alert('Veuillez entrer une note valide entre 0 et 20.');
+                            alert(isAr ? 'يرجى إدخال عدد صحيح بين 0 و 20.' : (isEn ? 'Please enter a valid grade between 0 and 20.' : 'Veuillez entrer une note valide entre 0 et 20.'));
                         }
                     }
                 }
@@ -4603,7 +4805,8 @@ ${profName}`;
         examListEl.querySelectorAll('.btn-delete-exam').forEach(btn => {
             btn.addEventListener('click', () => {
                 const exId = btn.getAttribute('data-id');
-                if (confirm("Supprimer cet examen de la liste ?")) {
+                const exam = (student.examens || []).find(e => e.id === exId);
+                if (confirm(window.t('confirm_delete_exam', { matiere: exam ? exam.matiere : '' }))) {
                     student.examens = (student.examens || []).filter(e => e.id !== exId);
                     saveData();
                     renderExamens(student);
@@ -4613,6 +4816,7 @@ ${profName}`;
     }
 
     // --- INITIALISATION AU CHARGEMENT ---
+    setAppLanguage(window.EduPocketLang ? window.EduPocketLang.current : 'fr', false);
     initDataPersistence();
     updateRoleUI();
 });

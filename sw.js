@@ -1,8 +1,9 @@
-const CACHE_NAME = 'edupocket-v25';
+const CACHE_NAME = 'edupocket-v26';
 const ASSETS = [
     './',
     './index.html',
     './styles.css',
+    './translations.js',
     './license-manager.js',
     './keygen.html',
     './firebase-config.js',

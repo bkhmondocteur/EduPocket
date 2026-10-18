@@ -1793,3 +1793,159 @@ body.role-eleve .dashboard-header-bar {
         font-size: 0.95rem;
     }
 }
+
+/* ==========================================================================
+   SUPPORT MULTILINGUE (i18n : FR / EN / AR) & RTL (العربية)
+   ========================================================================== */
+
+/* Sélecteur de langue dans l'en-tête */
+.lang-selector-pill {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 20px;
+    padding: 2px 6px;
+    margin-right: 6px;
+    transition: background 0.2s;
+}
+
+[dir="rtl"] .lang-selector-pill {
+    margin-right: 0;
+    margin-left: 6px;
+}
+
+.lang-selector-pill:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.lang-select {
+    background: transparent;
+    color: white;
+    border: none;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+    padding: 2px 3px;
+    font-family: inherit;
+}
+
+.lang-select option {
+    color: #0F172A;
+    background: white;
+    font-weight: 600;
+}
+
+/* Groupe de boutons de langue dans les Réglages */
+.lang-choice-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-lang-choice {
+    flex: 1;
+    min-width: 90px;
+    padding: 9px 12px;
+    border: 1.5px solid #CBD5E1;
+    background: #F8FAFC;
+    color: #334155;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btn-lang-choice.active {
+    background: var(--sidi-blue) !important;
+    color: white !important;
+    border-color: var(--sidi-blue-dark) !important;
+    box-shadow: 0 2px 6px rgba(0, 90, 156, 0.25);
+}
+
+/* Typographie & Direction Arabe (RTL) */
+[dir="rtl"], body.lang-ar {
+    font-family: 'Segoe UI', Tahoma, 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+    text-align: right;
+}
+
+/* Éléments qui doivent TOUJOURS rester en LTR (Codes, Téléphones, Horaires) */
+code,
+.code-badge-combined,
+.sync-code-display,
+input[type="tel"],
+.phone-tag,
+.session-time-badge {
+    direction: ltr !important;
+    unicode-bidi: isolate;
+    display: inline-block;
+}
+
+/* Ajustements visuels RTL */
+[dir="rtl"] .logo {
+    margin-right: 0;
+    margin-left: 12px;
+}
+
+[dir="rtl"] .btn-close {
+    float: left;
+}
+
+[dir="rtl"] .role-card {
+    border-left: 1px solid #E2E8F0;
+    border-right: 6px solid #CBD5E0;
+}
+
+[dir="rtl"] .role-card.selected {
+    border-right-color: var(--sidi-blue);
+}
+
+[dir="rtl"] .payment-alert-card {
+    border-left: 1px solid var(--alert-gold);
+    border-right: 6px solid var(--alert-gold);
+}
+
+[dir="rtl"] .session-item {
+    border-left: 1px solid #E2E8F0;
+    border-right: 5px solid var(--sidi-blue);
+}
+
+[dir="rtl"] .student-item {
+    border-left: 1px solid #E2E8F0;
+    border-right: 5px solid var(--sidi-blue);
+}
+
+[dir="rtl"] .course-slot-card {
+    border-left: 1px solid #E2E8F0;
+    border-right: 4px solid var(--sidi-blue);
+}
+
+[dir="rtl"] .exam-card {
+    border-left: 1px solid #E2E8F0;
+    border-right: 5px solid var(--sidi-blue);
+}
+
+[dir="rtl"] .exam-card.exam-type-dc {
+    border-right-color: #2563EB;
+}
+
+[dir="rtl"] .exam-card.exam-type-ds {
+    border-right-color: #7C3AED;
+}
+
+[dir="rtl"] .exam-card.exam-type-tp {
+    border-right-color: #059669;
+}
+
+[dir="rtl"] .session-meta-row span:last-child {
+    margin-left: 0;
+    margin-right: auto;
+}
+

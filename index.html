@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="EduPocket">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="styles.css?v=25">
+    <link rel="stylesheet" href="styles.css?v=26">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -21,10 +21,17 @@
             <img src="logo.png" alt="EduPocket Logo" class="logo">
             <div class="header-titles">
                 <h1>EduPocket</h1>
-                <span id="header-role-badge" class="role-badge">Non défini</span>
+                <span id="header-role-badge" class="role-badge" data-i18n="role_not_defined">Non défini</span>
             </div>
         </div>
         <div class="header-actions">
+            <div class="lang-selector-pill" id="lang-selector-pill" title="Changer de langue / Change language / تغيير اللغة">
+                <select id="select-app-language" class="lang-select" aria-label="Langue / Language / اللغة">
+                    <option value="fr">🇫🇷 FR</option>
+                    <option value="en">🇬🇧 EN</option>
+                    <option value="ar">🇹🇳 عربي</option>
+                </select>
+            </div>
             <button id="btn-sync-status" class="btn-icon" title="Synchronisation Cloud">🟢</button>
             <button id="btn-eleve-logout" class="btn-icon" title="Déconnexion Espace Élève" style="display: none;">🚪</button>
             <button id="btn-open-settings" class="btn-icon" title="Réglages et Tarifs">⚙️</button>
@@ -37,26 +44,26 @@
         <section id="view-role-selection" class="view">
             <div class="role-selection-card">
                 <img src="logo.png" alt="EduPocket Logo" class="welcome-logo" style="width: 105px; height: 105px; margin: 0 auto 16px auto; display: block; border-radius: 50%; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
-                <h2>Bienvenue sur EduPocket</h2>
-                <p class="role-subtitle">Veuillez sélectionner votre profil d'utilisation :</p>
+                <h2 data-i18n="welcome_title">Bienvenue sur EduPocket</h2>
+                <p class="role-subtitle" data-i18n="welcome_subtitle">Veuillez sélectionner votre profil d'utilisation :</p>
                 <div class="role-options">
                     <div class="role-card" data-role="parent">
                         <div class="role-icon">👨‍👩‍👧</div>
-                        <h3>Je suis Parent</h3>
-                        <p>Gérez vos enfants, configurez les tarifs par matière, et suivez les paiements.</p>
+                        <h3 data-i18n="card_parent_title">Je suis Parent</h3>
+                        <p data-i18n="card_parent_desc">Gérez vos enfants, configurez les tarifs par matière, et suivez les paiements.</p>
                     </div>
                     <div class="role-card" data-role="eleve">
                         <div class="role-icon">🎓</div>
-                        <h3>Je suis Élève</h3>
-                        <p>Planifiez vos séances de rattrapage et suivez votre emploi du temps.</p>
+                        <h3 data-i18n="card_eleve_title">Je suis Élève</h3>
+                        <p data-i18n="card_eleve_desc">Planifiez vos séances de rattrapage et suivez votre emploi du temps.</p>
                     </div>
                     <div class="role-card" data-role="professeur">
                         <div class="role-icon">👨‍🏫</div>
-                        <h3>Je suis Professeur</h3>
-                        <p>Validez et confirmez les séances de rattrapage de vos élèves.</p>
+                        <h3 data-i18n="card_prof_title">Je suis Professeur</h3>
+                        <p data-i18n="card_prof_desc">Validez et confirmez les séances de rattrapage de vos élèves.</p>
                     </div>
                 </div>
-                <button id="btn-confirm-role" class="btn-primary" style="margin-top: 20px;" disabled>Continuer</button>
+                <button id="btn-confirm-role" class="btn-primary" style="margin-top: 20px;" disabled data-i18n="btn_continue">Continuer</button>
             </div>
         </section>
 
@@ -65,8 +72,8 @@
             <div class="home-intro-card">
                 <div id="home-role-description"></div>
                 <div class="family-sync-banner" id="banner-family-code-container">
-                    <span>Code Famille : <strong id="display-family-code">...</strong></span>
-                    <button id="btn-copy-code" class="btn-sm">Copier</button>
+                    <span><span data-i18n="family_code_label">Code Famille :</span> <strong id="display-family-code">...</strong></span>
+                    <button id="btn-copy-code" class="btn-sm" data-i18n="btn_copy">Copier</button>
                 </div>
             </div>
 
@@ -75,15 +82,15 @@
                 <div id="parent-license-banner" class="parent-license-header" style="display: none;">
                     <div>
                         <div id="parent-greeting-display" class="parent-greeting-text">Bonjour</div>
-                        <span style="font-size: 0.8rem; color: #64748B;">Espace Parent Administrateur</span>
+                        <span style="font-size: 0.8rem; color: #64748B;" data-i18n="role_admin_parent">Espace Parent Administrateur</span>
                     </div>
-                    <span class="badge-license-active">🟢 Licence Active</span>
+                    <span class="badge-license-active" data-i18n="license_active">🟢 Licence Active</span>
                 </div>
 
-                <h2 id="home-list-title">Mes Enfants</h2>
+                <h2 id="home-list-title" data-i18n="my_children">Mes Enfants</h2>
                 <div class="quick-codes-banner">
-                    <span>🔑 <strong>Codes Élèves & Professeurs</strong> : Rangés dans les réglages</span>
-                    <button id="btn-quick-open-codes" class="btn-sm" style="background: var(--sidi-blue); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600;">Voir les codes</button>
+                    <span data-i18n-html="quick_codes_banner">🔑 <strong>Codes Élèves & Professeurs</strong> : Rangés dans les réglages</span>
+                    <button id="btn-quick-open-codes" class="btn-sm" style="background: var(--sidi-blue); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600;" data-i18n="btn_view_codes">Voir les codes</button>
                 </div>
                 <div id="students-list-container">
                     <ul id="saved-students-list" class="student-list">
@@ -92,45 +99,45 @@
                 </div>
 
                 <div id="card-add-student-container">
-                    <h2 style="margin-top: 25px;">Ajouter un nouvel enfant</h2>
+                    <h2 style="margin-top: 25px;" data-i18n="add_child_title">Ajouter un nouvel enfant</h2>
                     <form id="form-add-student">
                         <div class="form-group">
-                            <label for="nom">Nom :</label>
+                            <label for="nom" data-i18n="form_nom">Nom :</label>
                             <input type="text" id="nom" required placeholder="Ex: Ben Khalifa">
                         </div>
                         <div class="form-group">
-                            <label for="prenom">Prénom :</label>
+                            <label for="prenom" data-i18n="form_prenom">Prénom :</label>
                             <input type="text" id="prenom" required placeholder="Ex: Sami">
                         </div>
                         <div class="form-group">
-                            <label for="classe">Classe :</label>
+                            <label for="classe" data-i18n="form_classe">Classe :</label>
                             <input type="text" id="classe" required placeholder="Ex: 3ème Math, Bac...">
                         </div>
                         <div class="form-row">
                             <div class="form-group form-col">
-                                <label for="telephone-student">📱 N° WhatsApp Élève :</label>
+                                <label for="telephone-student" data-i18n="form_phone_student">📱 N° WhatsApp Élève :</label>
                                 <input type="tel" id="telephone-student" placeholder="Ex: 98 123 456">
                             </div>
                             <div class="form-group form-col">
-                                <label for="telephone-parent">📱 N° WhatsApp Parent :</label>
+                                <label for="telephone-parent" data-i18n="form_phone_parent">📱 N° WhatsApp Parent :</label>
                                 <input type="tel" id="telephone-parent" placeholder="Ex: 98 654 321">
                             </div>
                         </div>
-                        <button type="submit" class="btn-primary">Enregistrer et Accéder</button>
+                        <button type="submit" class="btn-primary" data-i18n="btn_save_access">Enregistrer et Accéder</button>
                     </form>
                 </div>
 
                 <!-- Rattacher un enfant créé par un professeur -->
                 <div class="parent-link-child-box">
-                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--sidi-blue); display: flex; align-items: center; gap: 6px;">
+                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--sidi-blue); display: flex; align-items: center; gap: 6px;" data-i18n="link_prof_child_title">
                         🔗 Rattacher un enfant créé par un professeur
                     </h3>
-                    <p class="tab-help" style="margin-bottom: 12px;">
+                    <p class="tab-help" style="margin-bottom: 12px;" data-i18n-html="link_prof_child_desc">
                         Si votre professeur a déjà créé le profil de votre enfant, entrez simplement le <strong>Code Élève</strong> (ex: ELV-XXXX) ou le <strong>Code Famille</strong> qu'il vous a transmis :
                     </p>
                     <div class="input-inline">
                         <input type="text" id="input-parent-join-child-code" placeholder="Ex: ELV-A1B2 ou FAM-C3D4" style="text-transform: uppercase; font-family: monospace; font-size: 0.95rem;">
-                        <button id="btn-parent-join-child" class="btn-primary" style="width: auto; white-space: nowrap;">Lier à ma famille</button>
+                        <button id="btn-parent-join-child" class="btn-primary" style="width: auto; white-space: nowrap;" data-i18n="btn_link_family">Lier à ma famille</button>
                     </div>
                     <div id="parent-join-error" style="display: none; color: #EF4444; font-size: 0.85rem; margin-top: 8px;"></div>
                 </div>
@@ -139,48 +146,48 @@
             <!-- Section 1B : Élève - Connexion par Code Famille & Code Élève -->
             <div id="section-student-welcome" style="display: none;">
                 <div class="student-login-box">
-                    <h3>🎓 Connexion Espace Élève</h3>
-                    <p class="tab-help">Pour accéder à vos cours, entrez votre <strong>Code Famille</strong> ainsi que votre <strong>Code Élève</strong> transmis par vos parents :</p>
+                    <h3 data-i18n="student_login_title">🎓 Connexion Espace Élève</h3>
+                    <p class="tab-help" data-i18n-html="student_login_desc">Pour accéder à vos cours, entrez votre <strong>Code Famille</strong> ainsi que votre <strong>Code Élève</strong> transmis par vos parents :</p>
                     <div class="form-group" style="margin-bottom: 12px;">
-                        <label for="input-eleve-family-code">1. Code Famille :</label>
+                        <label for="input-eleve-family-code" data-i18n="input_family_code_step">1. Code Famille :</label>
                         <input type="text" id="input-eleve-family-code" placeholder="Ex: FAM-XXXX" style="text-transform: uppercase;">
                     </div>
                     <div class="form-group" style="margin-bottom: 16px;">
-                        <label for="input-eleve-code">2. Code Élève :</label>
+                        <label for="input-eleve-code" data-i18n="input_student_code_step">2. Code Élève :</label>
                         <input type="text" id="input-eleve-code" placeholder="Ex: ELV-XXXX" style="text-transform: uppercase;">
                     </div>
-                    <button id="btn-eleve-login" class="btn-primary">Accéder à mon tableau de bord</button>
+                    <button id="btn-eleve-login" class="btn-primary" data-i18n="btn_student_login">Accéder à mon tableau de bord</button>
                     <div id="eleve-login-error" style="display: none; color: #EF4444; font-size: 0.85rem; margin-top: 10px;"></div>
                     <div id="eleve-multiple-students-picker" style="display: none; margin-top: 15px;"></div>
                 </div>
 
                 <div class="student-login-box" style="margin-top: 20px;">
-                    <h3>Option 2 : Mode Autonome</h3>
-                    <p class="tab-help">Si vos parents ne sont pas inscrits, vous pouvez créer votre dossier personnel :</p>
+                    <h3 data-i18n="student_standalone_title">Option 2 : Mode Autonome</h3>
+                    <p class="tab-help" data-i18n="student_standalone_desc">Si vos parents ne sont pas inscrits, vous pouvez créer votre dossier personnel :</p>
                     <form id="form-eleve-self-signup">
                         <div class="form-group">
-                            <label for="eleve-self-nom">Nom :</label>
+                            <label for="eleve-self-nom" data-i18n="form_nom">Nom :</label>
                             <input type="text" id="eleve-self-nom" required placeholder="Ex: Ben Khalifa">
                         </div>
                         <div class="form-group">
-                            <label for="eleve-self-prenom">Prénom :</label>
+                            <label for="eleve-self-prenom" data-i18n="form_prenom">Prénom :</label>
                             <input type="text" id="eleve-self-prenom" required placeholder="Ex: Sami">
                         </div>
                         <div class="form-group">
-                            <label for="eleve-self-classe">Classe :</label>
+                            <label for="eleve-self-classe" data-i18n="form_classe">Classe :</label>
                             <input type="text" id="eleve-self-classe" required placeholder="Ex: 3ème Math">
                         </div>
                         <div class="form-row">
                             <div class="form-group form-col">
-                                <label for="eleve-self-telephone">📱 N° WhatsApp Élève :</label>
+                                <label for="eleve-self-telephone" data-i18n="form_phone_student">📱 N° WhatsApp Élève :</label>
                                 <input type="tel" id="eleve-self-telephone" placeholder="Ex: 98 123 456">
                             </div>
                             <div class="form-group form-col">
-                                <label for="eleve-self-telephone-parent">📱 N° WhatsApp Parent :</label>
+                                <label for="eleve-self-telephone-parent" data-i18n="form_phone_parent">📱 N° WhatsApp Parent :</label>
                                 <input type="tel" id="eleve-self-telephone-parent" placeholder="Ex: 98 654 321">
                             </div>
                         </div>
-                        <button type="submit" class="btn-primary">Créer mon espace élève</button>
+                        <button type="submit" class="btn-primary" data-i18n="btn_create_student_space">Créer mon espace élève</button>
                     </form>
                 </div>
             </div>
@@ -191,80 +198,80 @@
                 <div id="prof-license-banner" class="parent-license-header" style="display: none;">
                     <div>
                         <div id="prof-greeting-display" class="parent-greeting-text">Bonjour</div>
-                        <span style="font-size: 0.8rem; color: #64748B;">Espace Professeur Enseignant</span>
+                        <span style="font-size: 0.8rem; color: #64748B;" data-i18n="role_prof_space">Espace Professeur Enseignant</span>
                     </div>
-                    <span class="badge-license-active">🟢 Licence Prof Active</span>
+                    <span class="badge-license-active" data-i18n="license_prof_active">🟢 Licence Prof Active</span>
                 </div>
 
                 <!-- Onglets Professeur -->
                 <div class="prof-hub-tabs">
-                    <button class="prof-hub-tab-btn active" id="btn-prof-tab-link">🔗 Lier un élève existant</button>
-                    <button class="prof-hub-tab-btn" id="btn-prof-tab-create">➕ Créer un élève tout seul</button>
+                    <button class="prof-hub-tab-btn active" id="btn-prof-tab-link" data-i18n="prof_tab_link">🔗 Lier un élève existant</button>
+                    <button class="prof-hub-tab-btn" id="btn-prof-tab-create" data-i18n="prof_tab_create">➕ Créer un élève tout seul</button>
                 </div>
 
                 <!-- Volet 1 : Lier un élève existant (avec Code Parents) -->
                 <div id="prof-pane-link" class="student-login-box">
-                    <h3>🔗 Lier un élève existant (avec Code Parents)</h3>
-                    <p class="tab-help">Entrez le <strong>Code Professeur combiné</strong> (ex: PRF-XXXX-ELV-YYYY) ou le <strong>Code Élève</strong> transmis par les parents pour accéder à son dossier :</p>
+                    <h3 data-i18n="prof_link_title">🔗 Lier un élève existant (avec Code Parents)</h3>
+                    <p class="tab-help" data-i18n-html="prof_link_desc">Entrez le <strong>Code Professeur combiné</strong> (ex: PRF-XXXX-ELV-YYYY) ou le <strong>Code Élève</strong> transmis par les parents pour accéder à son dossier :</p>
                     <div class="form-group" style="margin-bottom: 14px;">
-                        <label for="input-prof-combined-code">Code Professeur combiné ou Code Élève :</label>
+                        <label for="input-prof-combined-code" data-i18n="input_prof_code_label">Code Professeur combiné ou Code Élève :</label>
                         <input type="text" id="input-prof-combined-code" placeholder="Ex: PRF-A1B2-ELV-C3D4 ou ELV-C3D4" style="text-transform: uppercase; font-family: monospace; font-size: 1.05rem; letter-spacing: 1px;">
                     </div>
-                    <button id="btn-prof-login" class="btn-primary">Accéder à l'élève</button>
+                    <button id="btn-prof-login" class="btn-primary" data-i18n="btn_prof_access">Accéder à l'élève</button>
                     <div id="prof-login-error" style="display: none; color: #EF4444; font-size: 0.85rem; margin-top: 10px;"></div>
                 </div>
 
                 <!-- Volet 2 : Créer un élève tout seul (génération de codes parents) -->
                 <div id="prof-pane-create" class="student-login-box" style="display: none;">
-                    <h3>➕ Créer un élève tout seul</h3>
-                    <p class="tab-help">
+                    <h3 data-i18n="prof_create_title">➕ Créer un élève tout seul</h3>
+                    <p class="tab-help" data-i18n-html="prof_create_desc">
                         Créez la fiche de votre élève. Un <strong>Code Famille</strong> et un <strong>Code Élève</strong> seront générés pour que les parents puissent l'ajouter à leur application.
                     </p>
                     <form id="form-prof-create-student">
                         <div class="form-row">
                             <div class="form-group form-col">
-                                <label for="prof-create-nom">Nom de famille :</label>
+                                <label for="prof-create-nom" data-i18n="form_prof_nom_famille">Nom de famille :</label>
                                 <input type="text" id="prof-create-nom" required placeholder="Ex: Ben Khalifa">
                             </div>
                             <div class="form-group form-col">
-                                <label for="prof-create-prenom">Prénom de l'élève :</label>
+                                <label for="prof-create-prenom" data-i18n="form_prof_prenom_eleve">Prénom de l'élève :</label>
                                 <input type="text" id="prof-create-prenom" required placeholder="Ex: Sami">
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="prof-create-classe">Classe :</label>
+                            <label for="prof-create-classe" data-i18n="form_classe">Classe :</label>
                             <input type="text" id="prof-create-classe" required placeholder="Ex: 3ème Math, Bac...">
                         </div>
                         <div class="form-row">
                             <div class="form-group form-col">
-                                <label for="prof-create-tel-student">📱 N° WhatsApp Élève :</label>
+                                <label for="prof-create-tel-student" data-i18n="form_phone_student">📱 N° WhatsApp Élève :</label>
                                 <input type="tel" id="prof-create-tel-student" placeholder="Ex: 98 123 456">
                             </div>
                             <div class="form-group form-col">
-                                <label for="prof-create-tel-parent">📱 N° WhatsApp Parent :</label>
+                                <label for="prof-create-tel-parent" data-i18n="form_phone_parent">📱 N° WhatsApp Parent :</label>
                                 <input type="tel" id="prof-create-tel-parent" placeholder="Ex: 98 654 321">
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group form-col">
-                                <label for="prof-create-matiere">Matière enseignée :</label>
+                                <label for="prof-create-matiere" data-i18n="form_prof_matiere">Matière enseignée :</label>
                                 <input type="text" id="prof-create-matiere" required placeholder="Ex: Mathématiques">
                             </div>
                             <div class="form-group form-col">
-                                <label for="prof-create-prix">Tarif séance (DT / €) :</label>
+                                <label for="prof-create-prix" data-i18n="form_prof_prix">Tarif séance (DT / €) :</label>
                                 <input type="number" id="prof-create-prix" required min="0" step="1" value="25">
                             </div>
                         </div>
-                        <button type="submit" class="btn-primary" style="margin-top: 6px;">Enregistrer l'élève & Générer les Codes Parents</button>
+                        <button type="submit" class="btn-primary" style="margin-top: 6px;" data-i18n="btn_prof_create_generate">Enregistrer l'élève & Générer les Codes Parents</button>
                     </form>
 
                     <div id="prof-create-result-box" class="prof-created-success-card" style="display: none;">
-                        <h4 style="margin: 0 0 6px 0; color: #065F46;">🎉 Élève créé avec succès !</h4>
-                        <p style="font-size: 0.88rem; color: #064E3B; margin-bottom: 10px;">
+                        <h4 style="margin: 0 0 6px 0; color: #065F46;" data-i18n="prof_create_success_title">🎉 Élève créé avec succès !</h4>
+                        <p style="font-size: 0.88rem; color: #064E3B; margin-bottom: 10px;" data-i18n="prof_create_success_desc">
                             Transmettez ce message aux parents pour qu'ils ajoutent l'enfant sur leur interface :
                         </p>
                         <div class="prof-student-codes-box" id="prof-created-details-text"></div>
-                        <button id="btn-copy-parent-invite" class="btn-primary" style="margin-top: 10px; width: 100%;">
+                        <button id="btn-copy-parent-invite" class="btn-primary" style="margin-top: 10px; width: 100%;" data-i18n="btn_copy_parent_invite">
                             📲 Copier le message d'invitation pour les parents
                         </button>
                     </div>
@@ -272,7 +279,7 @@
 
                 <!-- Section : Mes Élèves Suivis -->
                 <div id="prof-my-students-container" style="margin-top: 24px;">
-                    <h3 style="color: var(--sidi-blue-dark); font-size: 1.1rem; margin-bottom: 12px;">📚 Mes Élèves</h3>
+                    <h3 style="color: var(--sidi-blue-dark); font-size: 1.1rem; margin-bottom: 12px;" data-i18n="prof_my_students_title">📚 Mes Élèves</h3>
                     <div id="prof-my-students-list">
                         <!-- Liste des élèves injectée dynamiquement -->
                     </div>
@@ -283,8 +290,8 @@
         <!-- VUE 2: TABLEAU DE BORD (Dossier Élève & Séances) -->
         <section id="view-dashboard" class="view">
             <div class="dashboard-header-bar">
-                <button id="btn-back" class="btn-secondary">← Retour</button>
-                <button id="btn-open-settings-sub" class="btn-secondary">⚙️ Réglages & Tarifs</button>
+                <button id="btn-back" class="btn-secondary" data-i18n="btn_back">← Retour</button>
+                <button id="btn-open-settings-sub" class="btn-secondary" data-i18n="btn_settings_sub">⚙️ Réglages & Tarifs</button>
             </div>
 
             <!-- Bannière d'accès Professeur restreint à sa matière -->
@@ -292,9 +299,9 @@
                 <div>
                     <span>👨‍🏫 <strong id="prof-banner-name">Professeur</strong></span>
                     <span style="margin: 0 8px;">•</span>
-                    <span>Matière : <strong id="prof-banner-subject">Anglais</strong></span>
+                    <span><span data-i18n="form_session_matiere">Matière :</span> <strong id="prof-banner-subject">Anglais</strong></span>
                 </div>
-                <span style="font-size: 0.8rem; background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px;">Historique matière uniquement</span>
+                <span style="font-size: 0.8rem; background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px;" data-i18n="prof_banner_subject_only">Historique matière uniquement</span>
             </div>
             
             <div class="student-info">
@@ -305,13 +312,13 @@
             <!-- Onglets de navigation dans le dossier élève -->
             <div class="dash-tabs-bar">
                 <button type="button" class="btn-dash-tab active" data-tab="tab-seances">
-                    <span>📚</span> <span class="tab-txt-full">Séances</span><span class="tab-txt-short">Séances</span>
+                    <span>📚</span> <span class="tab-txt-full" data-i18n="tab_seances">Séances</span><span class="tab-txt-short" data-i18n="tab_seances">Séances</span>
                 </button>
                 <button type="button" class="btn-dash-tab" data-tab="tab-emploi">
-                    <span>📅</span> <span class="tab-txt-full">Emploi du Temps</span><span class="tab-txt-short">Emploi</span>
+                    <span>📅</span> <span class="tab-txt-full" data-i18n="tab_emploi">Emploi du Temps</span><span class="tab-txt-short" data-i18n="tab_emploi_short">Emploi</span>
                 </button>
                 <button type="button" class="btn-dash-tab" data-tab="tab-examens">
-                    <span>📝</span> <span class="tab-txt-full">Examens</span><span class="tab-txt-short">Examens</span>
+                    <span>📝</span> <span class="tab-txt-full" data-i18n="tab_examens">Examens</span><span class="tab-txt-short" data-i18n="tab_examens_short">Examens</span>
                 </button>
             </div>
 
@@ -322,76 +329,76 @@
 
                 <!-- Formulaire d'ajout de séance -->
                 <div class="add-session-card">
-                    <h3>Ajouter une séance de cours ou de rattrapage</h3>
+                    <h3 data-i18n="add_session_title">Ajouter une séance de cours ou de rattrapage</h3>
                     <form id="form-add-session">
                         <div class="form-row">
                             <div class="form-group form-col">
-                                <label for="date-seance">Date (JJ/MM/AAAA) :</label>
+                                <label for="date-seance" data-i18n="form_session_date">Date (JJ/MM/AAAA) :</label>
                                 <input type="text" id="date-seance" placeholder="JJ/MM/AAAA" required maxlength="10">
                             </div>
                             <div class="form-group form-col">
-                                <label for="heure-seance">Heure de début (Optionnel) :</label>
+                                <label for="heure-seance" data-i18n="form_session_heure">Heure de début (Optionnel) :</label>
                                 <input type="text" id="heure-seance" placeholder="HH:MM (Ex: 17:30)" maxlength="5">
                             </div>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group form-col">
-                                <label for="sujet-seance">Matière :</label>
+                                <label for="sujet-seance" data-i18n="form_session_matiere">Matière :</label>
                                 <select id="sujet-seance" required>
-                                    <option value="">-- Choisir une matière --</option>
+                                    <option value="" data-i18n="select_matiere_placeholder">-- Choisir une matière --</option>
                                 </select>
                             </div>
                             <div class="form-group form-col">
-                                <label for="prof-seance">Professeur :</label>
+                                <label for="prof-seance" data-i18n="form_session_prof">Professeur :</label>
                                 <select id="prof-seance">
-                                    <option value="Non spécifié">Non spécifié</option>
+                                    <option value="Non spécifié" data-i18n="select_prof_non_specifie">Non spécifié</option>
                                 </select>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label for="statut-seance">Statut de réalisation :</label>
+                            <label for="statut-seance" data-i18n="form_session_statut">Statut de réalisation :</label>
                             <select id="statut-seance">
-                                <option value="Planifiée">Planifiée</option>
-                                <option value="Effectuée">Effectuée</option>
-                                <option value="Annulée">Annulée</option>
+                                <option value="Planifiée" data-i18n="status_planifiee">Planifiée</option>
+                                <option value="Effectuée" data-i18n="status_effectuee">Effectuée</option>
+                                <option value="Annulée" data-i18n="status_annulee">Annulée</option>
                             </select>
                         </div>
-                        <button type="submit" class="btn-primary">Planifier la séance</button>
+                        <button type="submit" class="btn-primary" data-i18n="btn_plan_session">Planifier la séance</button>
                     </form>
                 </div>
 
                 <!-- Historique des séances -->
                 <div class="sessions-list-container">
-                    <h3>Historique des séances</h3>
+                    <h3 data-i18n="sessions_history_title">Historique des séances</h3>
                     
                     <div class="filters-container">
                         <select id="filter-status">
-                            <option value="Tous">Tous les statuts</option>
-                            <option value="Planifiée">Planifiée</option>
-                            <option value="Effectuée">Effectuée</option>
-                            <option value="Annulée">Annulée</option>
+                            <option value="Tous" data-i18n="filter_all_status">Tous les statuts</option>
+                            <option value="Planifiée" data-i18n="status_planifiee">Planifiée</option>
+                            <option value="Effectuée" data-i18n="status_effectuee">Effectuée</option>
+                            <option value="Annulée" data-i18n="status_annulee">Annulée</option>
                         </select>
 
                         <select id="filter-validation">
-                            <option value="Tous">Toutes validations</option>
-                            <option value="Confirmee">Confirmée</option>
-                            <option value="En attente">En attente</option>
-                            <option value="Modifiee">Modifiée par élève</option>
-                            <option value="Suppression">Demande suppression</option>
-                            <option value="Refusee">Refusée</option>
+                            <option value="Tous" data-i18n="filter_all_validation">Toutes validations</option>
+                            <option value="Confirmee" data-i18n="val_confirmee">Confirmée</option>
+                            <option value="En attente" data-i18n="val_attente">En attente</option>
+                            <option value="Modifiee" data-i18n="val_modifiee">Modifiée par élève</option>
+                            <option value="Suppression" data-i18n="val_suppression">Demande suppression</option>
+                            <option value="Refusee" data-i18n="val_refusee">Refusée</option>
                         </select>
                         
                         <select id="filter-matiere">
-                            <option value="Toutes">Toutes les matières</option>
+                            <option value="Toutes" data-i18n="filter_all_matieres">Toutes les matières</option>
                         </select>
                         
                         <select id="sort-by">
-                            <option value="date-desc">Date (Récente d'abord)</option>
-                            <option value="date-asc">Date (Ancienne d'abord)</option>
-                            <option value="matiere-asc">Matière (A-Z)</option>
-                            <option value="matiere-desc">Matière (Z-A)</option>
+                            <option value="date-desc" data-i18n="sort_date_desc">Date (Récente d'abord)</option>
+                            <option value="date-asc" data-i18n="sort_date_asc">Date (Ancienne d'abord)</option>
+                            <option value="matiere-asc" data-i18n="sort_matiere_asc">Matière (A-Z)</option>
+                            <option value="matiere-desc" data-i18n="sort_matiere_desc">Matière (Z-A)</option>
                         </select>
                     </div>
 
@@ -404,17 +411,17 @@
             <!-- ONGLET 2 : EMPLOI DU TEMPS (JOURNALIER & HEBDOMADAIRE) -->
             <div id="dash-panel-emploi" class="dash-tab-panel">
                 <div class="section-subbar">
-                    <h3>📅 Emploi du Temps</h3>
+                    <h3 data-i18n="timetable_title">📅 Emploi du Temps</h3>
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <div class="emploi-mode-toggle">
                             <button type="button" class="btn-emploi-mode active" id="btn-mode-journalier">
-                                <span class="tab-txt-full">📆 Journalier</span><span class="tab-txt-short">📆 Jour</span>
+                                <span class="tab-txt-full" data-i18n="btn_mode_daily">📆 Journalier</span><span class="tab-txt-short" data-i18n="btn_mode_daily_short">📆 Jour</span>
                             </button>
                             <button type="button" class="btn-emploi-mode" id="btn-mode-hebdomadaire">
-                                <span class="tab-txt-full">🗓️ Hebdomadaire</span><span class="tab-txt-short">🗓️ Semaine</span>
+                                <span class="tab-txt-full" data-i18n="btn_mode_weekly">🗓️ Hebdomadaire</span><span class="tab-txt-short" data-i18n="btn_mode_weekly_short">🗓️ Semaine</span>
                             </button>
                         </div>
-                        <button type="button" id="btn-open-add-course" class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.85rem;">
+                        <button type="button" id="btn-open-add-course" class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.85rem;" data-i18n="btn_add_course">
                             + Ajouter un cours
                         </button>
                     </div>
@@ -448,8 +455,8 @@
             <!-- ONGLET 3 : DATES DES EXAMENS (CONTRÔLE & SYNTHÈSE) -->
             <div id="dash-panel-examens" class="dash-tab-panel">
                 <div class="section-subbar">
-                    <h3>📝 Dates des Examens</h3>
-                    <button type="button" id="btn-open-add-exam" class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.85rem;">
+                    <h3 data-i18n="exams_title">📝 Dates des Examens</h3>
+                    <button type="button" id="btn-open-add-exam" class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.85rem;" data-i18n="btn_add_exam">
                         + Ajouter un examen
                     </button>
                 </div>
@@ -457,23 +464,23 @@
                 <!-- Filtres examens -->
                 <div class="filters-container" style="margin-bottom: 14px;">
                     <select id="filter-exam-type">
-                        <option value="Tous">Tous les types d'examens</option>
-                        <option value="Contrôle">Devoirs de Contrôle (DC)</option>
-                        <option value="Synthèse">Devoirs de Synthèse (DS)</option>
-                        <option value="Test">Tests & Travaux Pratiques</option>
+                        <option value="Tous" data-i18n="filter_all_exam_types">Tous les types d'examens</option>
+                        <option value="Contrôle" data-i18n="filter_exam_dc">Devoirs de Contrôle (DC)</option>
+                        <option value="Synthèse" data-i18n="filter_exam_ds">Devoirs de Synthèse (DS)</option>
+                        <option value="Test" data-i18n="filter_exam_tp">Tests & Travaux Pratiques</option>
                     </select>
 
                     <select id="filter-exam-trimestre">
-                        <option value="Tous">Tous les trimestres</option>
-                        <option value="Trimestre 1">Trimestre 1</option>
-                        <option value="Trimestre 2">Trimestre 2</option>
-                        <option value="Trimestre 3">Trimestre 3</option>
+                        <option value="Tous" data-i18n="filter_all_trimesters">Tous les trimestres</option>
+                        <option value="Trimestre 1" data-i18n="trimestre_1">Trimestre 1</option>
+                        <option value="Trimestre 2" data-i18n="trimestre_2">Trimestre 2</option>
+                        <option value="Trimestre 3" data-i18n="trimestre_3">Trimestre 3</option>
                     </select>
 
                     <select id="filter-exam-timing">
-                        <option value="Tous">Tous (À venir et passés)</option>
-                        <option value="A_venir">Examens à venir</option>
-                        <option value="Passes">Examens passés</option>
+                        <option value="Tous" data-i18n="filter_all_timing">Tous (À venir et passés)</option>
+                        <option value="A_venir" data-i18n="filter_timing_upcoming">Examens à venir</option>
+                        <option value="Passes" data-i18n="filter_timing_past">Examens passés</option>
                     </select>
                 </div>
 
@@ -488,43 +495,43 @@
     <div id="modal-edit-session" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h2>Modifier la séance</h2>
+                <h2 data-i18n="edit_session_title">Modifier la séance</h2>
                 <button id="btn-close-edit-session" class="btn-close">&times;</button>
             </div>
             <form id="form-edit-session">
                 <input type="hidden" id="edit-session-id">
                 <div class="form-row">
                     <div class="form-group form-col">
-                        <label for="edit-date-seance">Date (JJ/MM/AAAA) :</label>
+                        <label for="edit-date-seance" data-i18n="form_session_date">Date (JJ/MM/AAAA) :</label>
                         <input type="text" id="edit-date-seance" placeholder="JJ/MM/AAAA" required maxlength="10">
                     </div>
                     <div class="form-group form-col">
-                        <label for="edit-heure-seance">Heure de début (Optionnel) :</label>
+                        <label for="edit-heure-seance" data-i18n="form_session_heure">Heure de début (Optionnel) :</label>
                         <input type="text" id="edit-heure-seance" placeholder="HH:MM (Ex: 17:30)" maxlength="5">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group form-col">
-                        <label for="edit-sujet-seance">Matière :</label>
+                        <label for="edit-sujet-seance" data-i18n="form_session_matiere">Matière :</label>
                         <select id="edit-sujet-seance" required></select>
                     </div>
                     <div class="form-group form-col">
-                        <label for="edit-prof-seance">Professeur :</label>
+                        <label for="edit-prof-seance" data-i18n="form_session_prof">Professeur :</label>
                         <select id="edit-prof-seance"></select>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="edit-statut-seance">Statut de réalisation :</label>
+                    <label for="edit-statut-seance" data-i18n="form_session_statut">Statut de réalisation :</label>
                     <select id="edit-statut-seance">
-                        <option value="Planifiée">Planifiée</option>
-                        <option value="Effectuée">Effectuée</option>
-                        <option value="Annulée">Annulée</option>
+                        <option value="Planifiée" data-i18n="status_planifiee">Planifiée</option>
+                        <option value="Effectuée" data-i18n="status_effectuee">Effectuée</option>
+                        <option value="Annulée" data-i18n="status_annulee">Annulée</option>
                     </select>
                 </div>
-                <div id="edit-session-role-warning" style="display: none; font-size: 0.85rem; color: #D97706; margin-bottom: 12px; background: #FEF3C7; padding: 10px 12px; border-radius: 8px;">
+                <div id="edit-session-role-warning" style="display: none; font-size: 0.85rem; color: #D97706; margin-bottom: 12px; background: #FEF3C7; padding: 10px 12px; border-radius: 8px;" data-i18n="student_edit_warning">
                     ⚠️ En tant qu'élève, votre modification sera soumise à la confirmation de vos parents.
                 </div>
-                <button type="submit" class="btn-primary">Enregistrer les modifications</button>
+                <button type="submit" class="btn-primary" data-i18n="btn_save_changes">Enregistrer les modifications</button>
             </form>
         </div>
     </div>
@@ -533,20 +540,20 @@
     <div id="modal-settings" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h2>Réglages & Tarifs</h2>
+                <h2 data-i18n="settings_title">Réglages & Tarifs</h2>
                 <button id="btn-close-settings" class="btn-close">&times;</button>
             </div>
             
             <div class="modal-tabs">
-                <button class="tab-btn active" data-tab="tab-codes" id="btn-tab-codes">🔑 Codes d'accès</button>
-                <button class="tab-btn" data-tab="tab-tarifs" id="btn-tab-tarifs">Tarifs & Matières</button>
-                <button class="tab-btn" data-tab="tab-sync">Cloud & Sauvegarde</button>
-                <button class="tab-btn" data-tab="tab-profil">Profil & Rôle</button>
+                <button class="tab-btn active" data-tab="tab-codes" id="btn-tab-codes" data-i18n="tab_codes_title">🔑 Codes d'accès</button>
+                <button class="tab-btn" data-tab="tab-tarifs" id="btn-tab-tarifs" data-i18n="tab_tarifs_title">Tarifs & Matières</button>
+                <button class="tab-btn" data-tab="tab-sync" data-i18n="tab_sync_title">Cloud & Sauvegarde</button>
+                <button class="tab-btn" data-tab="tab-profil" data-i18n="tab_profil_title">Profil & Rôle</button>
             </div>
 
             <!-- Onglet 0: Codes d'accès Élèves & Professeurs -->
             <div id="tab-codes" class="tab-content active">
-                <p class="tab-help">Retrouvez ici pour chaque élève son <strong>Code Élève</strong> et les <strong>Codes Professeurs</strong> combinés pour chacun de ses enseignants :</p>
+                <p class="tab-help" data-i18n-html="settings_codes_help">Retrouvez ici pour chaque élève son <strong>Code Élève</strong> et les <strong>Codes Professeurs</strong> combinés pour chacun de ses enseignants :</p>
                 <div id="settings-students-codes-list">
                     <!-- Enfants et leurs professeurs injectés ici -->
                 </div>
@@ -556,7 +563,7 @@
             <div id="tab-tarifs" class="tab-content">
                 <div class="form-group" style="background: #F0F9FF; border: 1.5px solid #BAE6FD; padding: 12px 14px; border-radius: 10px; margin-bottom: 16px;">
                     <label for="cfg-select-student" style="font-weight: 700; color: var(--sidi-blue-dark); font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-                        <span>👤 Configurer les matières et professeurs pour :</span>
+                        <span data-i18n="settings_configure_for">👤 Configurer les matières et professeurs pour :</span>
                     </label>
                     <select id="cfg-select-student" style="font-size: 0.95rem; font-weight: 600; padding: 8px 12px; margin-top: 6px; width: 100%; border: 1.5px solid var(--sidi-blue); border-radius: 8px; background: white; color: var(--sidi-blue-dark);">
                         <!-- Enfants injectés dynamiquement -->
@@ -565,55 +572,55 @@
                 <p class="tab-help" id="cfg-tab-help-text">Matières et professeurs configurés pour cet élève :</p>
                 <div id="current-matieres-list" class="matieres-config-list"></div>
 
-                <h3 id="cfg-form-title" style="margin-top: 20px;">Ajouter / Modifier une matière</h3>
+                <h3 id="cfg-form-title" style="margin-top: 20px;" data-i18n="form_matiere_title">Ajouter / Modifier une matière</h3>
                 <form id="form-config-matiere">
                     <div class="form-group">
-                        <label for="cfg-nom-matiere">Nom de la matière :</label>
+                        <label for="cfg-nom-matiere" data-i18n="form_matiere_nom">Nom de la matière :</label>
                         <input type="text" id="cfg-nom-matiere" required placeholder="Ex: Anglais, Maths, SVT...">
                     </div>
                     <div class="form-row">
                         <div class="form-group form-col">
-                            <label for="cfg-prix-seance">Prix de la séance (DT) :</label>
+                            <label for="cfg-prix-seance" data-i18n="form_matiere_prix">Prix de la séance (DT) :</label>
                             <input type="number" id="cfg-prix-seance" required min="1" step="0.5" placeholder="Ex: 20">
                         </div>
                         <div class="form-group form-col">
-                            <label for="cfg-quota-seances">Quota séances pour paiement :</label>
+                            <label for="cfg-quota-seances" data-i18n="form_matiere_quota">Quota séances pour paiement :</label>
                             <input type="number" id="cfg-quota-seances" required min="1" step="1" placeholder="Ex: 3">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="cfg-professeurs">Professeurs (séparés par virgules) :</label>
+                        <label for="cfg-professeurs" data-i18n="form_matiere_profs">Professeurs (séparés par virgules) :</label>
                         <input type="text" id="cfg-professeurs" placeholder="Ex: M. Ben Salem, Mme Trabelsi">
                     </div>
-                    <button type="submit" class="btn-primary">Enregistrer la matière</button>
+                    <button type="submit" class="btn-primary" data-i18n="btn_save_matiere">Enregistrer la matière</button>
                 </form>
             </div>
 
             <!-- Onglet 2: Synchronisation Cloud & Sauvegarde -->
             <div id="tab-sync" class="tab-content">
-                <p class="tab-help">Synchronisez les séances en direct entre téléphones (Parent, Élève, Professeur).</p>
+                <p class="tab-help" data-i18n="sync_help_text">Synchronisez les séances en direct entre téléphones (Parent, Élève, Professeur).</p>
                 <div class="sync-info-box">
-                    <p>Votre Code Famille actuel :</p>
+                    <p data-i18n="sync_family_code_label">Votre Code Famille actuel :</p>
                     <div class="sync-code-display" id="settings-family-code">...</div>
-                    <p class="text-muted">Partagez ce code avec l'élève ou le professeur pour lier les appareils.</p>
+                    <p class="text-muted" data-i18n="sync_share_notice">Partagez ce code avec l'élève ou le professeur pour lier les appareils.</p>
                 </div>
                 <hr style="margin: 15px 0; border: none; border-top: 1px dashed var(--sidi-blue);">
                 <div class="form-group">
-                    <label for="input-join-family">Rejoindre une autre famille :</label>
+                    <label for="input-join-family" data-i18n="sync_join_other_label">Rejoindre une autre famille :</label>
                     <div class="input-inline">
                         <input type="text" id="input-join-family" placeholder="Code ex: FAM-4821">
-                        <button id="btn-join-family" class="btn-primary" style="width: auto;">Lier</button>
+                        <button id="btn-join-family" class="btn-primary" style="width: auto;" data-i18n="btn_join_family">Lier</button>
                     </div>
                 </div>
 
                 <hr style="margin: 20px 0; border: none; border-top: 1px dashed var(--sidi-blue);">
-                <h3 style="font-size: 1rem; color: var(--sidi-blue); margin-bottom: 6px;">💾 Sauvegarde & Restauration</h3>
-                <p class="tab-help">Téléchargez une sauvegarde de vos données ou restaurez un fichier précédent :</p>
+                <h3 style="font-size: 1rem; color: var(--sidi-blue); margin-bottom: 6px;" data-i18n="backup_heading">💾 Sauvegarde & Restauration</h3>
+                <p class="tab-help" data-i18n="backup_help">Téléchargez une sauvegarde de vos données ou restaurez un fichier précédent :</p>
                 <div style="display: flex; gap: 10px; margin-top: 12px;">
-                    <button id="btn-backup-data" class="btn-primary" style="flex: 1; padding: 10px 6px; font-size: 0.9rem;">
+                    <button id="btn-backup-data" class="btn-primary" style="flex: 1; padding: 10px 6px; font-size: 0.9rem;" data-i18n="btn_backup">
                         📥 Sauvegarder
                     </button>
-                    <button id="btn-restore-data-trigger" class="btn-secondary" style="flex: 1; padding: 10px 6px; font-size: 0.9rem;">
+                    <button id="btn-restore-data-trigger" class="btn-secondary" style="flex: 1; padding: 10px 6px; font-size: 0.9rem;" data-i18n="btn_restore">
                         📤 Restaurer
                     </button>
                     <input type="file" id="input-restore-file" accept=".json" style="display: none;">
@@ -624,33 +631,43 @@
             <div id="tab-profil" class="tab-content">
                 <p class="tab-help">Vous pouvez changer de profil si vous avez fait une erreur lors du choix initial.</p>
                 <div class="current-role-box">
-                    <span>Rôle actif : <strong id="settings-current-role">Parent</strong></span>
+                    <span><span data-i18n="profil_active_role_label">Rôle actif :</span> <strong id="settings-current-role">Parent</strong></span>
+                </div>
+
+                <!-- Sélecteur de Langue dans le Profil -->
+                <div class="form-group" style="margin-top: 16px; background: #F8FAFC; padding: 12px; border-radius: 10px; border: 1px solid #E2E8F0;">
+                    <label style="font-weight: 700; font-size: 0.9rem; color: var(--sidi-blue-dark); margin-bottom: 8px; display: block;" data-i18n="settings_lang_label">🌐 Langue de l'application :</label>
+                    <div class="lang-choice-group">
+                        <button type="button" class="btn-lang-choice" data-lang="fr">🇫🇷 Français</button>
+                        <button type="button" class="btn-lang-choice" data-lang="en">🇬🇧 English</button>
+                        <button type="button" class="btn-lang-choice" data-lang="ar">🇹🇳 العربية</button>
+                    </div>
                 </div>
 
                 <div id="settings-license-box" style="margin-top: 15px; padding: 14px; background: #F8FAFC; border: 1px solid #BAE6FD; border-radius: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-weight: 700; color: var(--sidi-blue-dark);">📜 Licence EduPocket</span>
-                        <span id="settings-license-badge" class="badge-license-active">🟢 Active</span>
+                        <span style="font-weight: 700; color: var(--sidi-blue-dark);" data-i18n="settings_license_box_title">📜 Licence EduPocket</span>
+                        <span id="settings-license-badge" class="badge-license-active" data-i18n="license_active">🟢 Active</span>
                     </div>
                     <div id="settings-license-details" style="font-size: 0.85rem; color: #475569; line-height: 1.5;">
                         Titulaire : <strong id="settings-license-name">Non activée</strong><br>
                         Clé : <code id="settings-license-key" style="font-family: monospace;">---</code>
                     </div>
-                    <button id="btn-rearm-license" class="btn-sm" style="margin-top: 10px; background: var(--sidi-blue); color: white; width: 100%;">
+                    <button id="btn-rearm-license" class="btn-sm" style="margin-top: 10px; background: var(--sidi-blue); color: white; width: 100%;" data-i18n="btn_rearm_license">
                         🔑 Modifier / Renouveler la licence
                     </button>
                 </div>
 
                 <div class="form-group" style="margin-top: 16px; background: #F8FAFC; padding: 12px; border-radius: 10px; border: 1px solid #E2E8F0;">
-                    <label for="profile-phone-input" style="font-weight: 700; font-size: 0.9rem; color: var(--sidi-blue-dark);">📱 Mon N° WhatsApp :</label>
+                    <label for="profile-phone-input" style="font-weight: 700; font-size: 0.9rem; color: var(--sidi-blue-dark);" data-i18n="profile_whatsapp_label">📱 Mon N° WhatsApp :</label>
                     <div class="input-inline" style="margin-top: 6px;">
                         <input type="tel" id="profile-phone-input" placeholder="Ex: 98 123 456">
-                        <button id="btn-save-profile-phone" class="btn-primary" style="width: auto; white-space: nowrap;">Enregistrer</button>
+                        <button id="btn-save-profile-phone" class="btn-primary" style="width: auto; white-space: nowrap;" data-i18n="btn_save">Enregistrer</button>
                     </div>
-                    <div id="profile-phone-success" style="display: none; font-size: 0.8rem; color: #10B981; margin-top: 5px; font-weight: 600;">✓ Numéro WhatsApp enregistré</div>
+                    <div id="profile-phone-success" style="display: none; font-size: 0.8rem; color: #10B981; margin-top: 5px; font-weight: 600;" data-i18n="profile_phone_saved">✓ Numéro WhatsApp enregistré</div>
                 </div>
 
-                <button id="btn-reset-role" class="btn-secondary" style="width: 100%; margin-top: 15px; color: #d9534f; border-color: #d9534f;">
+                <button id="btn-reset-role" class="btn-secondary" style="width: 100%; margin-top: 15px; color: #d9534f; border-color: #d9534f;" data-i18n="btn_reset_role">
                     Changer de profil (Réinitialiser le rôle)
                 </button>
             </div>
@@ -703,20 +720,20 @@
     <div id="modal-payment" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h2>Enregistrer un Paiement</h2>
+                <h2 data-i18n="modal_payment_title">Enregistrer un Paiement</h2>
                 <button id="btn-close-payment" class="btn-close">&times;</button>
             </div>
             <div id="payment-modal-body">
                 <p id="payment-modal-desc"></p>
                 <div class="form-group">
-                    <label for="pay-date">Date de paiement (JJ/MM/AAAA) :</label>
+                    <label for="pay-date" data-i18n="pay_date_label">Date de paiement (JJ/MM/AAAA) :</label>
                     <input type="text" id="pay-date" required maxlength="10">
                 </div>
                 <div class="form-group">
-                    <label for="pay-note">Remarque optionnelle :</label>
+                    <label for="pay-note" data-i18n="pay_note_label">Remarque optionnelle :</label>
                     <input type="text" id="pay-note" placeholder="Ex: Payé en espèces, chèque...">
                 </div>
-                <button id="btn-confirm-payment" class="btn-primary">Valider le Paiement</button>
+                <button id="btn-confirm-payment" class="btn-primary" data-i18n="btn_confirm_payment">Valider le Paiement</button>
             </div>
         </div>
     </div>
@@ -725,7 +742,7 @@
     <div id="modal-edit-prof" class="modal-overlay" style="display: none;">
         <div class="modal-card" style="max-width: 440px;">
             <div class="modal-header">
-                <h2>✏️ Modifier le Professeur</h2>
+                <h2 data-i18n="edit_prof_title">✏️ Modifier le Professeur</h2>
                 <button id="btn-close-edit-prof" class="btn-close">&times;</button>
             </div>
             <form id="form-edit-prof">
@@ -739,40 +756,40 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="edit-prof-nom">Nom et Titre du Professeur :</label>
+                    <label for="edit-prof-nom" data-i18n="edit_prof_name_label">Nom et Titre du Professeur :</label>
                     <input type="text" id="edit-prof-nom" required placeholder="Ex: M. Ahmed Ben Salem">
                 </div>
 
                 <div class="form-group">
-                    <label for="edit-prof-telephone">📱 N° WhatsApp Professeur :</label>
+                    <label for="edit-prof-telephone" data-i18n="edit_prof_tel_label">📱 N° WhatsApp Professeur :</label>
                     <input type="tel" id="edit-prof-telephone" placeholder="Ex: 98 123 456">
                 </div>
 
                 <div class="form-row" style="display: flex; gap: 10px;">
                     <div class="form-group form-col" style="flex: 1;">
-                        <label for="edit-prof-prix">💰 Prix séance (DT) :</label>
+                        <label for="edit-prof-prix" data-i18n="edit_prof_prix_label">💰 Prix séance (DT) :</label>
                         <input type="number" id="edit-prof-prix" min="0" step="0.5" required placeholder="Ex: 25">
                     </div>
                     <div class="form-group form-col" style="flex: 1;">
-                        <label for="edit-prof-quota">📦 Quota paiement :</label>
+                        <label for="edit-prof-quota" data-i18n="edit_prof_quota_label">📦 Quota paiement :</label>
                         <input type="number" id="edit-prof-quota" min="1" max="50" step="1" required placeholder="Ex: 4">
                     </div>
                 </div>
-                <div style="font-size: 0.74rem; color: #64748B; margin-top: -6px; margin-bottom: 12px;">
+                <div style="font-size: 0.74rem; color: #64748B; margin-top: -6px; margin-bottom: 12px;" data-i18n="edit_prof_hint">
                     Définit le tarif par séance et le nombre de séances cumulées avant déclenchement de l'alerte de paiement pour ce professeur.
                 </div>
 
                 <div class="form-group">
-                    <label>Code d'accès combiné de ce professeur :</label>
+                    <label data-i18n="edit_prof_code_label">Code d'accès combiné de ce professeur :</label>
                     <code id="edit-prof-current-code" class="code-badge-combined" style="display: inline-block; padding: 6px 10px; font-size: 0.9rem;"></code>
-                    <div style="font-size: 0.74rem; color: #64748B; margin-top: 4px;">
+                    <div style="font-size: 0.74rem; color: #64748B; margin-top: 4px;" data-i18n="edit_prof_code_hint">
                         Le code combiné reste inchangé afin que le professeur conserve son accès sans interruption.
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 18px;">
-                    <button type="button" id="btn-cancel-edit-prof" class="btn-secondary" style="flex: 1;">Annuler</button>
-                    <button type="submit" class="btn-primary" style="flex: 2;">Enregistrer</button>
+                    <button type="button" id="btn-cancel-edit-prof" class="btn-secondary" style="flex: 1;" data-i18n="btn_cancel">Annuler</button>
+                    <button type="submit" class="btn-primary" style="flex: 2;" data-i18n="btn_save">Enregistrer</button>
                 </div>
             </form>
         </div>
@@ -782,38 +799,38 @@
     <div id="modal-edit-student" class="modal-overlay" style="display: none;">
         <div class="modal-card" style="max-width: 440px;">
             <div class="modal-header">
-                <h2>✏️ Modifier l'Élève</h2>
+                <h2 data-i18n="edit_student_title">✏️ Modifier l'Élève</h2>
                 <button id="btn-close-edit-student" class="btn-close">&times;</button>
             </div>
             <form id="form-edit-student">
                 <input type="hidden" id="edit-student-id">
                 <div class="form-row">
                     <div class="form-group form-col">
-                        <label for="edit-student-nom">Nom :</label>
+                        <label for="edit-student-nom" data-i18n="form_nom">Nom :</label>
                         <input type="text" id="edit-student-nom" required>
                     </div>
                     <div class="form-group form-col">
-                        <label for="edit-student-prenom">Prénom :</label>
+                        <label for="edit-student-prenom" data-i18n="form_prenom">Prénom :</label>
                         <input type="text" id="edit-student-prenom" required>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="edit-student-classe">Classe :</label>
+                    <label for="edit-student-classe" data-i18n="form_classe">Classe :</label>
                     <input type="text" id="edit-student-classe" required placeholder="Ex: 3ème Math, Bac...">
                 </div>
                 <div class="form-row">
                     <div class="form-group form-col">
-                        <label for="edit-student-tel">📱 N° WhatsApp Élève :</label>
+                        <label for="edit-student-tel" data-i18n="form_phone_student">📱 N° WhatsApp Élève :</label>
                         <input type="tel" id="edit-student-tel" placeholder="Ex: 98 123 456">
                     </div>
                     <div class="form-group form-col">
-                        <label for="edit-student-tel-parent">📱 N° WhatsApp Parent :</label>
+                        <label for="edit-student-tel-parent" data-i18n="form_phone_parent">📱 N° WhatsApp Parent :</label>
                         <input type="tel" id="edit-student-tel-parent" placeholder="Ex: 98 654 321">
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 18px;">
-                    <button type="button" id="btn-cancel-edit-student" class="btn-secondary" style="flex: 1;">Annuler</button>
-                    <button type="submit" class="btn-primary" style="flex: 2;">Enregistrer</button>
+                    <button type="button" id="btn-cancel-edit-student" class="btn-secondary" style="flex: 1;" data-i18n="btn_cancel">Annuler</button>
+                    <button type="submit" class="btn-primary" style="flex: 2;" data-i18n="btn_save">Enregistrer</button>
                 </div>
             </form>
         </div>
@@ -823,13 +840,13 @@
     <div id="modal-course" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h2 id="modal-course-title">📅 Ajouter un cours à l'emploi du temps</h2>
+                <h2 id="modal-course-title" data-i18n="modal_course_add_title">📅 Ajouter un cours à l'emploi du temps</h2>
                 <button type="button" id="btn-close-course-modal" class="btn-close">&times;</button>
             </div>
             <form id="form-course">
                 <input type="hidden" id="course-id">
                 <div class="form-group">
-                    <label for="course-jour">Jour de la semaine :</label>
+                    <label for="course-jour" data-i18n="course_jour_label">Jour de la semaine :</label>
                     <select id="course-jour" required>
                         <option value="Lundi">Lundi</option>
                         <option value="Mardi">Mardi</option>
@@ -842,32 +859,32 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group form-col">
-                        <label for="course-heure-debut">Heure de début :</label>
+                        <label for="course-heure-debut" data-i18n="course_start_label">Heure de début :</label>
                         <input type="text" id="course-heure-debut" placeholder="HH:MM (Ex: 08:00)" required maxlength="5">
                     </div>
                     <div class="form-group form-col">
-                        <label for="course-heure-fin">Heure de fin :</label>
+                        <label for="course-heure-fin" data-i18n="course_end_label">Heure de fin :</label>
                         <input type="text" id="course-heure-fin" placeholder="HH:MM (Ex: 10:00)" required maxlength="5">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="course-matiere">Matière :</label>
+                    <label for="course-matiere" data-i18n="course_matiere_label">Matière :</label>
                     <input type="text" id="course-matiere" list="datalist-course-matieres" required placeholder="Ex: Mathématiques, Physique, Français...">
                     <datalist id="datalist-course-matieres"></datalist>
                 </div>
                 <div class="form-row">
                     <div class="form-group form-col">
-                        <label for="course-prof">Enseignant (Optionnel) :</label>
+                        <label for="course-prof" data-i18n="course_prof_label">Enseignant (Optionnel) :</label>
                         <input type="text" id="course-prof" placeholder="Ex: M. Dubois">
                     </div>
                     <div class="form-group form-col">
-                        <label for="course-salle">Salle (Optionnel) :</label>
+                        <label for="course-salle" data-i18n="course_salle_label">Salle (Optionnel) :</label>
                         <input type="text" id="course-salle" placeholder="Ex: Salle 14, Labo 2">
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 18px;">
-                    <button type="button" id="btn-cancel-course" class="btn-secondary" style="flex: 1;">Annuler</button>
-                    <button type="submit" class="btn-primary" style="flex: 2;">Enregistrer le cours</button>
+                    <button type="button" id="btn-cancel-course" class="btn-secondary" style="flex: 1;" data-i18n="btn_cancel">Annuler</button>
+                    <button type="submit" class="btn-primary" style="flex: 2;" data-i18n="btn_save_course">Enregistrer le cours</button>
                 </div>
             </form>
         </div>
@@ -877,87 +894,88 @@
     <div id="modal-exam" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h2 id="modal-exam-title">📝 Programmer un examen</h2>
+                <h2 id="modal-exam-title" data-i18n="modal_exam_add_title">📝 Programmer un examen</h2>
                 <button type="button" id="btn-close-exam-modal" class="btn-close">&times;</button>
             </div>
             <form id="form-exam">
                 <input type="hidden" id="exam-id">
                 <div class="form-row">
                     <div class="form-group form-col">
-                        <label for="exam-type">Type d'examen :</label>
+                        <label for="exam-type" data-i18n="exam_type_label">Type d'examen :</label>
                         <select id="exam-type" required>
-                            <option value="Contrôle">Devoir de Contrôle (DC)</option>
-                            <option value="Synthèse">Devoir de Synthèse (DS)</option>
-                            <option value="Test">Test / TP / Interrogation</option>
+                            <option value="Contrôle" data-i18n="filter_exam_dc">Devoir de Contrôle (DC)</option>
+                            <option value="Synthèse" data-i18n="filter_exam_ds">Devoir de Synthèse (DS)</option>
+                            <option value="Test" data-i18n="filter_exam_tp">Test / TP / Interrogation</option>
                         </select>
                     </div>
                     <div class="form-group form-col">
-                        <label for="exam-intitule">Intitulé / Numéro :</label>
+                        <label for="exam-intitule" data-i18n="exam_intitule_label">Intitulé / Numéro :</label>
                         <input type="text" id="exam-intitule" placeholder="Ex: DC 1, DS 1, Test 2" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="exam-matiere">Matière :</label>
+                    <label for="exam-matiere" data-i18n="exam_matiere_label">Matière :</label>
                     <input type="text" id="exam-matiere" list="datalist-exam-matieres" required placeholder="Ex: Mathématiques, SVT, Arabe...">
                     <datalist id="datalist-exam-matieres"></datalist>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group form-col">
-                        <label for="exam-date">Date de l'examen (JJ/MM/AAAA) :</label>
+                        <label for="exam-date" data-i18n="exam_date_label">Date de l'examen (JJ/MM/AAAA) :</label>
                         <input type="text" id="exam-date" placeholder="JJ/MM/AAAA" required maxlength="10">
                     </div>
                     <div class="form-group form-col">
-                        <label for="exam-heure">Horaire (Optionnel) :</label>
+                        <label for="exam-heure" data-i18n="exam_time_label">Horaire (Optionnel) :</label>
                         <input type="text" id="exam-heure" placeholder="Ex: 08:30 - 10:30" maxlength="15">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group form-col">
-                        <label for="exam-trimestre">Période :</label>
+                        <label for="exam-trimestre" data-i18n="exam_period_label">Période :</label>
                         <select id="exam-trimestre">
-                            <option value="Trimestre 1">Trimestre 1</option>
-                            <option value="Trimestre 2">Trimestre 2</option>
-                            <option value="Trimestre 3">Trimestre 3</option>
-                            <option value="Semestre 1">Semestre 1</option>
-                            <option value="Semestre 2">Semestre 2</option>
+                            <option value="Trimestre 1" data-i18n="trimestre_1">Trimestre 1</option>
+                            <option value="Trimestre 2" data-i18n="trimestre_2">Trimestre 2</option>
+                            <option value="Trimestre 3" data-i18n="trimestre_3">Trimestre 3</option>
+                            <option value="Semestre 1" data-i18n="semestre_1">Semestre 1</option>
+                            <option value="Semestre 2" data-i18n="semestre_2">Semestre 2</option>
                         </select>
                     </div>
                     <div class="form-group form-col">
-                        <label for="exam-coef">Coefficient (Optionnel) :</label>
+                        <label for="exam-coef" data-i18n="exam_coef_label">Coefficient (Optionnel) :</label>
                         <input type="number" id="exam-coef" min="0.5" max="10" step="0.5" placeholder="Ex: 2">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="exam-note">Note obtenue /20 (Optionnel, modifiable plus tard) :</label>
+                    <label for="exam-note" data-i18n="exam_note_label">Note obtenue /20 (Optionnel, modifiable plus tard) :</label>
                     <input type="number" id="exam-note" min="0" max="20" step="0.25" placeholder="Ex: 16.5">
                 </div>
 
                 <div class="form-group">
-                    <label for="exam-remarques">Chapitres au programme / Consignes (Optionnel) :</label>
+                    <label for="exam-remarques" data-i18n="exam_notes_label">Chapitres au programme / Consignes (Optionnel) :</label>
                     <textarea id="exam-remarques" rows="2" placeholder="Ex: Chapitres 1 à 3, géométrie dans l'espace, calcul intégral..."></textarea>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 18px;">
-                    <button type="button" id="btn-cancel-exam" class="btn-secondary" style="flex: 1;">Annuler</button>
-                    <button type="submit" class="btn-primary" style="flex: 2;">Enregistrer l'examen</button>
+                    <button type="button" id="btn-cancel-exam" class="btn-secondary" style="flex: 1;" data-i18n="btn_cancel">Annuler</button>
+                    <button type="submit" class="btn-primary" style="flex: 2;" data-i18n="btn_save_exam">Enregistrer l'examen</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Scripts de l'application -->
-    <script src="license-manager.js?v=25"></script>
-    <script src="firebase-config.js?v=25"></script>
-    <script src="app.js?v=25"></script>
+    <script src="translations.js?v=26"></script>
+    <script src="license-manager.js?v=26"></script>
+    <script src="firebase-config.js?v=26"></script>
+    <script src="app.js?v=26"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=25').then(reg => {
-                    console.log('Service Worker v25 enregistré', reg);
+                navigator.serviceWorker.register('sw.js?v=26').then(reg => {
+                    console.log('Service Worker v26 enregistré', reg);
                     reg.update();
                 }).catch(err => {
                     console.log('Échec de l\'enregistrement du Service Worker', err);
