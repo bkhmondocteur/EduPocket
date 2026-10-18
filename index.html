@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="EduPocket">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="styles.css?v=26">
+    <link rel="stylesheet" href="styles.css?v=27">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -421,9 +421,25 @@
                                 <span class="tab-txt-full" data-i18n="btn_mode_weekly">🗓️ Hebdomadaire</span><span class="tab-txt-short" data-i18n="btn_mode_weekly_short">🗓️ Semaine</span>
                             </button>
                         </div>
+                        <button type="button" id="btn-open-emploi-fullscreen" class="btn-secondary" style="width: auto; padding: 7px 12px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 5px;" data-i18n="btn_fullscreen_timetable" title="Aperçu en plein écran">
+                            <span>⛶</span> <span class="tab-txt-full" data-i18n="btn_fullscreen_label">Plein écran</span>
+                        </button>
                         <button type="button" id="btn-open-add-course" class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.85rem;" data-i18n="btn_add_course">
                             + Ajouter un cours
                         </button>
+                    </div>
+                </div>
+
+                <!-- BARRE DE NAVIGATION HEBDOMADAIRE (SEMAINE A / SEMAINE B) -->
+                <div class="emploi-week-nav">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button type="button" class="btn-card-action" id="btn-emploi-prev-week" title="Semaine précédente">◀</button>
+                        <span id="label-emploi-current-week" style="font-weight: 700; color: var(--sidi-blue-dark); font-size: 0.9rem;">📅 Semaine en cours</span>
+                        <button type="button" class="btn-card-action" id="btn-emploi-next-week" title="Semaine suivante">▶</button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button type="button" id="btn-emploi-today-week" class="btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; display: none;" data-i18n="this_week_btn">Cette semaine</button>
+                        <span id="badge-emploi-semaine-ab" class="semaine-ab-badge">Semaine A</span>
                     </div>
                 </div>
 
@@ -868,20 +884,61 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="course-matiere" data-i18n="course_matiere_label">Matière :</label>
-                    <input type="text" id="course-matiere" list="datalist-course-matieres" required placeholder="Ex: Mathématiques, Physique, Français...">
-                    <datalist id="datalist-course-matieres"></datalist>
+                    <label for="course-frequence" data-i18n="course_frequence_label">Fréquence du cours :</label>
+                    <select id="course-frequence">
+                        <option value="hebdo" data-i18n="course_freq_weekly">Toutes les semaines (Hebdomadaire)</option>
+                        <option value="quinzaine" data-i18n="course_freq_biweekly">1 semaine sur 2 (Par quinzaine / Alternance)</option>
+                    </select>
                 </div>
-                <div class="form-row">
-                    <div class="form-group form-col">
-                        <label for="course-prof" data-i18n="course_prof_label">Enseignant (Optionnel) :</label>
-                        <input type="text" id="course-prof" placeholder="Ex: M. Dubois">
+
+                <!-- BLOC SEMAINE A -->
+                <div id="course-bloc-a" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; margin-top: 10px;">
+                    <h4 id="course-title-a" style="font-size: 0.88rem; color: var(--sidi-blue); margin-bottom: 8px; display: none;" data-i18n="course_semaine_a_title">🅰️ Semaine A :</h4>
+                    <div class="form-group">
+                        <label for="course-matiere" data-i18n="course_matiere_label">Matière :</label>
+                        <input type="text" id="course-matiere" list="datalist-course-matieres" required placeholder="Ex: Mathématiques, Histoire, Français...">
+                        <datalist id="datalist-course-matieres"></datalist>
                     </div>
-                    <div class="form-group form-col">
-                        <label for="course-salle" data-i18n="course_salle_label">Salle (Optionnel) :</label>
-                        <input type="text" id="course-salle" placeholder="Ex: Salle 14, Labo 2">
+                    <div class="form-row">
+                        <div class="form-group form-col">
+                            <label for="course-prof" data-i18n="course_prof_label">Enseignant (Optionnel) :</label>
+                            <input type="text" id="course-prof" placeholder="Ex: M. Dubois">
+                        </div>
+                        <div class="form-group form-col">
+                            <label for="course-salle" data-i18n="course_salle_label">Salle (Optionnel) :</label>
+                            <input type="text" id="course-salle" placeholder="Ex: Salle 14, Labo 2">
+                        </div>
                     </div>
                 </div>
+
+                <!-- BLOC SEMAINE B (Visible uniquement si fréquence == quinzaine) -->
+                <div id="course-bloc-b" style="display: none; background: #FFFDF5; border: 1.5px dashed #FCD34D; border-radius: 10px; padding: 12px; margin-top: 10px;">
+                    <h4 style="font-size: 0.88rem; color: #D97706; margin-bottom: 8px;" data-i18n="course_semaine_b_title">🅱️ Semaine B (Alternance) :</h4>
+                    <div class="form-group">
+                        <label for="course-matiere-b" data-i18n="course_matiere_b_label">Matière alternée :</label>
+                        <input type="text" id="course-matiere-b" list="datalist-course-matieres-b" placeholder="Ex: Géographie, SVT, Informatique...">
+                        <datalist id="datalist-course-matieres-b"></datalist>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group form-col">
+                            <label for="course-prof-b" data-i18n="course_prof_b_label">Enseignant Semaine B (Optionnel) :</label>
+                            <input type="text" id="course-prof-b" placeholder="Ex: Mme Martin">
+                        </div>
+                        <div class="form-group form-col">
+                            <label for="course-salle-b" data-i18n="course_salle_b_label">Salle Semaine B (Optionnel) :</label>
+                            <input type="text" id="course-salle-b" placeholder="Ex: Salle 22, Labo Info">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 8px;">
+                        <label for="course-active-this-week" data-i18n="course_active_this_week_label">Pour cette semaine en cours, le cours est :</label>
+                        <select id="course-active-this-week">
+                            <option value="A" data-i18n="opt_semaine_a">Semaine A (Première matière)</option>
+                            <option value="B" data-i18n="opt_semaine_b">Semaine B (Matière alternée)</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 10px; margin-top: 18px;">
                     <button type="button" id="btn-cancel-course" class="btn-secondary" style="flex: 1;" data-i18n="btn_cancel">Annuler</button>
                     <button type="submit" class="btn-primary" style="flex: 2;" data-i18n="btn_save_course">Enregistrer le cours</button>
@@ -966,16 +1023,47 @@
         </div>
     </div>
 
+    <!-- MODAL APERÇU EMPLOI DU TEMPS EN PLEIN ÉCRAN -->
+    <div id="modal-emploi-fullscreen" class="emploi-fullscreen-overlay" style="display: none;">
+        <div class="emploi-fullscreen-container">
+            <div class="emploi-fullscreen-header">
+                <div class="emploi-fullscreen-title-group">
+                    <h2 id="emploi-fullscreen-title" data-i18n="timetable_title">📅 Emploi du Temps Hebdomadaire</h2>
+                    <span id="emploi-fullscreen-student-badge" class="fullscreen-student-pill">Élève</span>
+                </div>
+                <div class="emploi-fullscreen-controls">
+                    <div class="fullscreen-week-switcher">
+                        <button type="button" id="btn-fs-prev-week" class="btn-fs-nav" title="Semaine précédente">◀</button>
+                        <span id="fs-week-label" class="fs-week-badge">📅 Semaine en cours</span>
+                        <button type="button" id="btn-fs-next-week" class="btn-fs-nav" title="Semaine suivante">▶</button>
+                        <button type="button" id="btn-fs-today-week" class="btn-fs-today" style="display: none;" data-i18n="this_week_btn">Cette semaine</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button type="button" id="btn-fs-print" class="btn-fs-action" title="Imprimer l'emploi du temps">
+                            🖨️ <span class="fs-btn-txt" data-i18n="btn_print_timetable">Imprimer</span>
+                        </button>
+                        <button type="button" id="btn-fs-close" class="btn-fs-close" title="Quitter le plein écran">
+                            ✕ <span class="fs-btn-txt" data-i18n="btn_close_fullscreen">Fermer</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="emploi-fullscreen-body" id="emploi-fullscreen-grid">
+                <!-- Grille hebdomadaire injectée dynamiquement -->
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts de l'application -->
-    <script src="translations.js?v=26"></script>
-    <script src="license-manager.js?v=26"></script>
-    <script src="firebase-config.js?v=26"></script>
-    <script src="app.js?v=26"></script>
+    <script src="translations.js?v=27"></script>
+    <script src="license-manager.js?v=27"></script>
+    <script src="firebase-config.js?v=27"></script>
+    <script src="app.js?v=27"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=26').then(reg => {
-                    console.log('Service Worker v26 enregistré', reg);
+                navigator.serviceWorker.register('sw.js?v=27').then(reg => {
+                    console.log('Service Worker v27 enregistré', reg);
                     reg.update();
                 }).catch(err => {
                     console.log('Échec de l\'enregistrement du Service Worker', err);

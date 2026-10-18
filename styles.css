@@ -1283,6 +1283,443 @@ body.role-eleve .dashboard-header-bar {
     padding: 8px 0;
 }
 
+/* Barre de navigation de semaine (Emploi du temps) */
+.emploi-week-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+    background: #FFFFFF;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #CBD5E1;
+    flex-wrap: wrap;
+}
+
+.semaine-ab-badge {
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: #EEF2FF;
+    color: #4338CA;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid #C7D2FE;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Styles cours par quinzaine (1 semaine sur 2) */
+.course-card.is-quinzaine-card {
+    border-left: 4px solid #F59E0B;
+}
+
+[dir="rtl"] .course-card.is-quinzaine-card {
+    border-left: 1px solid #E2E8F0;
+    border-right: 4px solid #F59E0B;
+}
+
+.badge-quinzaine-tag {
+    background: #FEF3C7;
+    color: #92400E;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.quinzaine-next-bar {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: #FFFBEB;
+    border: 1px dashed #FCD34D;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-swap-quinzaine {
+    background: #FFFFFF;
+    border: 1px solid #F59E0B;
+    color: #B45309;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-swap-quinzaine:hover {
+    background: #FEF3C7;
+}
+
+/* --- APERÇU EMPLOI DU TEMPS EN PLEIN ÉCRAN --- */
+.emploi-fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #0F172A;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.emploi-fullscreen-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: #F8FAFC;
+}
+
+.emploi-fullscreen-header {
+    background: #FFFFFF;
+    border-bottom: 1.5px solid #E2E8F0;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    z-index: 2;
+}
+
+.emploi-fullscreen-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.emploi-fullscreen-title-group h2 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--sidi-blue-dark);
+    margin: 0;
+}
+
+.fullscreen-student-pill {
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    color: #FFFFFF;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.emploi-fullscreen-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.fullscreen-week-switcher {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #F1F5F9;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid #CBD5E1;
+}
+
+.btn-fs-nav {
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: #334155;
+    transition: all 0.15s ease;
+}
+
+.btn-fs-nav:hover {
+    background: #2563EB;
+    color: #FFFFFF;
+    border-color: #2563EB;
+}
+
+.fs-week-badge {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1E293B;
+    padding: 0 4px;
+    white-space: nowrap;
+}
+
+.btn-fs-today {
+    background: #2563EB;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-fs-action, .btn-fs-close {
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+}
+
+.btn-fs-action {
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    color: #334155;
+}
+
+.btn-fs-action:hover {
+    background: #F8FAFC;
+    border-color: #94A3B8;
+}
+
+.btn-fs-close {
+    background: #EF4444;
+    border: 1px solid #DC2626;
+    color: #FFFFFF;
+}
+
+.btn-fs-close:hover {
+    background: #DC2626;
+}
+
+.emploi-fullscreen-body {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: auto;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(180px, 1fr));
+    gap: 12px;
+    align-items: start;
+    background: #F1F5F9;
+}
+
+.emploi-fullscreen-body.has-sunday {
+    grid-template-columns: repeat(7, minmax(160px, 1fr));
+}
+
+.fs-day-col {
+    background: #FFFFFF;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.fs-day-col.is-today {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.fs-day-header {
+    background: #F8FAFC;
+    padding: 10px 12px;
+    border-bottom: 1.5px solid #E2E8F0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.fs-day-col.is-today .fs-day-header {
+    background: #EFF6FF;
+    border-bottom-color: #BFDBFE;
+}
+
+.fs-day-name {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--sidi-blue-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fs-day-date {
+    font-size: 0.78rem;
+    color: #64748B;
+    font-weight: 600;
+}
+
+.fs-today-tag {
+    display: inline-block;
+    margin-top: 4px;
+    background: #2563EB;
+    color: #FFFFFF;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    width: fit-content;
+}
+
+.fs-day-slots {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.fs-empty-day {
+    color: #94A3B8;
+    font-size: 0.8rem;
+    font-style: italic;
+    text-align: center;
+    padding: 24px 8px;
+}
+
+.fs-course-card {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 10px;
+    transition: all 0.15s ease;
+}
+
+.fs-course-card:hover {
+    border-color: #CBD5E1;
+    background: #FFFFFF;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.fs-course-card.is-quinzaine {
+    border-left: 3.5px solid #F59E0B;
+    background: #FFFDF5;
+}
+
+[dir="rtl"] .fs-course-card.is-quinzaine {
+    border-left: 1px solid #E2E8F0;
+    border-right: 3.5px solid #F59E0B;
+}
+
+.fs-course-time {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--sidi-blue);
+    margin-bottom: 4px;
+    direction: ltr;
+    unicode-bidi: isolate;
+    display: inline-block;
+}
+
+.fs-course-subject {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0F172A;
+    margin-bottom: 2px;
+}
+
+.fs-course-room {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.fs-course-prof {
+    font-size: 0.75rem;
+    color: #64748B;
+}
+
+.fs-course-quinzaine-info {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #FCD34D;
+    font-size: 0.72rem;
+    color: #92400E;
+}
+
+.fs-quinzaine-pill {
+    font-weight: 700;
+    background: #FEF3C7;
+    padding: 2px 5px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 3px;
+}
+
+@media (max-width: 900px) {
+    .emploi-fullscreen-body {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 20px;
+    }
+    .fs-day-col {
+        min-width: 240px;
+        flex-shrink: 0;
+    }
+}
+
+/* Impression A4 Paysage */
+@media print {
+    @page {
+        size: landscape;
+        margin: 10mm;
+    }
+    body * {
+        visibility: hidden !important;
+    }
+    #modal-emploi-fullscreen, #modal-emploi-fullscreen * {
+        visibility: visible !important;
+    }
+    #modal-emploi-fullscreen {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100vw !important;
+        height: auto !important;
+        background: #FFFFFF !important;
+        z-index: 999999 !important;
+    }
+    .emploi-fullscreen-header {
+        border-bottom: 2px solid #000 !important;
+        padding: 6px 10px !important;
+    }
+    .emploi-fullscreen-controls {
+        display: none !important;
+    }
+    .emploi-fullscreen-body {
+        display: grid !important;
+        grid-template-columns: repeat(6, 1fr) !important;
+        gap: 6px !important;
+        padding: 6px 0 !important;
+        background: transparent !important;
+    }
+    .fs-day-col {
+        border: 1px solid #666 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+}
+
 /* Cartes d'examens */
 .exam-card {
     background: #FFFFFF;

@@ -119,6 +119,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     filterSessions();
                     if (typeof renderEmploiDuTemps === 'function') renderEmploiDuTemps(student);
                     if (typeof renderExamens === 'function') renderExamens(student);
+                    const modalFs = document.getElementById('modal-emploi-fullscreen');
+                    if (modalFs && modalFs.style.display !== 'none' && typeof renderEmploiFullScreen === 'function') {
+                        renderEmploiFullScreen(student);
+                    }
                 }
             }
 
@@ -678,9 +682,15 @@ document.addEventListener('DOMContentLoaded', () => {
             jour: (c && c.jour) ? String(c.jour).trim() : 'Lundi',
             heureDebut: (c && c.heureDebut) ? String(c.heureDebut).trim() : '08:00',
             heureFin: (c && c.heureFin) ? String(c.heureFin).trim() : '10:00',
+            frequence: (c && c.frequence === 'quinzaine') ? 'quinzaine' : 'hebdo',
             matiere: (c && c.matiere) ? String(c.matiere).trim() : '',
             prof: (c && c.prof) ? String(c.prof).trim() : '',
-            salle: (c && c.salle) ? String(c.salle).trim() : ''
+            salle: (c && c.salle) ? String(c.salle).trim() : '',
+            matiereB: (c && c.matiereB) ? String(c.matiereB).trim() : '',
+            profB: (c && c.profB) ? String(c.profB).trim() : '',
+            salleB: (c && c.salleB) ? String(c.salleB).trim() : '',
+            refTotalWeeks: Number(c && c.refTotalWeeks) || 0,
+            refOption: (c && c.refOption === 'B') ? 'B' : 'A'
         })) : [];
 
         const examens = Array.isArray(student.examens) ? student.examens.map(ex => ({
@@ -4020,6 +4030,104 @@ ${profName}`;
     const DAYS_OF_WEEK = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
     let currentEmploiSelectedDay = getTodayDayName();
     let currentEmploiMode = 'journalier';
+    let currentEmploiWeekOffset = 0; // 0 = semaine en cours, +1 = suivante, -1 = précédente
+
+    function getISOWeekInfo(date = new Date()) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNr = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNr);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return {
+            week: weekNo,
+            year: d.getUTCFullYear(),
+            totalWeeks: Math.floor(d.getTime() / (7 * 24 * 3600 * 1000))
+        };
+    }
+
+    function getWeekRange(targetDate = new Date()) {
+        const d = new Date(targetDate);
+        const day = d.getDay();
+        const diffToMonday = (day === 0 ? -6 : 1) - day;
+        const monday = new Date(d);
+        monday.setDate(d.getDate() + diffToMonday);
+        monday.setHours(0, 0, 0, 0);
+
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const pad = (n) => String(n).padStart(2, '0');
+        const formatD = (dt) => `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}`;
+
+        const monthsFr = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+        const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthsAr = ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        const lang = (window.EduPocketLang && window.EduPocketLang.current) || 'fr';
+        const monthsList = lang === 'ar' ? monthsAr : (lang === 'en' ? monthsEn : monthsFr);
+
+        const mText = monthsList[monday.getMonth()];
+        const sText = monthsList[sunday.getMonth()];
+        const labelDates = (monday.getMonth() === sunday.getMonth())
+            ? `${monday.getDate()} - ${sunday.getDate()} ${sText}`
+            : `${monday.getDate()} ${mText} - ${sunday.getDate()} ${sText}`;
+
+        const iso = getISOWeekInfo(monday);
+        return {
+            monday,
+            sunday,
+            labelDates,
+            label: `${formatD(monday)} - ${formatD(sunday)}`,
+            iso
+        };
+    }
+
+    function getCourseDisplayInfo(course, targetDate = new Date()) {
+        if (!course) return { matiere: '', salle: '', prof: '', isQuinzaine: false, activeOption: 'A', nextMatiere: '', nextSalle: '', nextProf: '' };
+
+        if (course.frequence !== 'quinzaine') {
+            return {
+                matiere: course.matiere || '',
+                salle: course.salle || '',
+                prof: course.prof || '',
+                isQuinzaine: false,
+                activeOption: 'A',
+                nextMatiere: '',
+                nextSalle: '',
+                nextProf: ''
+            };
+        }
+
+        const targetWeekInfo = getISOWeekInfo(targetDate);
+        const refTotalWeeks = Number(course.refTotalWeeks) || targetWeekInfo.totalWeeks;
+        const refOption = (course.refOption === 'B') ? 'B' : 'A';
+        const weekDiff = Math.abs(targetWeekInfo.totalWeeks - refTotalWeeks);
+        const isSameParity = (weekDiff % 2 === 0);
+        const activeOption = isSameParity ? refOption : (refOption === 'A' ? 'B' : 'A');
+
+        if (activeOption === 'B') {
+            return {
+                matiere: course.matiereB || course.matiere || '',
+                salle: course.salleB || '',
+                prof: course.profB || '',
+                isQuinzaine: true,
+                activeOption: 'B',
+                nextMatiere: course.matiere || '',
+                nextSalle: course.salle || '',
+                nextProf: course.prof || ''
+            };
+        } else {
+            return {
+                matiere: course.matiere || '',
+                salle: course.salle || '',
+                prof: course.prof || '',
+                isQuinzaine: true,
+                activeOption: 'A',
+                nextMatiere: course.matiereB || course.matiere || '',
+                nextSalle: course.salleB || '',
+                nextProf: course.profB || ''
+            };
+        }
+    }
 
     // --- GESTION DES ONGLETS DU DOSSIER ÉLÈVE (SÉANCES, EMPLOI DU TEMPS, EXAMENS) ---
     function switchDashboardTab(tabId) {
@@ -4103,6 +4211,19 @@ ${profName}`;
         });
     });
 
+    // Gestionnaire changement de fréquence dans le formulaire
+    const courseFreqSelect = document.getElementById('course-frequence');
+    const courseBlocA = document.getElementById('course-bloc-a');
+    const courseBlocB = document.getElementById('course-bloc-b');
+    const courseTitleA = document.getElementById('course-title-a');
+    if (courseFreqSelect) {
+        courseFreqSelect.addEventListener('change', () => {
+            const isQuinzaine = (courseFreqSelect.value === 'quinzaine');
+            if (courseBlocB) courseBlocB.style.display = isQuinzaine ? 'block' : 'none';
+            if (courseTitleA) courseTitleA.style.display = isQuinzaine ? 'block' : 'none';
+        });
+    }
+
     function openCourseModal(course = null, defaultDay = null) {
         if (!modalCourse) return;
         const student = getStudent(appState.currentStudentId);
@@ -4111,18 +4232,26 @@ ${profName}`;
         const jourSelect = document.getElementById('course-jour');
         const startInput = document.getElementById('course-heure-debut');
         const endInput = document.getElementById('course-heure-fin');
+        const freqSelect = document.getElementById('course-frequence');
         const matiereInput = document.getElementById('course-matiere');
         const profInput = document.getElementById('course-prof');
         const salleInput = document.getElementById('course-salle');
-        const datalist = document.getElementById('datalist-course-matieres');
+        const matiereBInput = document.getElementById('course-matiere-b');
+        const profBInput = document.getElementById('course-prof-b');
+        const salleBInput = document.getElementById('course-salle-b');
+        const activeThisWeekSelect = document.getElementById('course-active-this-week');
+        const datalistA = document.getElementById('datalist-course-matieres');
+        const datalistB = document.getElementById('datalist-course-matieres-b');
 
-        // Pré-remplissage du datalist des matières de l'élève
-        if (datalist && student && Array.isArray(student.matieres)) {
-            datalist.innerHTML = student.matieres.map(m => `<option value="${escapeHtml(m.nom)}"></option>`).join('');
+        // Pré-remplissage des datalists des matières de l'élève
+        if (student && Array.isArray(student.matieres)) {
+            const opts = student.matieres.map(m => `<option value="${escapeHtml(m.nom)}"></option>`).join('');
+            if (datalistA) datalistA.innerHTML = opts;
+            if (datalistB) datalistB.innerHTML = opts;
         }
 
         if (course) {
-            if (titleEl) titleEl.textContent = '✏️ Modifier le cours';
+            if (titleEl) titleEl.textContent = window.t('modal_course_edit_title');
             if (idInput) idInput.value = course.id;
             if (jourSelect) jourSelect.value = course.jour || 'Lundi';
             if (startInput) startInput.value = course.heureDebut || '';
@@ -4130,8 +4259,22 @@ ${profName}`;
             if (matiereInput) matiereInput.value = course.matiere || '';
             if (profInput) profInput.value = course.prof || '';
             if (salleInput) salleInput.value = course.salle || '';
+
+            const isQuinzaine = (course.frequence === 'quinzaine');
+            if (freqSelect) freqSelect.value = isQuinzaine ? 'quinzaine' : 'hebdo';
+            if (matiereBInput) matiereBInput.value = course.matiereB || '';
+            if (profBInput) profBInput.value = course.profB || '';
+            if (salleBInput) salleBInput.value = course.salleB || '';
+
+            if (activeThisWeekSelect) {
+                const currentInfo = getCourseDisplayInfo(course, new Date());
+                activeThisWeekSelect.value = currentInfo.activeOption || 'A';
+            }
+
+            if (courseBlocB) courseBlocB.style.display = isQuinzaine ? 'block' : 'none';
+            if (courseTitleA) courseTitleA.style.display = isQuinzaine ? 'block' : 'none';
         } else {
-            if (titleEl) titleEl.textContent = "📅 Ajouter un cours à l'emploi du temps";
+            if (titleEl) titleEl.textContent = window.t('modal_course_add_title');
             if (idInput) idInput.value = '';
             if (jourSelect) jourSelect.value = defaultDay || currentEmploiSelectedDay || 'Lundi';
             if (startInput) startInput.value = '08:00';
@@ -4139,6 +4282,15 @@ ${profName}`;
             if (matiereInput) matiereInput.value = '';
             if (profInput) profInput.value = '';
             if (salleInput) salleInput.value = '';
+
+            if (freqSelect) freqSelect.value = 'hebdo';
+            if (matiereBInput) matiereBInput.value = '';
+            if (profBInput) profBInput.value = '';
+            if (salleBInput) salleBInput.value = '';
+            if (activeThisWeekSelect) activeThisWeekSelect.value = 'A';
+
+            if (courseBlocB) courseBlocB.style.display = 'none';
+            if (courseTitleA) courseTitleA.style.display = 'none';
         }
 
         modalCourse.style.display = 'flex';
@@ -4170,51 +4322,94 @@ ${profName}`;
             const jour = document.getElementById('course-jour').value.trim();
             const heureDebut = document.getElementById('course-heure-debut').value.trim();
             const heureFin = document.getElementById('course-heure-fin').value.trim();
+            const frequence = (document.getElementById('course-frequence') && document.getElementById('course-frequence').value === 'quinzaine') ? 'quinzaine' : 'hebdo';
             const matiere = document.getElementById('course-matiere').value.trim();
             const prof = document.getElementById('course-prof').value.trim();
             const salle = document.getElementById('course-salle').value.trim();
+            const matiereB = document.getElementById('course-matiere-b') ? document.getElementById('course-matiere-b').value.trim() : '';
+            const profB = document.getElementById('course-prof-b') ? document.getElementById('course-prof-b').value.trim() : '';
+            const salleB = document.getElementById('course-salle-b') ? document.getElementById('course-salle-b').value.trim() : '';
+            const activeThisWeek = document.getElementById('course-active-this-week') ? document.getElementById('course-active-this-week').value : 'A';
 
             if (!jour || !heureDebut || !heureFin || !matiere) {
                 alert('Veuillez renseigner le jour, les heures de début/fin et la matière.');
                 return;
             }
 
+            if (frequence === 'quinzaine' && !matiereB) {
+                alert('Veuillez renseigner la matière alternée pour la Semaine B.');
+                return;
+            }
+
             if (!student.emploiDuTemps) student.emploiDuTemps = [];
+
+            const currentTotalWeeks = getISOWeekInfo(new Date()).totalWeeks;
+            const courseData = {
+                jour,
+                heureDebut,
+                heureFin,
+                frequence,
+                matiere,
+                prof,
+                salle,
+                matiereB: (frequence === 'quinzaine') ? matiereB : '',
+                profB: (frequence === 'quinzaine') ? profB : '',
+                salleB: (frequence === 'quinzaine') ? salleB : '',
+                refTotalWeeks: currentTotalWeeks,
+                refOption: (frequence === 'quinzaine' && activeThisWeek === 'B') ? 'B' : 'A'
+            };
 
             if (courseId) {
                 const idx = student.emploiDuTemps.findIndex(c => c.id === courseId);
                 if (idx >= 0) {
                     student.emploiDuTemps[idx] = {
                         ...student.emploiDuTemps[idx],
-                        jour,
-                        heureDebut,
-                        heureFin,
-                        matiere,
-                        prof,
-                        salle
+                        ...courseData
                     };
                 }
             } else {
                 student.emploiDuTemps.push({
                     id: 'crs_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
-                    jour,
-                    heureDebut,
-                    heureFin,
-                    matiere,
-                    prof,
-                    salle
+                    ...courseData
                 });
             }
 
             saveData();
             closeCourseModal();
             renderEmploiDuTemps(student);
+            const modalFs = document.getElementById('modal-emploi-fullscreen');
+            if (modalFs && modalFs.style.display !== 'none') {
+                renderEmploiFullScreen(student);
+            }
         });
     }
 
     function renderEmploiDuTemps(student) {
         if (!student) return;
         const allCourses = Array.isArray(student.emploiDuTemps) ? student.emploiDuTemps : [];
+
+        // Date cible basée sur l'offset de semaine
+        const targetDate = new Date(Date.now() + currentEmploiWeekOffset * 7 * 86400000);
+        const weekInfo = getWeekRange(targetDate);
+
+        // Barre de navigation hebdomadaire
+        const labelWeekEl = document.getElementById('label-emploi-current-week');
+        const badgeSemaineAB = document.getElementById('badge-emploi-semaine-ab');
+        const btnTodayWeek = document.getElementById('btn-emploi-today-week');
+
+        if (labelWeekEl) {
+            labelWeekEl.textContent = `📅 ${window.t('week_label', { week: weekInfo.iso.week, dates: weekInfo.labelDates })}`;
+        }
+        if (badgeSemaineAB) {
+            const isSemaineA = (weekInfo.iso.totalWeeks % 2 === 0);
+            badgeSemaineAB.textContent = isSemaineA ? window.t('semaine_a_badge') : window.t('semaine_b_badge');
+            badgeSemaineAB.style.background = isSemaineA ? '#EEF2FF' : '#FEF3C7';
+            badgeSemaineAB.style.color = isSemaineA ? '#4338CA' : '#B45309';
+            badgeSemaineAB.style.borderColor = isSemaineA ? '#C7D2FE' : '#FCD34D';
+        }
+        if (btnTodayWeek) {
+            btnTodayWeek.style.display = (currentEmploiWeekOffset !== 0) ? 'inline-block' : 'none';
+        }
 
         // 1. Mettre à jour les chips des jours (traduction court)
         document.querySelectorAll('#emploi-days-chips .day-chip').forEach(chip => {
@@ -4260,32 +4455,70 @@ ${profName}`;
                     btnAdd.addEventListener('click', () => openCourseModal(null, currentEmploiSelectedDay));
                 }
             } else {
-                listJournalier.innerHTML = dayCourses.map(course => `
-                    <div class="course-card" data-course-id="${escapeHtml(course.id)}">
-                        <div style="flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
-                                <span class="course-time-badge">🕒 ${escapeHtml(course.heureDebut)} - ${escapeHtml(course.heureFin)}</span>
-                                ${course.salle ? `<span style="font-size: 0.78rem; background: #F1F5F9; color: #475569; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📍 ${escapeHtml(course.salle)}</span>` : ''}
+                listJournalier.innerHTML = dayCourses.map(course => {
+                    const disp = getCourseDisplayInfo(course, targetDate);
+                    return `
+                        <div class="course-card ${disp.isQuinzaine ? 'is-quinzaine-card' : ''}" data-course-id="${escapeHtml(course.id)}">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                                    <span class="course-time-badge">🕒 ${escapeHtml(course.heureDebut)} - ${escapeHtml(course.heureFin)}</span>
+                                    ${disp.salle ? `<span style="font-size: 0.78rem; background: #F1F5F9; color: #475569; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📍 ${escapeHtml(disp.salle)}</span>` : ''}
+                                    ${disp.isQuinzaine ? `
+                                        <span class="badge-quinzaine-tag">
+                                            🔄 ${window.t('badge_quinzaine')} (${disp.activeOption === 'A' ? 'Sem. A' : 'Sem. B'})
+                                        </span>
+                                    ` : ''}
+                                </div>
+                                <h4 class="course-subject-title">${escapeHtml(disp.matiere)}</h4>
+                                ${disp.prof ? `<div class="course-details-text"><span>👨‍🏫 ${escapeHtml(disp.prof)}</span></div>` : ''}
+
+                                ${disp.isQuinzaine ? `
+                                    <div class="quinzaine-next-bar">
+                                        <span style="font-size: 0.78rem; color: #B45309;">
+                                            ⏭️ ${window.t('next_week_will_be', { matiere: `<strong>${escapeHtml(disp.nextMatiere)}</strong>${disp.nextSalle ? ' (' + escapeHtml(disp.nextSalle) + ')' : ''}` })}
+                                        </span>
+                                        <button type="button" class="btn-swap-quinzaine" data-id="${escapeHtml(course.id)}" title="${window.t('swap_subject')}">
+                                            🔁 ${window.t('swap_subject')}
+                                        </button>
+                                    </div>
+                                ` : ''}
                             </div>
-                            <h4 class="course-subject-title">${escapeHtml(course.matiere)}</h4>
-                            ${course.prof ? `<div class="course-details-text"><span>👨‍🏫 ${escapeHtml(course.prof)}</span></div>` : ''}
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <button type="button" class="btn-card-action btn-edit-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_edit')}">
+                                    ✏️
+                                </button>
+                                <button type="button" class="btn-card-action danger btn-delete-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_delete')}">
+                                    🗑️
+                                </button>
+                            </div>
                         </div>
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                            <button type="button" class="btn-card-action btn-edit-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_edit')}">
-                                ✏️
-                            </button>
-                            <button type="button" class="btn-card-action danger btn-delete-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_delete')}">
-                                🗑️
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
 
                 listJournalier.querySelectorAll('.btn-edit-course').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const cid = btn.getAttribute('data-id');
                         const crs = allCourses.find(c => c.id === cid);
                         if (crs) openCourseModal(crs);
+                    });
+                });
+
+                listJournalier.querySelectorAll('.btn-swap-quinzaine').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const cid = btn.getAttribute('data-id');
+                        const crs = allCourses.find(c => c.id === cid);
+                        if (crs) {
+                            const curDisp = getCourseDisplayInfo(crs, targetDate);
+                            const newOption = (curDisp.activeOption === 'A') ? 'B' : 'A';
+                            crs.refTotalWeeks = weekInfo.iso.totalWeeks;
+                            crs.refOption = newOption;
+                            saveData();
+                            renderEmploiDuTemps(student);
+                            const modalFs = document.getElementById('modal-emploi-fullscreen');
+                            if (modalFs && modalFs.style.display !== 'none') {
+                                renderEmploiFullScreen(student);
+                            }
+                        }
                     });
                 });
 
@@ -4332,26 +4565,45 @@ ${profName}`;
                         <div class="weekly-day-slots">
                             ${dayCourses.length === 0 ? `
                                 <div class="weekly-empty-day">${window.t('no_course_day')}</div>
-                            ` : dayCourses.map(course => `
-                                <div class="course-card" style="margin-bottom: 8px; padding: 10px 12px;">
-                                    <div style="flex: 1;">
-                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap;">
-                                            <span class="course-time-badge" style="font-size: 0.8rem; padding: 4px 8px;">🕒 ${escapeHtml(course.heureDebut)} - ${escapeHtml(course.heureFin)}</span>
-                                            ${course.salle ? `<span style="font-size: 0.75rem; background: #F1F5F9; color: #475569; padding: 2px 6px; border-radius: 4px;">📍 ${escapeHtml(course.salle)}</span>` : ''}
+                            ` : dayCourses.map(course => {
+                                const disp = getCourseDisplayInfo(course, targetDate);
+                                return `
+                                    <div class="course-card ${disp.isQuinzaine ? 'is-quinzaine-card' : ''}" style="margin-bottom: 8px; padding: 10px 12px;">
+                                        <div style="flex: 1;">
+                                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap;">
+                                                <span class="course-time-badge" style="font-size: 0.8rem; padding: 4px 8px;">🕒 ${escapeHtml(course.heureDebut)} - ${escapeHtml(course.heureFin)}</span>
+                                                ${disp.salle ? `<span style="font-size: 0.75rem; background: #F1F5F9; color: #475569; padding: 2px 6px; border-radius: 4px;">📍 ${escapeHtml(disp.salle)}</span>` : ''}
+                                                ${disp.isQuinzaine ? `
+                                                    <span class="badge-quinzaine-tag" style="font-size: 0.7rem; padding: 2px 6px;">
+                                                        🔄 (${disp.activeOption === 'A' ? 'Sem. A' : 'Sem. B'})
+                                                    </span>
+                                                ` : ''}
+                                            </div>
+                                            <div style="font-weight: 700; color: var(--sidi-blue-dark); font-size: 0.95rem;">${escapeHtml(disp.matiere)}</div>
+                                            ${disp.prof ? `<div style="font-size: 0.8rem; color: #64748B;">👨‍🏫 ${escapeHtml(disp.prof)}</div>` : ''}
+
+                                            ${disp.isQuinzaine ? `
+                                                <div class="quinzaine-next-bar" style="margin-top: 6px; padding: 4px 8px;">
+                                                    <span style="font-size: 0.74rem; color: #B45309;">
+                                                        ⏭️ ${window.t('next_week_will_be', { matiere: `<strong>${escapeHtml(disp.nextMatiere)}</strong>${disp.nextSalle ? ' (' + escapeHtml(disp.nextSalle) + ')' : ''}` })}
+                                                    </span>
+                                                    <button type="button" class="btn-swap-quinzaine" data-id="${escapeHtml(course.id)}" style="font-size: 0.7rem; padding: 2px 6px;">
+                                                        🔁 ${window.t('swap_subject')}
+                                                    </button>
+                                                </div>
+                                            ` : ''}
                                         </div>
-                                        <div style="font-weight: 700; color: var(--sidi-blue-dark); font-size: 0.95rem;">${escapeHtml(course.matiere)}</div>
-                                        ${course.prof ? `<div style="font-size: 0.8rem; color: #64748B;">👨‍🏫 ${escapeHtml(course.prof)}</div>` : ''}
+                                        <div style="display: flex; gap: 4px; align-items: center;">
+                                            <button type="button" class="btn-card-action btn-edit-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_edit')}">
+                                                ✏️
+                                            </button>
+                                            <button type="button" class="btn-card-action danger btn-delete-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_delete')}">
+                                                🗑️
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div style="display: flex; gap: 4px; align-items: center;">
-                                        <button type="button" class="btn-card-action btn-edit-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_edit')}">
-                                            ✏️
-                                        </button>
-                                        <button type="button" class="btn-card-action danger btn-delete-course" data-id="${escapeHtml(course.id)}" title="${window.t('btn_delete')}">
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -4361,6 +4613,25 @@ ${profName}`;
                 btn.addEventListener('click', () => {
                     const day = btn.getAttribute('data-day');
                     openCourseModal(null, day);
+                });
+            });
+
+            gridHebdo.querySelectorAll('.btn-swap-quinzaine').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cid = btn.getAttribute('data-id');
+                    const crs = allCourses.find(c => c.id === cid);
+                    if (crs) {
+                        const curDisp = getCourseDisplayInfo(crs, targetDate);
+                        const newOption = (curDisp.activeOption === 'A') ? 'B' : 'A';
+                        crs.refTotalWeeks = weekInfo.iso.totalWeeks;
+                        crs.refOption = newOption;
+                        saveData();
+                        renderEmploiDuTemps(student);
+                        const modalFs = document.getElementById('modal-emploi-fullscreen');
+                        if (modalFs && modalFs.style.display !== 'none') {
+                            renderEmploiFullScreen(student);
+                        }
+                    }
                 });
             });
 
@@ -4383,6 +4654,197 @@ ${profName}`;
                 });
             });
         }
+    }
+
+    // --- APERÇU EMPLOI DU TEMPS EN PLEIN ÉCRAN ---
+    function renderEmploiFullScreen(student) {
+        if (!student) return;
+        const modalFs = document.getElementById('modal-emploi-fullscreen');
+        const gridFs = document.getElementById('emploi-fullscreen-grid');
+        const labelWeekFs = document.getElementById('fs-week-label');
+        const badgeStudentFs = document.getElementById('emploi-fullscreen-student-badge');
+        const btnTodayFs = document.getElementById('btn-fs-today-week');
+        if (!modalFs || !gridFs) return;
+
+        const allCourses = Array.isArray(student.emploiDuTemps) ? student.emploiDuTemps : [];
+        const targetDate = new Date(Date.now() + currentEmploiWeekOffset * 7 * 86400000);
+        const weekInfo = getWeekRange(targetDate);
+
+        if (badgeStudentFs) {
+            badgeStudentFs.textContent = `${student.prenom} ${student.nom}`;
+        }
+        if (labelWeekFs) {
+            labelWeekFs.textContent = `📅 ${window.t('week_label', { week: weekInfo.iso.week, dates: weekInfo.labelDates })}`;
+        }
+        if (btnTodayFs) {
+            btnTodayFs.style.display = (currentEmploiWeekOffset !== 0) ? 'inline-block' : 'none';
+        }
+
+        const sundayCourses = allCourses.filter(c => c.jour === 'Dimanche');
+        const hasSunday = (sundayCourses.length > 0);
+        const daysToRender = hasSunday ? DAYS_OF_WEEK : DAYS_OF_WEEK.slice(0, 6);
+
+        if (hasSunday) {
+            gridFs.classList.add('has-sunday');
+        } else {
+            gridFs.classList.remove('has-sunday');
+        }
+
+        const todayCal = new Date();
+        todayCal.setHours(0, 0, 0, 0);
+
+        gridFs.innerHTML = daysToRender.map((day, idx) => {
+            const dayCourses = allCourses.filter(c => c.jour === day);
+            dayCourses.sort((a, b) => (a.heureDebut || '00:00').localeCompare(b.heureDebut || '00:00'));
+            const dayDisplayName = getDayDisplayName(day, false);
+
+            const colDate = new Date(weekInfo.monday);
+            colDate.setDate(weekInfo.monday.getDate() + idx);
+            colDate.setHours(0, 0, 0, 0);
+            const isToday = (colDate.getTime() === todayCal.getTime());
+
+            const pad = (n) => String(n).padStart(2, '0');
+            const formattedDate = `${pad(colDate.getDate())}/${pad(colDate.getMonth() + 1)}`;
+
+            return `
+                <div class="fs-day-col ${isToday ? 'is-today' : ''}">
+                    <div class="fs-day-header">
+                        <div class="fs-day-name">${escapeHtml(dayDisplayName)}</div>
+                        <div class="fs-day-date">${formattedDate}</div>
+                        ${isToday ? `<span class="fs-today-tag">${window.t('today_tag')}</span>` : ''}
+                    </div>
+                    <div class="fs-day-slots">
+                        ${dayCourses.length === 0 ? `
+                            <div class="fs-empty-day">${window.t('no_course_day')}</div>
+                        ` : dayCourses.map(course => {
+                            const disp = getCourseDisplayInfo(course, targetDate);
+                            return `
+                                <div class="fs-course-card ${disp.isQuinzaine ? 'is-quinzaine' : ''}">
+                                    <div class="fs-course-time">🕒 ${escapeHtml(course.heureDebut)} - ${escapeHtml(course.heureFin)}</div>
+                                    <div class="fs-course-subject">${escapeHtml(disp.matiere)}</div>
+                                    ${disp.salle ? `<div class="fs-course-room">📍 ${escapeHtml(disp.salle)}</div>` : ''}
+                                    ${disp.prof ? `<div class="fs-course-prof">👨‍🏫 ${escapeHtml(disp.prof)}</div>` : ''}
+                                    ${disp.isQuinzaine ? `
+                                        <div class="fs-course-quinzaine-info">
+                                            <span class="fs-quinzaine-pill">🔄 ${window.t('badge_quinzaine')} (${disp.activeOption === 'A' ? 'Sem. A' : 'Sem. B'})</span>
+                                            <div>${window.t('next_week_will_be', { matiere: `<strong>${escapeHtml(disp.nextMatiere)}</strong>${disp.nextSalle ? ' (' + escapeHtml(disp.nextSalle) + ')' : ''}` })}</div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function openEmploiFullScreen() {
+        const student = getStudent(appState.currentStudentId);
+        if (!student) return;
+        const modalFs = document.getElementById('modal-emploi-fullscreen');
+        if (!modalFs) return;
+        modalFs.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        renderEmploiFullScreen(student);
+    }
+
+    function closeEmploiFullScreen() {
+        const modalFs = document.getElementById('modal-emploi-fullscreen');
+        if (!modalFs) return;
+        modalFs.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    // Événements boutons plein écran et navigation de semaines
+    const btnOpenFullscreen = document.getElementById('btn-open-emploi-fullscreen');
+    if (btnOpenFullscreen) {
+        btnOpenFullscreen.addEventListener('click', openEmploiFullScreen);
+    }
+
+    const btnCloseFs = document.getElementById('btn-fs-close');
+    if (btnCloseFs) {
+        btnCloseFs.addEventListener('click', closeEmploiFullScreen);
+    }
+
+    const btnPrintFs = document.getElementById('btn-fs-print');
+    if (btnPrintFs) {
+        btnPrintFs.addEventListener('click', () => window.print());
+    }
+
+    // Touche Echap pour fermer le plein écran
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modalFs = document.getElementById('modal-emploi-fullscreen');
+            if (modalFs && modalFs.style.display !== 'none') {
+                closeEmploiFullScreen();
+            }
+        }
+    });
+
+    // Navigation de semaine sur le tableau de bord
+    const btnPrevWeek = document.getElementById('btn-emploi-prev-week');
+    if (btnPrevWeek) {
+        btnPrevWeek.addEventListener('click', () => {
+            currentEmploiWeekOffset--;
+            const student = getStudent(appState.currentStudentId);
+            if (student) renderEmploiDuTemps(student);
+        });
+    }
+
+    const btnNextWeek = document.getElementById('btn-emploi-next-week');
+    if (btnNextWeek) {
+        btnNextWeek.addEventListener('click', () => {
+            currentEmploiWeekOffset++;
+            const student = getStudent(appState.currentStudentId);
+            if (student) renderEmploiDuTemps(student);
+        });
+    }
+
+    const btnTodayWeek = document.getElementById('btn-emploi-today-week');
+    if (btnTodayWeek) {
+        btnTodayWeek.addEventListener('click', () => {
+            currentEmploiWeekOffset = 0;
+            const student = getStudent(appState.currentStudentId);
+            if (student) renderEmploiDuTemps(student);
+        });
+    }
+
+    // Navigation de semaine en plein écran
+    const btnFsPrev = document.getElementById('btn-fs-prev-week');
+    if (btnFsPrev) {
+        btnFsPrev.addEventListener('click', () => {
+            currentEmploiWeekOffset--;
+            const student = getStudent(appState.currentStudentId);
+            if (student) {
+                renderEmploiFullScreen(student);
+                renderEmploiDuTemps(student);
+            }
+        });
+    }
+
+    const btnFsNext = document.getElementById('btn-fs-next-week');
+    if (btnFsNext) {
+        btnFsNext.addEventListener('click', () => {
+            currentEmploiWeekOffset++;
+            const student = getStudent(appState.currentStudentId);
+            if (student) {
+                renderEmploiFullScreen(student);
+                renderEmploiDuTemps(student);
+            }
+        });
+    }
+
+    const btnFsToday = document.getElementById('btn-fs-today-week');
+    if (btnFsToday) {
+        btnFsToday.addEventListener('click', () => {
+            currentEmploiWeekOffset = 0;
+            const student = getStudent(appState.currentStudentId);
+            if (student) {
+                renderEmploiFullScreen(student);
+                renderEmploiDuTemps(student);
+            }
+        });
     }
 
     // --- DATES DES EXAMENS (CONTRÔLE & SYNTHÈSE) ---
