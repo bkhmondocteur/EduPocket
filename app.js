@@ -494,7 +494,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? m.profCodes.map(pc => ({
                     nom: (pc && pc.nom) ? String(pc.nom).trim() : '',
                     code: (pc && pc.code) ? String(pc.code).trim() : '',
-                    matiere: (pc && pc.matiere) ? String(pc.matiere).trim() : (m.nom || '').trim()
+                    matiere: (pc && pc.matiere) ? String(pc.matiere).trim() : (m.nom || '').trim(),
+                    telephone: (pc && pc.telephone) ? String(pc.telephone).trim() : '',
+                    prixSeance: (pc && pc.prixSeance !== undefined && pc.prixSeance !== null && pc.prixSeance !== '') ? Number(pc.prixSeance) : (Number(m.prixSeance) || 20),
+                    quotaPaiement: (pc && pc.quotaPaiement !== undefined && pc.quotaPaiement !== null && pc.quotaPaiement !== '') ? Number(pc.quotaPaiement) : (Number(m.quotaPaiement) || 4)
                 }))
                 : [];
             return {
@@ -522,11 +525,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const paiements = Array.isArray(student.paiements) ? student.paiements.map(p => ({
             id: (p && p.id) ? String(p.id) : ('pay_' + Date.now()),
-            date: (p && p.date) ? String(p.date).trim() : '',
+            date: (p && p.date) ? String(p.date).trim() : (p && p.datePaiement ? String(p.datePaiement).trim() : ''),
+            datePaiement: (p && p.datePaiement) ? String(p.datePaiement).trim() : (p && p.date ? String(p.date).trim() : ''),
             matiere: (p && p.matiere) ? String(p.matiere).trim() : '',
-            montant: Number(p && p.montant) || 0,
+            professeur: (p && p.professeur) ? String(p.professeur).trim() : '',
+            montant: Number(p && (p.montant || p.montantTotal)) || 0,
+            montantTotal: Number(p && (p.montantTotal || p.montant)) || 0,
             nombreSeances: Number(p && p.nombreSeances) || 0,
             methode: (p && p.methode) ? String(p.methode).trim() : 'Espèces',
+            note: (p && p.note) ? String(p.note).trim() : '',
             timestamp: Number(p && p.timestamp) || Date.now()
         })) : [];
 
@@ -752,16 +759,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     m.profCodes.push({
                         nom: profName,
                         code: combinedCode,
-                        matiere: m.nom
+                        matiere: m.nom,
+                        telephone: '',
+                        prixSeance: Number(m.prixSeance) || 20,
+                        quotaPaiement: Number(m.quotaPaiement) || 4
                     });
                     modified = true;
-                } else if (!existing.code || !existing.code.includes(student.codeEleve)) {
-                    const randomTag = Math.random().toString(36).substring(2, 6).toUpperCase();
-                    existing.code = `PRF-${randomTag}-${student.codeEleve}`;
-                    existing.matiere = m.nom;
-                    modified = true;
                 } else {
-                    existing.matiere = m.nom;
+                    if (!existing.code || !existing.code.includes(student.codeEleve)) {
+                        const randomTag = Math.random().toString(36).substring(2, 6).toUpperCase();
+                        existing.code = `PRF-${randomTag}-${student.codeEleve}`;
+                        existing.matiere = m.nom;
+                        modified = true;
+                    } else {
+                        existing.matiere = m.nom;
+                    }
+                    if (existing.prixSeance === undefined || existing.prixSeance === null || existing.prixSeance === '') {
+                        existing.prixSeance = Number(m.prixSeance) || 20;
+                        modified = true;
+                    }
+                    if (existing.quotaPaiement === undefined || existing.quotaPaiement === null || existing.quotaPaiement === '') {
+                        existing.quotaPaiement = Number(m.quotaPaiement) || 4;
+                        modified = true;
+                    }
                 }
             });
         });
@@ -1593,7 +1613,9 @@ ${profName}`;
                         nom: profName,
                         code: combinedProfCode,
                         matiere: matiere,
-                        telephone: (profLic && profLic.telephone) || ''
+                        telephone: (profLic && profLic.telephone) || '',
+                        prixSeance: prix,
+                        quotaPaiement: 4
                     }]
                 }],
                 sessions: [],
@@ -2149,7 +2171,9 @@ ${profName}`;
                 targetMatiere.professeurs.forEach(prof => {
                     const profOpt = document.createElement('option');
                     profOpt.value = prof;
-                    profOpt.textContent = prof;
+                    const pc = (targetMatiere.profCodes || []).find(p => (p.nom || '').trim().toLowerCase() === prof.trim().toLowerCase());
+                    const profPrice = (pc && pc.prixSeance !== undefined && pc.prixSeance !== null && pc.prixSeance !== '') ? pc.prixSeance : (targetMatiere.prixSeance || 20);
+                    profOpt.textContent = `${prof} (${profPrice} DT/séance)`;
                     if (preferredProf && prof === preferredProf) {
                         profOpt.selected = true;
                     }
@@ -2176,6 +2200,7 @@ ${profName}`;
     // --- GESTION DU CALCUL ET DES ALERTES DE PAIEMENT ---
     function checkAndDisplayPaymentAlerts(student) {
         const container = document.getElementById('payment-alerts-container');
+        if (!container) return;
         container.innerHTML = '';
 
         if (appState.role === 'eleve' || appState.role === 'professeur') return;
@@ -2184,36 +2209,66 @@ ${profName}`;
         const sessions = student.sessions || [];
 
         matieres.forEach(m => {
-            const quota = m.quotaPaiement || 3;
-            const prix = m.prixSeance || 20;
+            const subjectUnpaid = sessions.filter(s => s.sujet === m.nom && s.statut === 'Effectuée' && !s.paye);
+            if (subjectUnpaid.length === 0) return;
 
-            const nonPayees = sessions.filter(s => s.sujet === m.nom && s.statut === 'Effectuée' && !s.paye);
-            const count = nonPayees.length;
+            // Extraire tous les professeurs uniques ayant des séances impayées
+            const profNames = [];
+            subjectUnpaid.forEach(s => {
+                const p = (s.professeur || 'Non spécifié').trim();
+                if (!profNames.some(existing => existing.toLowerCase() === p.toLowerCase())) {
+                    profNames.push(p);
+                }
+            });
 
-            if (count >= quota) {
-                const totalDT = count * prix;
-                const alertCard = document.createElement('div');
-                alertCard.className = 'payment-alert-card';
-                alertCard.innerHTML = `
-                    <div class="payment-alert-content">
-                        <div class="payment-alert-title">🚨 Quota de paiement atteint : ${m.nom}</div>
-                        <div class="payment-alert-sub">${count} séance(s) effectuée(s) à régler • Montant total : <strong>${totalDT} DT</strong></div>
-                    </div>
-                    <button class="btn-pay-now">Payer (${totalDT} DT)</button>
-                `;
+            profNames.forEach(pName => {
+                const profSessions = subjectUnpaid.filter(s => (s.professeur || 'Non spécifié').trim().toLowerCase() === pName.toLowerCase());
+                const count = profSessions.length;
+                if (count === 0) return;
 
-                alertCard.querySelector('.btn-pay-now').addEventListener('click', () => {
-                    openPaymentModal(student, m, nonPayees, totalDT);
-                });
+                // Récupérer le tarif et le quota spécifiques au professeur
+                let prix = Number(m.prixSeance) || 20;
+                let quota = Number(m.quotaPaiement) || 4;
 
-                container.appendChild(alertCard);
-            }
+                if (m.profCodes && pName.toLowerCase() !== 'non spécifié') {
+                    const pc = m.profCodes.find(c => (c.nom || '').trim().toLowerCase() === pName.toLowerCase());
+                    if (pc) {
+                        if (pc.prixSeance !== undefined && pc.prixSeance !== null && pc.prixSeance !== '') {
+                            prix = Number(pc.prixSeance);
+                        }
+                        if (pc.quotaPaiement !== undefined && pc.quotaPaiement !== null && pc.quotaPaiement !== '') {
+                            quota = Number(pc.quotaPaiement);
+                        }
+                    }
+                }
+
+                if (count >= quota) {
+                    const totalDT = count * prix;
+                    const alertCard = document.createElement('div');
+                    alertCard.className = 'payment-alert-card';
+                    const profTitle = (pName && pName.toLowerCase() !== 'non spécifié') ? ` • ${pName}` : '';
+                    alertCard.innerHTML = `
+                        <div class="payment-alert-content">
+                            <div class="payment-alert-title">🚨 Quota de paiement atteint : ${m.nom}${profTitle}</div>
+                            <div class="payment-alert-sub">${count} séance(s) effectuée(s) à régler • Montant total : <strong>${totalDT} DT</strong> <span style="font-size: 0.78rem; opacity: 0.9;">(${prix} DT/séance • Quota : ${quota} séances)</span></div>
+                        </div>
+                        <button class="btn-pay-now">Payer (${totalDT} DT)</button>
+                    `;
+
+                    alertCard.querySelector('.btn-pay-now').addEventListener('click', () => {
+                        openPaymentModal(student, m, profSessions, totalDT, pName);
+                    });
+
+                    container.appendChild(alertCard);
+                }
+            });
         });
     }
 
-    function openPaymentModal(student, matiere, sessionsToPay, totalDT) {
+    function openPaymentModal(student, matiere, sessionsToPay, totalDT, profName = '') {
         const modalDesc = document.getElementById('payment-modal-desc');
-        modalDesc.innerHTML = `Règlement pour <strong>${matiere.nom}</strong> (${sessionsToPay.length} séances) : <strong>${totalDT} DT</strong>`;
+        const profDisplay = (profName && profName.toLowerCase() !== 'non spécifié') ? ` • <strong>${profName}</strong>` : '';
+        modalDesc.innerHTML = `Règlement pour <strong>${matiere.nom}</strong>${profDisplay} (${sessionsToPay.length} séances) : <strong>${totalDT} DT</strong>`;
         
         const today = new Date();
         const dd = String(today.getDate()).padStart(2, '0');
@@ -2241,6 +2296,7 @@ ${profName}`;
             student.paiements.push({
                 id: 'pay_' + Date.now(),
                 matiere: matiere.nom,
+                professeur: profName || 'Non spécifié',
                 nombreSeances: sessionsToPay.length,
                 montantTotal: totalDT,
                 datePaiement,
@@ -2249,7 +2305,7 @@ ${profName}`;
 
             saveData();
             modalPayment.style.display = 'none';
-            alert(`Paiement de ${totalDT} DT validé avec succès !`);
+            alert(`Paiement de ${totalDT} DT validé avec succès pour ${matiere.nom}${profName && profName !== 'Non spécifié' ? ' (' + profName + ')' : ''} !`);
         };
     }
 
@@ -2801,7 +2857,9 @@ ${profName}`;
                     if (m.profCodes && m.profCodes.length > 0) {
                         m.profCodes.forEach(pc => {
                             allProfsCount++;
-                            shareProfsText += `\n• ${pc.nom} (${m.nom}) : ${pc.code}`;
+                            const profPrix = (pc.prixSeance !== undefined && pc.prixSeance !== null && pc.prixSeance !== '') ? pc.prixSeance : (m.prixSeance || 20);
+                            const profQuota = (pc.quotaPaiement !== undefined && pc.quotaPaiement !== null && pc.quotaPaiement !== '') ? pc.quotaPaiement : (m.quotaPaiement || 4);
+                            shareProfsText += `\n• ${pc.nom} (${m.nom}) : ${pc.code} (${profPrix} DT/séance, quota ${profQuota} séances)`;
                             profsListHtml += `
                                 <div class="settings-prof-code-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #E2E8F0; gap: 8px; flex-wrap: wrap;">
                                     <div style="flex: 1; min-width: 190px;">
@@ -2809,8 +2867,10 @@ ${profName}`;
                                             👨‍🏫 ${pc.nom} <span style="font-size: 0.8rem; font-weight: 600; color: var(--sidi-blue); background: #E0F2FE; padding: 2px 8px; border-radius: 4px; margin-left: 4px;">${m.nom}</span>
                                             ${pc.telephone ? `<span class="phone-tag" style="margin-left: 6px;">📱 ${pc.telephone}</span>` : ''}
                                         </div>
-                                        <div style="margin-top: 5px; display: flex; align-items: center; gap: 6px;">
+                                        <div style="margin-top: 5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                             <code class="code-badge-combined" style="font-size: 0.88rem; font-weight: 700; background: #EEF2FF; color: #3730A3; padding: 3px 8px; border-radius: 6px; border: 1px solid #C7D2FE;">${pc.code}</code>
+                                            <span style="font-size: 0.76rem; font-weight: 600; color: #047857; background: #ECFDF5; padding: 2px 7px; border-radius: 4px; border: 1px solid #A7F3D0;">💰 ${profPrix} DT/séance</span>
+                                            <span style="font-size: 0.76rem; font-weight: 600; color: #6D28D9; background: #F5F3FF; padding: 2px 7px; border-radius: 4px; border: 1px solid #DDD6FE;">📦 Quota: ${profQuota} séances</span>
                                         </div>
                                     </div>
                                     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
@@ -2820,7 +2880,7 @@ ${profName}`;
                                         <button class="btn-sm btn-share-prof-whatsapp" data-code="${pc.code}" data-prof="${pc.nom}" data-matiere="${m.nom}" data-eleve="${student.prenom}" data-phone="${pc.telephone || ''}" style="background: #25D366; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Envoyer par WhatsApp au professeur">
                                             💬 WhatsApp
                                         </button>
-                                        <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" data-code="${pc.code}" data-phone="${pc.telephone || ''}" style="background: #F59E0B; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Modifier les données de ce professeur">
+                                        <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" data-code="${pc.code}" data-phone="${pc.telephone || ''}" data-prix="${profPrix}" data-quota="${profQuota}" style="background: #F59E0B; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Modifier les données de ce professeur">
                                             ✏️ Modifier
                                         </button>
                                         <button class="btn-sm btn-delete-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" style="background: #EF4444; color: white; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;" title="Supprimer ce professeur">
@@ -3002,7 +3062,9 @@ ${profName}`;
                     const p = btn.getAttribute('data-prof');
                     const c = btn.getAttribute('data-code') || '';
                     const tel = btn.getAttribute('data-phone') || '';
-                    openEditProfessorModal(sId, m, p, c, tel);
+                    const pr = btn.getAttribute('data-prix');
+                    const q = btn.getAttribute('data-quota');
+                    openEditProfessorModal(sId, m, p, c, tel, pr, q);
                 });
             });
 
@@ -3122,15 +3184,23 @@ ${profName}`;
             let profsHtml = '';
             if (m.profCodes && m.profCodes.length > 0) {
                 m.profCodes.forEach(pc => {
+                    const profPrix = (pc.prixSeance !== undefined && pc.prixSeance !== null && pc.prixSeance !== '') ? pc.prixSeance : (m.prixSeance || 20);
+                    const profQuota = (pc.quotaPaiement !== undefined && pc.quotaPaiement !== null && pc.quotaPaiement !== '') ? pc.quotaPaiement : (m.quotaPaiement || 4);
                     profsHtml += `
                         <div style="margin-top: 6px; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; background: #F8FAFC; padding: 6px 10px; border-radius: 8px; border: 1px solid #E2E8F0; flex-wrap: wrap;">
-                            <div>
-                                <span>👨‍🏫 <strong>${pc.nom}</strong> : <code class="code-badge-combined">${pc.code}</code></span>
-                                ${pc.telephone ? `<span class="phone-tag" style="margin-left: 6px;">📱 ${pc.telephone}</span>` : ''}
+                            <div style="flex: 1; min-width: 190px;">
+                                <div>
+                                    <span>👨‍🏫 <strong>${pc.nom}</strong> : <code class="code-badge-combined">${pc.code}</code></span>
+                                    ${pc.telephone ? `<span class="phone-tag" style="margin-left: 6px;">📱 ${pc.telephone}</span>` : ''}
+                                </div>
+                                <div style="margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <span style="font-size: 0.74rem; font-weight: 600; color: #047857; background: #ECFDF5; padding: 1px 6px; border-radius: 4px; border: 1px solid #A7F3D0;">💰 ${profPrix} DT/séance</span>
+                                    <span style="font-size: 0.74rem; font-weight: 600; color: #6D28D9; background: #F5F3FF; padding: 1px 6px; border-radius: 4px; border: 1px solid #DDD6FE;">📦 Quota : ${profQuota} séances</span>
+                                </div>
                             </div>
                             <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                                 <button class="btn-sm btn-copy-prof-code-cfg" data-code="${pc.code}" style="padding: 3px 8px; font-size: 0.75rem; background: var(--sidi-blue); color: white;">📋 Copier</button>
-                                <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" data-code="${pc.code}" data-phone="${pc.telephone || ''}" style="padding: 3px 8px; font-size: 0.75rem; background: #F59E0B; color: white;">✏️ Modifier</button>
+                                <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" data-code="${pc.code}" data-phone="${pc.telephone || ''}" data-prix="${profPrix}" data-quota="${profQuota}" style="padding: 3px 8px; font-size: 0.75rem; background: #F59E0B; color: white;">✏️ Modifier</button>
                                 <button class="btn-sm btn-delete-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pc.nom}" style="padding: 3px 8px; font-size: 0.75rem; background: #EF4444; color: white;">🗑️ Supprimer</button>
                             </div>
                         </div>
@@ -3138,11 +3208,19 @@ ${profName}`;
                 });
             } else if (m.professeurs && m.professeurs.length > 0) {
                 m.professeurs.forEach(pName => {
+                    const profPrix = m.prixSeance || 20;
+                    const profQuota = m.quotaPaiement || 4;
                     profsHtml += `
                         <div style="margin-top: 6px; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; background: #F8FAFC; padding: 6px 10px; border-radius: 8px; border: 1px solid #E2E8F0; flex-wrap: wrap;">
-                            <span>👨‍🏫 <strong>${pName}</strong></span>
+                            <div style="flex: 1; min-width: 190px;">
+                                <span>👨‍🏫 <strong>${pName}</strong></span>
+                                <div style="margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <span style="font-size: 0.74rem; font-weight: 600; color: #047857; background: #ECFDF5; padding: 1px 6px; border-radius: 4px; border: 1px solid #A7F3D0;">💰 ${profPrix} DT/séance</span>
+                                    <span style="font-size: 0.74rem; font-weight: 600; color: #6D28D9; background: #F5F3FF; padding: 1px 6px; border-radius: 4px; border: 1px solid #DDD6FE;">📦 Quota : ${profQuota} séances</span>
+                                </div>
+                            </div>
                             <div style="display: flex; gap: 4px; align-items: center;">
-                                <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pName}" style="padding: 3px 8px; font-size: 0.75rem; background: #F59E0B; color: white;">✏️ Modifier</button>
+                                <button class="btn-sm btn-edit-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pName}" data-prix="${profPrix}" data-quota="${profQuota}" style="padding: 3px 8px; font-size: 0.75rem; background: #F59E0B; color: white;">✏️ Modifier</button>
                                 <button class="btn-sm btn-delete-prof-action" data-student-id="${student.id}" data-matiere="${m.nom}" data-prof="${pName}" style="padding: 3px 8px; font-size: 0.75rem; background: #EF4444; color: white;">🗑️ Supprimer</button>
                             </div>
                         </div>
@@ -3164,27 +3242,49 @@ ${profName}`;
             item.className = 'matiere-config-item';
             item.innerHTML = `
                 <div style="flex: 1;">
-                    <strong>${m.nom}</strong>
-                    <div style="font-size: 0.85rem; color: #64748B;">
-                        Prix : <strong>${m.prixSeance} DT</strong> | Quota : <strong>${m.quotaPaiement} séances</strong>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <strong style="font-size: 1.05rem; color: var(--sidi-blue-dark);">${m.nom}</strong>
+                        <span style="font-size: 0.78rem; font-weight: 600; color: #475569; background: #F1F5F9; padding: 2px 8px; border-radius: 6px;">Défaut : ${m.prixSeance || 20} DT • Quota : ${m.quotaPaiement || 4} séances</span>
                     </div>
-                    <div style="margin-top: 6px;">
-                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--sidi-blue);">Codes Professeurs :</span>
+                    <div style="margin-top: 8px;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--sidi-blue);">Professeurs et tarifs spécifiques :</span>
                         ${profsHtml}
                     </div>
                 </div>
-                <button class="btn-sm" style="background: #EF4444; align-self: flex-start; margin-left: 10px;" data-idx="${idx}">Supprimer</button>
+                <div style="display: flex; gap: 6px; align-self: flex-start; margin-left: 10px;">
+                    <button class="btn-sm btn-edit-matiere-default" style="background: #F59E0B; color: white; padding: 4px 10px; font-size: 0.78rem;" data-idx="${idx}" title="Modifier le tarif et quota par défaut de la matière">✏️ Modifier</button>
+                    <button class="btn-sm btn-delete-matiere" style="background: #EF4444; color: white; padding: 4px 10px; font-size: 0.78rem;" data-idx="${idx}" title="Supprimer la matière">🗑️</button>
+                </div>
             `;
 
-            item.querySelector('button[data-idx]').addEventListener('click', () => {
-                if (confirm(`Supprimer la matière ${m.nom} ?`)) {
-                    student.matieres.splice(idx, 1);
-                    saveData();
-                    renderMatieresConfigList();
-                    renderSettingsStudentsCodes();
-                    populateMatieresSelect(student);
-                }
-            });
+            const btnEditMat = item.querySelector('.btn-edit-matiere-default');
+            if (btnEditMat) {
+                btnEditMat.addEventListener('click', () => {
+                    document.getElementById('cfg-nom-matiere').value = m.nom;
+                    document.getElementById('cfg-prix-seance').value = m.prixSeance || 20;
+                    document.getElementById('cfg-quota-seances').value = m.quotaPaiement || 4;
+                    document.getElementById('cfg-professeurs').value = (m.professeurs || []).join(', ');
+                    if (formTitle) formTitle.textContent = `Modifier la matière "${m.nom}" pour ${student.prenom}`;
+                    const nomInput = document.getElementById('cfg-nom-matiere');
+                    if (nomInput) {
+                        nomInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        nomInput.focus();
+                    }
+                });
+            }
+
+            const btnDelMat = item.querySelector('.btn-delete-matiere');
+            if (btnDelMat) {
+                btnDelMat.addEventListener('click', () => {
+                    if (confirm(`Supprimer la matière ${m.nom} ?`)) {
+                        student.matieres.splice(idx, 1);
+                        saveData();
+                        renderMatieresConfigList();
+                        renderSettingsStudentsCodes();
+                        populateMatieresSelect(student);
+                    }
+                });
+            }
 
             item.querySelectorAll('.btn-copy-prof-code-cfg').forEach(b => {
                 b.addEventListener('click', () => {
@@ -3202,7 +3302,9 @@ ${profName}`;
                     const pName = b.getAttribute('data-prof');
                     const c = b.getAttribute('data-code') || '';
                     const tel = b.getAttribute('data-phone') || '';
-                    openEditProfessorModal(sId, mName, pName, c, tel);
+                    const pr = b.getAttribute('data-prix');
+                    const q = b.getAttribute('data-quota');
+                    openEditProfessorModal(sId, mName, pName, c, tel, pr, q);
                 });
             });
 
@@ -3241,16 +3343,35 @@ ${profName}`;
     const btnCloseEditProf = document.getElementById('btn-close-edit-prof');
     const btnCancelEditProf = document.getElementById('btn-cancel-edit-prof');
 
-    function openEditProfessorModal(studentId, matiereName, profName, profCode, profTelephone) {
+    function openEditProfessorModal(studentId, matiereName, profName, profCode, profTelephone, profPrix, profQuota) {
         const student = getStudent(studentId);
         if (!student) return;
 
         let tel = profTelephone;
-        if (tel === undefined && student.matieres) {
+        let prix = profPrix;
+        let quota = profQuota;
+
+        if (student.matieres) {
             const m = student.matieres.find(mat => mat.nom.toLowerCase() === matiereName.toLowerCase());
-            if (m && m.profCodes) {
-                const pc = m.profCodes.find(c => (c.nom || '').toLowerCase() === profName.toLowerCase());
-                if (pc) tel = pc.telephone || '';
+            if (m) {
+                if (prix === undefined || prix === null || prix === '') {
+                    prix = m.prixSeance || 20;
+                }
+                if (quota === undefined || quota === null || quota === '') {
+                    quota = m.quotaPaiement || 4;
+                }
+                if (m.profCodes) {
+                    const pc = m.profCodes.find(c => (c.nom || '').toLowerCase() === profName.toLowerCase());
+                    if (pc) {
+                        if (tel === undefined || tel === null) tel = pc.telephone || '';
+                        if (pc.prixSeance !== undefined && pc.prixSeance !== null && pc.prixSeance !== '') {
+                            prix = pc.prixSeance;
+                        }
+                        if (pc.quotaPaiement !== undefined && pc.quotaPaiement !== null && pc.quotaPaiement !== '') {
+                            quota = pc.quotaPaiement;
+                        }
+                    }
+                }
             }
         }
 
@@ -3262,6 +3383,10 @@ ${profName}`;
         document.getElementById('edit-prof-nom').value = profName;
         const telInput = document.getElementById('edit-prof-telephone');
         if (telInput) telInput.value = tel || '';
+        const prixInput = document.getElementById('edit-prof-prix');
+        if (prixInput) prixInput.value = (prix !== undefined && prix !== null) ? prix : 20;
+        const quotaInput = document.getElementById('edit-prof-quota');
+        if (quotaInput) quotaInput.value = (quota !== undefined && quota !== null) ? quota : 4;
         document.getElementById('edit-prof-current-code').textContent = profCode || '---';
 
         if (modalEditProf) {
@@ -3292,21 +3417,31 @@ ${profName}`;
             const oldName = document.getElementById('edit-prof-old-name').value;
             const newName = document.getElementById('edit-prof-nom').value.trim();
             const newTel = (document.getElementById('edit-prof-telephone') ? document.getElementById('edit-prof-telephone').value : '').trim();
+            const newPrix = parseFloat(document.getElementById('edit-prof-prix').value);
+            const newQuota = parseInt(document.getElementById('edit-prof-quota').value, 10);
 
             if (!newName) {
                 alert('Veuillez saisir le nom du professeur.');
                 return;
             }
+            if (isNaN(newPrix) || newPrix < 0) {
+                alert('Veuillez saisir un tarif de séance valide.');
+                return;
+            }
+            if (isNaN(newQuota) || newQuota < 1) {
+                alert('Veuillez saisir un quota de séances valide (au moins 1).');
+                return;
+            }
 
-            const success = updateProfessor(studentId, matiere, oldName, newName, newTel);
+            const success = updateProfessor(studentId, matiere, oldName, newName, newTel, newPrix, newQuota);
             if (success) {
                 if (modalEditProf) modalEditProf.style.display = 'none';
-                alert(`Données du professeur mises à jour : "${newName}" !`);
+                alert(`Données du professeur mises à jour : "${newName}" (${newPrix} DT/séance, quota ${newQuota} séances) !`);
             }
         });
     }
 
-    function updateProfessor(studentId, matiereName, oldName, newName, newTelephone) {
+    function updateProfessor(studentId, matiereName, oldName, newName, newTelephone, newPrix, newQuota) {
         if (!newName || !newName.trim()) return false;
         const cleanNewName = newName.trim();
         const student = getStudent(studentId);
@@ -3338,13 +3473,20 @@ ${profName}`;
                 if (newTelephone !== undefined) {
                     pc.telephone = newTelephone;
                 }
+                if (newPrix !== undefined && newPrix !== null && !isNaN(newPrix)) {
+                    pc.prixSeance = Number(newPrix);
+                }
+                if (newQuota !== undefined && newQuota !== null && !isNaN(newQuota)) {
+                    pc.quotaPaiement = Number(newQuota);
+                }
             }
         }
 
         // 3. Mettre à jour dans les séances passées
         if (student.sessions) {
             student.sessions.forEach(s => {
-                if (s.matiere && s.matiere.toLowerCase() === matiereName.toLowerCase()) {
+                const sMatiere = s.matiere || s.sujet || '';
+                if (sMatiere.toLowerCase() === matiereName.toLowerCase()) {
                     if (s.professeur && s.professeur.toLowerCase() === oldName.toLowerCase()) {
                         s.professeur = cleanNewName;
                     }
@@ -3497,7 +3639,7 @@ ${profName}`;
         return true;
     }
 
-    function addProfessor(studentId, matiereName, profName) {
+    function addProfessor(studentId, matiereName, profName, prix = null, quota = null) {
         if (!profName || !profName.trim()) return false;
         const cleanName = profName.trim();
         const student = getStudent(studentId);
@@ -3516,6 +3658,19 @@ ${profName}`;
         }
 
         ensureProfCodes(student);
+
+        if (matiere.profCodes) {
+            const pc = matiere.profCodes.find(c => (c.nom || '').toLowerCase() === cleanName.toLowerCase());
+            if (pc) {
+                if (prix !== null && prix !== undefined && !isNaN(prix)) {
+                    pc.prixSeance = Number(prix);
+                }
+                if (quota !== null && quota !== undefined && !isNaN(quota)) {
+                    pc.quotaPaiement = Number(quota);
+                }
+            }
+        }
+
         saveData();
         renderSettingsStudentsCodes();
         renderMatieresConfigList();
